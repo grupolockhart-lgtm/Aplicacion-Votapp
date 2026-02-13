@@ -2,8 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # 📌 URL de la base de datos
-# Para SQLite local:
-DATABASE_URL = "sqlite:///C:/Users/ingeniero LOCA/Documents/Python Documentos/Aplicacion-Votapp/votapp_app/surveys.db"
+# Usar /tmp en Render para que SQLite pueda escribir el archivo
+DATABASE_URL = "sqlite:////tmp/surveys.db"
 
 # 🔧 Motor de conexión
 engine = create_engine(
