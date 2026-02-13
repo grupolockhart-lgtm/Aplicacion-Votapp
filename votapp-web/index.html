@@ -1,0 +1,49 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Crear Encuesta</title>
+</head>
+<body>
+  <h1>Crear nueva encuesta</h1>
+  <form id="surveyForm">
+    <label>Título:</label>
+    <input type="text" id="title" required><br><br>
+
+    <label>Opciones:</label><br>
+    <input type="text" class="option" placeholder="Opción 1"><br>
+    <input type="text" class="option" placeholder="Opción 2"><br>
+    <button type="button" onclick="addOption()">Agregar opción</button><br><br>
+
+    <button type="submit">Crear encuesta</button>
+  </form>
+
+  <script>
+    function addOption() {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "option";
+      input.placeholder = "Otra opción";
+      document.getElementById("surveyForm").insertBefore(input, document.querySelector("button[type=submit]"));
+      document.getElementById("surveyForm").insertBefore(document.createElement("br"), document.querySelector("button[type=submit]"));
+    }
+
+    document.getElementById("surveyForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("title").value;
+      const options = Array.from(document.querySelectorAll(".option")).map(o => o.value).filter(v => v);
+
+      const res = await fetch("http://10.0.0.178:8000/api/surveys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, options })
+      });
+
+      const data = await res.json();
+      alert("Encuesta creada: " + JSON.stringify(data.survey));
+    });
+  </script>
+</body>
+</html>
