@@ -8,3 +8,4 @@ requests
 cohere
 mangum
 pydantic
+python-jose[cryptography]==3.3.0
