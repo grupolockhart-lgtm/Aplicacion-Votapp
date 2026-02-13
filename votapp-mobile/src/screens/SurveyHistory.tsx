@@ -19,7 +19,7 @@ export default function SurveyHistory() {
 
   useEffect(() => {
     axios
-      .get(`http://TU_BACKEND_URL/api/admin/surveys/history/${originalId}`)
+      .get(`https://aplicacion-votapp.onrender.com/api/admin/surveys/history/${originalId}`)
       .then((res) => setHistory(res.data))
       .catch((err) => console.error(err));
   }, [originalId]);

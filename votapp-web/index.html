@@ -35,7 +35,7 @@
       const title = document.getElementById("title").value;
       const options = Array.from(document.querySelectorAll(".option")).map(o => o.value).filter(v => v);
 
-      const res = await fetch("http://10.0.0.178:8000/api/surveys", {
+      const res = await fetch("https://aplicacion-votapp.onrender.com/api/surveys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, options })

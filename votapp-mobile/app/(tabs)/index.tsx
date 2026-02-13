@@ -20,7 +20,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://10.0.0.178:8000/api/surveys")
+    fetch("https://aplicacion-votapp.onrender.com/api/surveys")
       .then((res) => res.json())
       .then((data) => {
         setSurveys(data); // si tu API devuelve directamente un array

@@ -29,7 +29,7 @@ def grafico_barras(options, votes):
 
 # 🚀 Aquí va la conexión al backend
 survey_id = 1  # ID de la encuesta que quieras visualizar
-response = requests.get(f"http://localhost:8000/api/results/{survey_id}")
+response = requests.get(f"https://aplicacion-votapp.onrender.com/api/results/{survey_id}")
 data = response.json()
 
 options = list(data["results"].keys())
