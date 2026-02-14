@@ -14,15 +14,11 @@ from .schemas import SurveyOut
 router = APIRouter()
 
 RSS_URL = "https://www.diariolibre.com/rss/portada.xml"
-
 co = cohere.Client(os.getenv("COHERE_API_KEY"))
 
 def resumir_con_cohere(texto: str) -> str:
     prompt = f"Resume en máximo 2 frases claras y neutrales:\n\n{texto}"
-    response = co.chat(
-        model="command-r-08-2024",
-        message=prompt
-    )
+    response = co.chat(model="command-r-08-2024", message=prompt)
     return response.text.strip()
 
 def generar_preguntas_con_cohere(titulo: str, resumen: str):
@@ -58,31 +54,41 @@ def generar_preguntas_con_cohere(titulo: str, resumen: str):
       }}
     ]
     """
-
-    response = co.chat(
-        model="command-r-08-2024",
-        message=prompt
-    )
-
+    response = co.chat(model="command-r-08-2024", message=prompt)
     preguntas_json = response.text
     try:
         preguntas = json.loads(preguntas_json)
         if not isinstance(preguntas, list):
             preguntas = [preguntas]
-    except Exception as e:
-        print("Error al parsear JSON:", e)
-        preguntas = [
-            {
-                "text": f"¿Qué opinas de la noticia '{titulo}'?",
-                "options": [
-                    {"text": "Me interesa"},
-                    {"text": "No me interesa"},
-                    {"text": "Prefiero no opinar"}
-                ]
-            }
-        ]
+    except Exception:
+        preguntas = [{
+            "text": f"¿Qué opinas de la noticia '{titulo}'?",
+            "options": [
+                {"text": "Me interesa"},
+                {"text": "No me interesa"},
+                {"text": "Prefiero no opinar"}
+            ]
+        }]
     return preguntas
 
+def normalizar_preguntas(preguntas_raw, encuesta_id: int):
+    preguntas_out = []
+    for q_idx, pregunta in enumerate(preguntas_raw, start=1):
+        opciones_out = []
+        for o_idx, opcion in enumerate(pregunta.get("options", []), start=1):
+            opciones_out.append({
+                "id": o_idx,
+                "text": opcion["text"],
+                "count": 0,
+                "percentage": None
+            })
+        preguntas_out.append({
+            "id": q_idx,
+            "text": pregunta["text"],
+            "options": opciones_out,
+            "total_votes": 0
+        })
+    return preguntas_out
 
 @router.get("/rss/diariolibre", response_model=List[SurveyOut])
 def obtener_encuestas_diariolibre():
@@ -95,11 +101,10 @@ def obtener_encuestas_diariolibre():
         resumen_original = getattr(entry, "summary", getattr(entry, "description", ""))
         resumen = resumir_con_cohere(resumen_original)
 
-        preguntas = generar_preguntas_con_cohere(titulo, resumen)
+        preguntas_raw = generar_preguntas_con_cohere(titulo, resumen)
 
         encuesta_existente = db.query(models.Survey).filter(models.Survey.source_url == entry.link).first()
         if encuesta_existente:
-            print(f"Encuesta ya existente: {titulo}")
             continue
 
         imagen = None
@@ -107,7 +112,6 @@ def obtener_encuestas_diariolibre():
             imagen = entry.media_content[0].get("url")
         elif hasattr(entry, "enclosures") and entry.enclosures:
             imagen = entry.enclosures[0].get("href")
-
         if not imagen:
             imagen = "https://mi-cdn.com/imagenes/placeholder.png"
 
@@ -129,21 +133,23 @@ def obtener_encuestas_diariolibre():
         db.add(encuesta)
         db.flush()
 
-        for pregunta in preguntas:
+        for pregunta in preguntas_raw:
             q = models.Question(text=pregunta["text"], survey=encuesta)
             db.add(q)
             for opcion in pregunta.get("options", []):
                 db.add(models.Option(text=opcion["text"], question=q))
+
+        preguntas_out = normalizar_preguntas(preguntas_raw, encuesta.id)
 
         encuestas.append({
             "id": encuesta.id,
             "title": titulo,
             "description": resumen,
             "fecha_expiracion": encuesta.fecha_expiracion,
-            "questions": preguntas,
+            "questions": preguntas_out,
             "media_url": imagen,
             "media_urls": [imagen],
-            "media_type": "native",   # 👈 nuevo campo
+            "media_type": "native",
             "patrocinada": encuesta.patrocinada,
             "patrocinador": encuesta.patrocinador,
             "recompensa_puntos": encuesta.recompensa_puntos,
@@ -155,7 +161,6 @@ def obtener_encuestas_diariolibre():
 
     db.commit()
     db.close()
-
     return encuestas
 
 @router.get("/youtube/diariolibre", response_model=List[SurveyOut])
@@ -193,7 +198,7 @@ def obtener_encuestas_youtube():
         resumen_original = item["snippet"].get("description", titulo)
         resumen = resumir_con_cohere(resumen_original)
 
-        preguntas = generar_preguntas_con_cohere(titulo, resumen)
+        preguntas_raw = generar_preguntas_con_cohere(titulo, resumen)
 
         video_id = item["snippet"]["resourceId"]["videoId"]
         youtube_url = f"https://www.youtube.com/watch?v={video_id}"
@@ -208,9 +213,9 @@ def obtener_encuestas_youtube():
         encuesta = models.Survey(
             title=titulo,
             description=resumen,
-            media_url=youtube_url,                 # enlace al video
-            media_urls=json.dumps([thumbnail_url]),# thumbnail como apoyo
-            media_type="webview",                  # 👈 ahora sí se guarda en DB
+            media_url=youtube_url,
+            media_urls=json.dumps([thumbnail_url]),
+            media_type="webview",
             fecha_expiracion=datetime.utcnow() + timedelta(days=7),
             patrocinada=False,
             patrocinador="Diario Libre YouTube",
@@ -224,21 +229,23 @@ def obtener_encuestas_youtube():
         db.add(encuesta)
         db.flush()
 
-        for pregunta in preguntas:
+        for pregunta in preguntas_raw:
             q = models.Question(text=pregunta["text"], survey=encuesta)
             db.add(q)
             for opcion in pregunta.get("options", []):
                 db.add(models.Option(text=opcion["text"], question=q))
+
+        preguntas_out = normalizar_preguntas(preguntas_raw, encuesta.id)
 
         encuestas.append({
             "id": encuesta.id,
             "title": titulo,
             "description": resumen,
             "fecha_expiracion": encuesta.fecha_expiracion,
-            "questions": preguntas,
+            "questions": preguntas_out,
             "media_url": youtube_url,
             "media_urls": [thumbnail_url],
-            "media_type": "webview",               # 👈 clave para frontend
+            "media_type": "webview",
             "patrocinada": encuesta.patrocinada,
             "patrocinador": encuesta.patrocinador,
             "recompensa_puntos": encuesta.recompensa_puntos,
@@ -250,5 +257,6 @@ def obtener_encuestas_youtube():
 
     db.commit()
     db.close()
+
 
     return encuestas
