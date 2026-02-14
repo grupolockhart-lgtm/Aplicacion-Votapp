@@ -5,11 +5,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 
-import DisponiblesScreen from "./DisponiblesScreen";
-import VotadasScreen from "./VotadasScreen";
-import FinalizadasScreen from "./FinalizadasScreen";
-import ResultsScreen from "./ResultsScreen";
-import SurveyHistory from "./SurveyHistory";
+import DisponiblesScreen from "@/screens/DisponiblesScreen";
+import VotadasScreen from "@/screens/VotadasScreen";
+import FinalizadasScreen from "@/screens/FinalizadasScreen";
+import ResultsScreen from "@/screens/ResultsScreen";
+import SurveyHistory from "@/screens/SurveyHistory";
+
+
 
 
 

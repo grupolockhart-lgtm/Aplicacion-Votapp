@@ -1,15 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+import os
 
-# 📌 URL de la base de datos
-# Usar /tmp en Render para que SQLite pueda escribir el archivo
-DATABASE_URL = "sqlite:////tmp/surveys.db"
+# 📌 URL de la base PostgreSQL en Render (guardada como variable de entorno)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # 🔧 Motor de conexión
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}  # Necesario solo para SQLite
-)
+engine = create_engine(DATABASE_URL)
 
 # 🔧 Sesión para interactuar con la base de datos
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
