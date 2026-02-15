@@ -12,6 +12,8 @@ from services.news_api import obtener_temas_relevantes
 from votapp_app.database import SessionLocal
 from services.seed import seed_logros
 from votapp_app import rss
+from apscheduler.schedulers.background import BackgroundScheduler
+import requests
 
 import os
 from dotenv import load_dotenv
@@ -102,6 +104,42 @@ def listar_encuestas(limit: int = 10, ciudad: str = None):
         {"id": e.id, "title": e.title, "description": e.description, "media_url": e.media_url}
         for e in encuestas
     ]
+
+
+
+# -----------------------------
+# Scheduler con APScheduler
+# -----------------------------
+scheduler = BackgroundScheduler()
+
+def job_youtube():
+    try:
+        url = os.getenv("APP_BASE_URL", "http://localhost:8080") + "/api/youtube/diariolibre"
+        requests.get(url)
+        print("✅ Encuestas de YouTube actualizadas")
+    except Exception as e:
+        print("❌ Error en job_youtube:", e)
+
+def job_rss():
+    try:
+        url = os.getenv("APP_BASE_URL", "http://localhost:8080") + "/api/rss/diariolibre"
+        requests.get(url)
+        print("✅ Encuestas de RSS actualizadas")
+    except Exception as e:
+        print("❌ Error en job_rss:", e)
+
+# Programar cada 6 horas
+scheduler.add_job(job_youtube, "interval", hours=6)
+scheduler.add_job(job_rss, "interval", hours=6)
+scheduler.start()
+
+@app.on_event("startup")
+def startup_event():
+    # Opcional: disparar al inicio también
+    job_youtube()
+    job_rss()
+
+
 
 # -----------------------------
 # Adaptador para Cloud Functions

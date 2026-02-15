@@ -228,7 +228,7 @@ from typing import List, Optional, Literal
 from datetime import datetime
 
 class OptionOut(BaseModel):
-    id: int
+    id: Optional[int] = None    # 👈 ahora opcional
     text: str
     count: Optional[int] = None
     percentage: Optional[float] = None
@@ -238,13 +238,15 @@ class OptionOut(BaseModel):
 
 
 class QuestionOut(BaseModel):
-    id: int
+    id: Optional[int] = None    # 👈 ahora opcional
     text: str
     options: List[OptionOut]
     total_votes: Optional[int] = None
 
     class Config:
         from_attributes = True
+
+
 
 
 # -----------------------------

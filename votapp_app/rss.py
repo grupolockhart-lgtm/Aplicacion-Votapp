@@ -71,97 +71,26 @@ def generar_preguntas_con_cohere(titulo: str, resumen: str):
         }]
     return preguntas
 
-def normalizar_preguntas(preguntas_raw, encuesta_id: int):
+def normalizar_preguntas(encuesta: models.Survey):
     preguntas_out = []
-    for q_idx, pregunta in enumerate(preguntas_raw, start=1):
+    for q in encuesta.questions:
         opciones_out = []
-        for o_idx, opcion in enumerate(pregunta.get("options", []), start=1):
+        for o in q.options:
             opciones_out.append({
-                "id": o_idx,
-                "text": opcion["text"],
+                "id": o.id,             # 👈 ID real de la opción
+                "text": o.text,
                 "count": 0,
                 "percentage": None
             })
         preguntas_out.append({
-            "id": q_idx,
-            "text": pregunta["text"],
+            "id": q.id,                # 👈 ID real de la pregunta
+            "text": q.text,
             "options": opciones_out,
             "total_votes": 0
         })
     return preguntas_out
 
-@router.get("/rss/diariolibre", response_model=List[SurveyOut])
-def obtener_encuestas_diariolibre():
-    feed = feedparser.parse(RSS_URL)
-    db = SessionLocal()
-    encuestas = []
 
-    for entry in feed.entries[:1]:
-        titulo = entry.title
-        resumen_original = getattr(entry, "summary", getattr(entry, "description", ""))
-        resumen = resumir_con_cohere(resumen_original)
-
-        preguntas_raw = generar_preguntas_con_cohere(titulo, resumen)
-
-        encuesta_existente = db.query(models.Survey).filter(models.Survey.source_url == entry.link).first()
-        if encuesta_existente:
-            continue
-
-        imagen = None
-        if hasattr(entry, "media_content") and entry.media_content:
-            imagen = entry.media_content[0].get("url")
-        elif hasattr(entry, "enclosures") and entry.enclosures:
-            imagen = entry.enclosures[0].get("href")
-        if not imagen:
-            imagen = "https://mi-cdn.com/imagenes/placeholder.png"
-
-        encuesta = models.Survey(
-            title=titulo,
-            description=resumen,
-            media_url=imagen,
-            media_urls=json.dumps([imagen]),
-            fecha_expiracion=datetime.utcnow() + timedelta(days=7),
-            patrocinada=False,
-            patrocinador="Diario Libre Auto",
-            recompensa_puntos=10,
-            recompensa_dinero=0,
-            presupuesto_total=100,
-            visibilidad_resultados="publica",
-            source_url=entry.link
-        )
-
-        db.add(encuesta)
-        db.flush()
-
-        for pregunta in preguntas_raw:
-            q = models.Question(text=pregunta["text"], survey=encuesta)
-            db.add(q)
-            for opcion in pregunta.get("options", []):
-                db.add(models.Option(text=opcion["text"], question=q))
-
-        preguntas_out = normalizar_preguntas(preguntas_raw, encuesta.id)
-
-        encuestas.append({
-            "id": encuesta.id,
-            "title": titulo,
-            "description": resumen,
-            "fecha_expiracion": encuesta.fecha_expiracion,
-            "questions": preguntas_out,
-            "media_url": imagen,
-            "media_urls": [imagen],
-            "media_type": "native",
-            "patrocinada": encuesta.patrocinada,
-            "patrocinador": encuesta.patrocinador,
-            "recompensa_puntos": encuesta.recompensa_puntos,
-            "recompensa_dinero": encuesta.recompensa_dinero,
-            "presupuesto_total": encuesta.presupuesto_total,
-            "visibilidad_resultados": encuesta.visibilidad_resultados,
-            "source_url": entry.link
-        })
-
-    db.commit()
-    db.close()
-    return encuestas
 
 @router.get("/youtube/diariolibre", response_model=List[SurveyOut])
 def obtener_encuestas_youtube():
@@ -227,15 +156,35 @@ def obtener_encuestas_youtube():
         )
 
         db.add(encuesta)
-        db.flush()
+        db.flush()  # 👈 asegura que encuesta.id esté disponible
 
+        # Crear preguntas y opciones en DB con IDs reales
         for pregunta in preguntas_raw:
             q = models.Question(text=pregunta["text"], survey=encuesta)
             db.add(q)
+            db.flush()  # 👈 asegura que q.id esté disponible
             for opcion in pregunta.get("options", []):
-                db.add(models.Option(text=opcion["text"], question=q))
+                o = models.Option(text=opcion["text"], question=q)
+                db.add(o)
+                db.flush()  # 👈 asegura que o.id esté disponible
 
-        preguntas_out = normalizar_preguntas(preguntas_raw, encuesta.id)
+        # Normalizar usando IDs reales de la DB
+        preguntas_out = []
+        for q in encuesta.questions:
+            opciones_out = []
+            for o in q.options:
+                opciones_out.append({
+                    "id": o.id,
+                    "text": o.text,
+                    "count": 0,
+                    "percentage": None
+                })
+            preguntas_out.append({
+                "id": q.id,
+                "text": q.text,
+                "options": opciones_out,
+                "total_votes": 0
+            })
 
         encuestas.append({
             "id": encuesta.id,
@@ -258,5 +207,105 @@ def obtener_encuestas_youtube():
     db.commit()
     db.close()
 
+    print(f"✅ {len(encuestas)} encuestas nuevas creadas desde YouTube Diario Libre")
 
     return encuestas
+
+
+
+@router.get("/rss/diariolibre", response_model=List[SurveyOut])
+def obtener_encuestas_diariolibre():
+    feed = feedparser.parse(RSS_URL)
+    db = SessionLocal()
+    encuestas = []
+
+    for entry in feed.entries[:4]:
+        titulo = entry.title
+        resumen_original = getattr(entry, "summary", getattr(entry, "description", ""))
+        resumen = resumir_con_cohere(resumen_original)
+
+        preguntas_raw = generar_preguntas_con_cohere(titulo, resumen)
+
+        encuesta_existente = db.query(models.Survey).filter(models.Survey.source_url == entry.link).first()
+        if encuesta_existente:
+            continue
+
+        imagen = None
+        if hasattr(entry, "media_content") and entry.media_content:
+            imagen = entry.media_content[0].get("url")
+        elif hasattr(entry, "enclosures") and entry.enclosures:
+            imagen = entry.enclosures[0].get("href")
+        if not imagen:
+            imagen = "https://mi-cdn.com/imagenes/placeholder.png"
+
+        encuesta = models.Survey(
+            title=titulo,
+            description=resumen,
+            media_url=imagen,
+            media_urls=json.dumps([imagen]),
+            fecha_expiracion=datetime.utcnow() + timedelta(days=7),
+            patrocinada=False,
+            patrocinador="Diario Libre Auto",
+            recompensa_puntos=10,
+            recompensa_dinero=0,
+            presupuesto_total=100,
+            visibilidad_resultados="publica",
+            source_url=entry.link
+        )
+
+        db.add(encuesta)
+        db.flush()  # 👈 asegura que encuesta.id esté disponible
+
+        # Crear preguntas y opciones en DB
+        for pregunta in preguntas_raw:
+            q = models.Question(text=pregunta["text"], survey=encuesta)
+            db.add(q)
+            db.flush()  # 👈 asegura que q.id esté disponible
+            for opcion in pregunta.get("options", []):
+                o = models.Option(text=opcion["text"], question=q)
+                db.add(o)
+                db.flush()  # 👈 asegura que o.id esté disponible
+
+        # Normalizar usando IDs reales de la DB
+        preguntas_out = []
+        for q in encuesta.questions:
+            opciones_out = []
+            for o in q.options:
+                opciones_out.append({
+                    "id": o.id,
+                    "text": o.text,
+                    "count": 0,
+                    "percentage": None
+                })
+            preguntas_out.append({
+                "id": q.id,
+                "text": q.text,
+                "options": opciones_out,
+                "total_votes": 0
+            })
+
+        encuestas.append({
+            "id": encuesta.id,
+            "title": titulo,
+            "description": resumen,
+            "fecha_expiracion": encuesta.fecha_expiracion,
+            "questions": preguntas_out,
+            "media_url": imagen,
+            "media_urls": [imagen],
+            "media_type": "native",
+            "patrocinada": encuesta.patrocinada,
+            "patrocinador": encuesta.patrocinador,
+            "recompensa_puntos": encuesta.recompensa_puntos,
+            "recompensa_dinero": encuesta.recompensa_dinero,
+            "presupuesto_total": encuesta.presupuesto_total,
+            "visibilidad_resultados": encuesta.visibilidad_resultados,
+            "source_url": entry.link
+        })
+
+    db.commit()
+    db.close()
+
+    print(f"✅ {len(encuestas)} encuestas nuevas creadas desde RSS Diario Libre")
+
+    return encuestas
+
