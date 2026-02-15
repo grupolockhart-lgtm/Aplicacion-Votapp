@@ -1,9 +1,15 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
+from dotenv import load_dotenv
+
+# 📌 Cargar variables de entorno aquí mismo
+load_dotenv()
 
 # 📌 URL de la base PostgreSQL en Render (guardada como variable de entorno)
 DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("❌ No se encontró la variable DATABASE_URL. Verifica tu archivo .env")
 
 # 🔧 Motor de conexión
 engine = create_engine(DATABASE_URL)
@@ -21,3 +27,4 @@ def get_db():
         yield db
     finally:
         db.close()
+

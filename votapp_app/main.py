@@ -13,6 +13,9 @@ from votapp_app.database import SessionLocal
 from services.seed import seed_logros
 from votapp_app import rss
 from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime, timedelta
+
+
 import requests
 
 import os
@@ -135,9 +138,9 @@ scheduler.start()
 
 @app.on_event("startup")
 def startup_event():
-    # Opcional: disparar al inicio también
-    job_youtube()
-    job_rss()
+    # Retrasar el primer disparo 1 minuto después del arranque
+    scheduler.add_job(job_youtube, "date", run_date=datetime.utcnow() + timedelta(minutes=1))
+    scheduler.add_job(job_rss, "date", run_date=datetime.utcnow() + timedelta(minutes=1))
 
 
 
