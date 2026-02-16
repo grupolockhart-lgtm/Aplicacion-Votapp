@@ -3,6 +3,10 @@
     "name": "votapp-mobile",
     "slug": "votapp-mobile",
     "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "votappmobile",
@@ -47,6 +51,15 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cf2d55f1-9360-4cfb-b5f6-e23dc913a824"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cf2d55f1-9360-4cfb-b5f6-e23dc913a824"
     }
   }
 }
