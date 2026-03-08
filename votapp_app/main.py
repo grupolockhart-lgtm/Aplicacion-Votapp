@@ -14,6 +14,7 @@ from services.seed import seed_logros
 from votapp_app import rss
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
+from .routers import surveys_simple
 
 
 import requests
@@ -154,3 +155,9 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
 
+
+
+# -------------------
+# Surveys Simple
+# -------------------
+app.include_router(surveys_simple.router, prefix="/api")
