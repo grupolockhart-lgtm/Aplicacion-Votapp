@@ -8,6 +8,7 @@ from ..schemas_simple import (
     SurveySimpleResponse,
     SurveySimpleOptionResponse
 )
+import json
 
 router = APIRouter(prefix="/surveys/simple", tags=["Surveys Simple"])
 
@@ -19,8 +20,8 @@ def crear_encuesta_simple(survey: SurveySimpleCreate, db: Session = Depends(get_
     nueva = SurveySimple(
         titulo=survey.titulo,
         usuario_id=survey.usuario_id,
-        imagenes=survey.imagenes,
-        videos=survey.videos
+        imagenes=json.dumps(survey.imagenes) if survey.imagenes else "[]",
+        videos=json.dumps(survey.videos) if survey.videos else "[]"
     )
     db.add(nueva)
     db.commit()
@@ -36,9 +37,18 @@ def crear_encuesta_simple(survey: SurveySimpleCreate, db: Session = Depends(get_
         db.add(opt)
     db.commit()
 
-    # refrescar con opciones
-    db.refresh(nueva)
-    return nueva
+    opciones = db.query(SurveySimpleOption).filter(
+        SurveySimpleOption.survey_simple_id == nueva.id
+    ).all()
+
+    return SurveySimpleResponse(
+        id=nueva.id,
+        titulo=nueva.titulo,
+        usuario_id=nueva.usuario_id,
+        opciones=[SurveySimpleOptionResponse(id=opt.id, texto=opt.texto, votos=opt.votos) for opt in opciones],
+        imagenes=json.loads(nueva.imagenes) if nueva.imagenes else [],
+        videos=json.loads(nueva.videos) if nueva.videos else []
+    )
 
 # -------------------
 # Votar en encuesta simple
@@ -81,6 +91,6 @@ def resultados_simple(survey_id: int, db: Session = Depends(get_db)):
         titulo=encuesta.titulo,
         usuario_id=encuesta.usuario_id,
         opciones=[SurveySimpleOptionResponse(id=opt.id, texto=opt.texto, votos=opt.votos) for opt in opciones],
-        imagenes=encuesta.imagenes,
-        videos=encuesta.videos
+        imagenes=json.loads(encuesta.imagenes) if encuesta.imagenes else [],
+        videos=json.loads(encuesta.videos) if encuesta.videos else []
     )
