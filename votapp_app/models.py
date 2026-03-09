@@ -3,7 +3,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from .database import Base
+from votapp_app.database import Base
+
+
+
 from sqlalchemy import Date
 
 

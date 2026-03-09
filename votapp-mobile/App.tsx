@@ -18,6 +18,7 @@ import LogoutScreen from "./src/screens/LogoutScreen";
 import WalletHistoryScreen from "./src/screens/WalletHistoryScreen";
 import SurveyHistory from "./src/screens/SurveyHistory"; 
 import SurveyHistoryScreen from "./src/screens/SurveyHistoryScreen"; 
+import SurveySimpleCrearScreen from "./src/screens/SurveySimpleCrearScreen";
 
 import type { RootStackParamList } from "./src/Types/Navigation";
 
@@ -27,11 +28,12 @@ const Tab = createBottomTabNavigator();
 function MainTabs() {
   return (
     <Tab.Navigator
-      id="MainTabs" // 👈 id único para el Tab.Navigator
+      id="MainTabs"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
           const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
             SurveysScreen: "list",   // 📋
+            CrearEncuesta: "add-circle", // ➕
             ProfileScreen: "person", // 👤
           };
 
@@ -43,6 +45,7 @@ function MainTabs() {
             />
           );
         },
+        tabBarShowLabel: true, // 👈 muestra texto debajo
       })}
     >
       <Tab.Screen
@@ -50,6 +53,15 @@ function MainTabs() {
         component={SurveysScreen}
         options={{ title: "Encuestas" }}
       />
+
+      <Tab.Screen
+        name="CrearEncuesta"
+        component={SurveySimpleCrearScreen}
+        options={{
+          title: "Crear", // 👈 etiqueta debajo del "+"
+        }}
+      />
+
       <Tab.Screen
         name="ProfileScreen"
         component={ProfileScreen}
@@ -64,7 +76,7 @@ export default function App() {
     <GestureHandlerRootView style={styles.container}>
       <NavigationContainer>
         <Stack.Navigator
-          id="RootStack" // 👈 id único para el Stack.Navigator
+          id="RootStack"
           initialRouteName="LoginScreen"
         >
           <Stack.Screen

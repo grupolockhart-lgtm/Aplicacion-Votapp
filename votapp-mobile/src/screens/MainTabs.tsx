@@ -1,7 +1,6 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { TouchableOpacity } from "react-native";
 
 import SurveysScreen from "./SurveysScreen";
 import ProfileScreen from "./ProfileScreen";
@@ -18,18 +17,8 @@ const Tab = createBottomTabNavigator<TabParamList>();
 export default function MainTabs() {
   return (
     <Tab.Navigator
-      screenOptions={({
-        route,
-      }: {
-        route: { name: keyof TabParamList };
-      }) => ({
-        tabBarIcon: ({
-          color,
-          size,
-        }: {
-          color: string;
-          size: number;
-        }) => {
+      screenOptions={({ route }: { route: { name: keyof TabParamList } }) => ({
+        tabBarIcon: ({ color, size }: { color: string; size: number }) => {
           const icons: Record<keyof TabParamList, keyof typeof Ionicons.glyphMap> = {
             SurveysScreen: "list",
             CrearEncuesta: "add-circle",
@@ -37,6 +26,7 @@ export default function MainTabs() {
           };
           return <Ionicons name={icons[route.name]} size={size} color={color} />;
         },
+        tabBarShowLabel: true, // 👈 muestra texto debajo
       })}
     >
       <Tab.Screen
@@ -45,20 +35,10 @@ export default function MainTabs() {
         options={{ title: "Encuestas" }}
       />
 
-      {/* -------------------
-          Botón central "+"
-          ------------------- */}
       <Tab.Screen
         name="CrearEncuesta"
         component={SurveySimpleCrearScreen}
-        options={{
-          title: "",
-          tabBarButton: (props: any) => (
-            <TouchableOpacity {...props} style={{ top: -10 }}>
-              <Ionicons name="add-circle" size={60} color="#007AFF" />
-            </TouchableOpacity>
-          ),
-        }}
+        options={{ title: "Crear" }} // 👈 etiqueta debajo del "+"
       />
 
       <Tab.Screen
@@ -69,4 +49,3 @@ export default function MainTabs() {
     </Tab.Navigator>
   );
 }
-

@@ -2,8 +2,14 @@ export type RootStackParamList = {
   LoginScreen: undefined;
   RegisterScreen: undefined;
   MainTabs: undefined;
-  SurveysScreen: undefined;
 
+  // Pantallas principales
+  SurveysScreen: undefined;
+  CrearEncuesta: undefined;   // 👈 agregado para el botón central "+"
+  ProfileScreen: undefined;
+  LogoutScreen: undefined;
+
+  // Flujo de votación
   VoteScreen: {
     surveyId: number;
     questions: {
@@ -17,6 +23,7 @@ export type RootStackParamList = {
     refreshProfile: () => Promise<void>;
   };
 
+  // Resultados
   ResultsScreen: {
     surveyId: number;
     title?: string;
@@ -27,14 +34,13 @@ export type RootStackParamList = {
     refreshProfile: () => Promise<void>;
   };
 
-  SurveyCommentsScreen: {
-    surveyId: number;
-  };
+  // Comentarios
+  SurveyCommentsScreen: { surveyId: number };
 
+  // Extras
   TestChart: undefined;
-  ProfileScreen: undefined;
-  LogoutScreen: undefined;
 
+  // Wallet / Movimientos
   WalletHistoryScreen: {
     movimientos: {
       id: number;
@@ -44,18 +50,10 @@ export type RootStackParamList = {
     }[];
   };
 
-  // ✅ Mantienes la ruta antigua por si la usas en otro flujo
-  SurveyHistory: {
-    originalId: number;
-  };
-
-  // ✅ Nueva ruta para historial completo
+  // Historial de encuestas
+  SurveyHistory: { originalId: number };
   SurveyHistoryScreen: {
-    history: {
-      id: number;
-      title: string;
-      completed_at: string;
-    }[];
+    history: { id: number; title: string; completed_at: string }[];
   };
 };
 
