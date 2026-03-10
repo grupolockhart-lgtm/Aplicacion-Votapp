@@ -1,31 +1,45 @@
-
-
 // -------------------
 // SurveySimpleCrearScreen
 // -------------------
 import React, { useState } from "react";
 import { View, Text, TextInput, Button, FlatList, Image } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function SurveySimpleCrearScreen() {
   const [titulo, setTitulo] = useState("");
-  const [opciones, setOpciones] = useState([{ texto: "", votos: 0 }]);
+  const [preguntas, setPreguntas] = useState([
+    { texto: "", opciones: [{ texto: "", votos: 0 }] },
+  ]);
   const [imagenes, setImagenes] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
+  const [fechaExpiracion, setFechaExpiracion] = useState<Date | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
 
-  // Añadir opción nueva
-  const agregarOpcion = () => {
-    setOpciones([...opciones, { texto: "", votos: 0 }]);
+  // Preguntas y opciones
+  const agregarPregunta = () => {
+    setPreguntas([...preguntas, { texto: "", opciones: [{ texto: "", votos: 0 }] }]);
   };
 
-  // Actualizar texto de opción
-  const actualizarOpcion = (index: number, texto: string) => {
-    const nuevas = [...opciones];
+  const actualizarPregunta = (index: number, texto: string) => {
+    const nuevas = [...preguntas];
     nuevas[index].texto = texto;
-    setOpciones(nuevas);
+    setPreguntas(nuevas);
   };
 
-  // Seleccionar imagen
+  const agregarOpcion = (preguntaIndex: number) => {
+    const nuevas = [...preguntas];
+    nuevas[preguntaIndex].opciones.push({ texto: "", votos: 0 });
+    setPreguntas(nuevas);
+  };
+
+  const actualizarOpcion = (preguntaIndex: number, opcionIndex: number, texto: string) => {
+    const nuevas = [...preguntas];
+    nuevas[preguntaIndex].opciones[opcionIndex].texto = texto;
+    setPreguntas(nuevas);
+  };
+
+  // Multimedia
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -36,7 +50,6 @@ export default function SurveySimpleCrearScreen() {
     }
   };
 
-  // Seleccionar video
   const pickVideo = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
@@ -47,21 +60,22 @@ export default function SurveySimpleCrearScreen() {
     }
   };
 
-  // Enviar encuesta al backend
+  // Enviar encuesta
   const crearEncuesta = async () => {
     const body = {
       titulo,
-      opciones,
+      preguntas,
       imagenes,
       videos,
+      fecha_expiracion: fechaExpiracion ? fechaExpiracion.toISOString() : null,
     };
 
     try {
-        const res = await fetch("https://aplicacion-votapp-test.onrender.com/api/surveys/simple/", {
+      const res = await fetch("https://aplicacion-votapp-test.onrender.com/api/surveys/simple/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-        });
+      });
       const data = await res.json();
       console.log("✅ Encuesta creada:", data);
       alert("Encuesta creada correctamente");
@@ -80,20 +94,36 @@ export default function SurveySimpleCrearScreen() {
         style={{ borderWidth: 1, padding: 8, marginBottom: 15 }}
       />
 
-      <Text style={{ fontSize: 16 }}>Opciones</Text>
+      <Text style={{ fontSize: 16 }}>Preguntas</Text>
       <FlatList
-        data={opciones}
+        data={preguntas}
         renderItem={({ item, index }) => (
-          <TextInput
-            value={item.texto}
-            onChangeText={(texto) => actualizarOpcion(index, texto)}
-            placeholder={`Opción ${index + 1}`}
-            style={{ borderWidth: 1, padding: 8, marginVertical: 5 }}
-          />
+          <View style={{ marginBottom: 20 }}>
+            <TextInput
+              value={item.texto}
+              onChangeText={(texto) => actualizarPregunta(index, texto)}
+              placeholder={`Pregunta ${index + 1}`}
+              style={{ borderWidth: 1, padding: 8, marginVertical: 5 }}
+            />
+
+            <FlatList
+              data={item.opciones}
+              renderItem={({ item: opcion, index: opcionIndex }) => (
+                <TextInput
+                  value={opcion.texto}
+                  onChangeText={(texto) => actualizarOpcion(index, opcionIndex, texto)}
+                  placeholder={`Opción ${opcionIndex + 1}`}
+                  style={{ borderWidth: 1, padding: 8, marginVertical: 5 }}
+                />
+              )}
+              keyExtractor={(_, i) => i.toString()}
+            />
+            <Button title="Agregar opción" onPress={() => agregarOpcion(index)} />
+          </View>
         )}
-        keyExtractor={(_, index) => index.toString()}
+        keyExtractor={(_, i) => i.toString()}
       />
-      <Button title="Agregar opción" onPress={agregarOpcion} />
+      <Button title="Agregar pregunta" onPress={agregarPregunta} />
 
       <Text style={{ fontSize: 16, marginTop: 20 }}>Multimedia</Text>
       <View style={{ flexDirection: "row", marginVertical: 10 }}>
@@ -102,15 +132,35 @@ export default function SurveySimpleCrearScreen() {
         <Button title="Añadir Video" onPress={pickVideo} />
       </View>
 
-      {/* Mostrar imágenes seleccionadas */}
       {imagenes.map((img, i) => (
         <Image key={i} source={{ uri: img }} style={{ width: 100, height: 100, marginVertical: 5 }} />
       ))}
-
-      {/* Mostrar videos seleccionados (solo URI) */}
       {videos.map((vid, i) => (
         <Text key={i} style={{ marginVertical: 5 }}>🎥 {vid}</Text>
       ))}
+
+      <Text style={{ fontSize: 16, marginTop: 20 }}>Fecha de expiración</Text>
+      <Button title="Seleccionar fecha" onPress={() => setShowPicker(true)} />
+
+      {fechaExpiracion && (
+        <Text style={{ marginVertical: 10 }}>
+          Fecha seleccionada: {fechaExpiracion.toLocaleDateString()}
+        </Text>
+      )}
+
+      {showPicker && (
+        <DateTimePicker
+          value={fechaExpiracion || new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowPicker(false);
+            if (selectedDate) {
+              setFechaExpiracion(selectedDate);
+            }
+          }}
+        />
+      )}
 
       <Button title="Crear Encuesta" onPress={crearEncuesta} />
     </View>

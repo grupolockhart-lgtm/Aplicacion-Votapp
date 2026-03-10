@@ -7,6 +7,7 @@ from datetime import datetime
 # -------------------
 class SurveySimpleOptionCreate(BaseModel):
     texto: str
+    votos: int = 0
 
 class SurveySimpleOptionResponse(BaseModel):
     id: int
@@ -17,12 +18,27 @@ class SurveySimpleOptionResponse(BaseModel):
         orm_mode = True
 
 # -------------------
+# Preguntas
+# -------------------
+class SurveySimpleQuestionCreate(BaseModel):
+    texto: str
+    opciones: List[SurveySimpleOptionCreate]
+
+class SurveySimpleQuestionResponse(BaseModel):
+    id: int
+    texto: str
+    opciones: List[SurveySimpleOptionResponse]
+
+    class Config:
+        orm_mode = True
+
+# -------------------
 # Encuesta Simple
 # -------------------
 class SurveySimpleCreate(BaseModel):
     titulo: str
     usuario_id: Optional[int] = None
-    opciones: List[SurveySimpleOptionCreate]
+    preguntas: List[SurveySimpleQuestionCreate]
     imagenes: Optional[List[str]] = []
     videos: Optional[List[str]] = []
     fecha_expiracion: Optional[datetime] = None  # nuevo campo opcional
@@ -31,11 +47,12 @@ class SurveySimpleResponse(BaseModel):
     id: int
     titulo: str
     usuario_id: Optional[int]
-    opciones: List[SurveySimpleOptionResponse]
+    preguntas: List[SurveySimpleQuestionResponse]
     imagenes: Optional[List[str]]
     videos: Optional[List[str]]
-    estado: Optional[str] = None                # nuevo campo para ciclo de vida
+    estado: Optional[str] = None                # ciclo de vida: disponible, votada, finalizada
     fecha_expiracion: Optional[datetime] = None # mostrar expiración en respuesta
+    fecha_creacion: datetime
 
     class Config:
         orm_mode = True
@@ -44,5 +61,5 @@ class SurveySimpleResponse(BaseModel):
 # Voto
 # -------------------
 class SurveySimpleVote(BaseModel):
-    opcion: str
+    opcion_id: int
     usuario_id: Optional[int] = None

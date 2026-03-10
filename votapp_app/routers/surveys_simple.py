@@ -24,7 +24,7 @@ def crear_encuesta_simple(survey: SurveySimpleCreate, db: Session = Depends(get_
         imagenes=json.dumps(survey.imagenes) if survey.imagenes else "[]",
         videos=json.dumps(survey.videos) if survey.videos else "[]",
         estado="disponible",
-        fecha_expiracion=survey.fecha_expiracion  # opcional, si lo incluyes en el schema
+        fecha_expiracion=survey.fecha_expiracion or (datetime.utcnow())  # si no envían, usa ahora
     )
     db.add(nueva)
     db.commit()
@@ -40,17 +40,18 @@ def crear_encuesta_simple(survey: SurveySimpleCreate, db: Session = Depends(get_
         db.add(opt)
     db.commit()
 
-    opciones = db.query(SurveySimpleOption).filter(
-        SurveySimpleOption.survey_simple_id == nueva.id
-    ).all()
-
     return SurveySimpleResponse(
         id=nueva.id,
         titulo=nueva.titulo,
         usuario_id=nueva.usuario_id,
-        opciones=[SurveySimpleOptionResponse(id=opt.id, texto=opt.texto, votos=opt.votos) for opt in opciones],
+        opciones=[
+            SurveySimpleOptionResponse(id=opt.id, texto=opt.texto, votos=opt.votos)
+            for opt in nueva.opciones
+        ],
         imagenes=json.loads(nueva.imagenes) if nueva.imagenes else [],
-        videos=json.loads(nueva.videos) if nueva.videos else []
+        videos=json.loads(nueva.videos) if nueva.videos else [],
+        estado=nueva.estado,
+        fecha_expiracion=nueva.fecha_expiracion
     )
 
 # -------------------
@@ -86,17 +87,18 @@ def resultados_simple(survey_id: int, db: Session = Depends(get_db)):
     if not encuesta:
         raise HTTPException(status_code=404, detail="Encuesta no encontrada")
 
-    opciones = db.query(SurveySimpleOption).filter(
-        SurveySimpleOption.survey_simple_id == survey_id
-    ).all()
-
     return SurveySimpleResponse(
         id=encuesta.id,
         titulo=encuesta.titulo,
         usuario_id=encuesta.usuario_id,
-        opciones=[SurveySimpleOptionResponse(id=opt.id, texto=opt.texto, votos=opt.votos) for opt in opciones],
+        opciones=[
+            SurveySimpleOptionResponse(id=opt.id, texto=opt.texto, votos=opt.votos)
+            for opt in encuesta.opciones
+        ],
         imagenes=json.loads(encuesta.imagenes) if encuesta.imagenes else [],
-        videos=json.loads(encuesta.videos) if encuesta.videos else []
+        videos=json.loads(encuesta.videos) if encuesta.videos else [],
+        estado=encuesta.estado,
+        fecha_expiracion=encuesta.fecha_expiracion
     )
 
 # -------------------
@@ -105,20 +107,22 @@ def resultados_simple(survey_id: int, db: Session = Depends(get_db)):
 @router.get("/", response_model=list[SurveySimpleResponse])
 def listar_encuestas_simple(db: Session = Depends(get_db)):
     encuestas = db.query(SurveySimple).all()
-    respuestas = []
-    for e in encuestas:
-        opciones = db.query(SurveySimpleOption).filter(
-            SurveySimpleOption.survey_simple_id == e.id
-        ).all()
-        respuestas.append(SurveySimpleResponse(
+    return [
+        SurveySimpleResponse(
             id=e.id,
             titulo=e.titulo,
             usuario_id=e.usuario_id,
-            opciones=[SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos) for o in opciones],
+            opciones=[
+                SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
+                for o in e.opciones
+            ],
             imagenes=json.loads(e.imagenes) if e.imagenes else [],
-            videos=json.loads(e.videos) if e.videos else []
-        ))
-    return respuestas
+            videos=json.loads(e.videos) if e.videos else [],
+            estado=e.estado,
+            fecha_expiracion=e.fecha_expiracion
+        )
+        for e in encuestas
+    ]
 
 # -------------------
 # Listar encuestas disponibles
@@ -135,9 +139,14 @@ def listar_disponibles(db: Session = Depends(get_db)):
             id=e.id,
             titulo=e.titulo,
             usuario_id=e.usuario_id,
-            opciones=[SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos) for o in e.opciones],
+            opciones=[
+                SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
+                for o in e.opciones
+            ],
             imagenes=json.loads(e.imagenes) if e.imagenes else [],
-            videos=json.loads(e.videos) if e.videos else []
+            videos=json.loads(e.videos) if e.videos else [],
+            estado=e.estado,
+            fecha_expiracion=e.fecha_expiracion
         )
         for e in encuestas
     ]
@@ -153,9 +162,14 @@ def listar_votadas(db: Session = Depends(get_db)):
             id=e.id,
             titulo=e.titulo,
             usuario_id=e.usuario_id,
-            opciones=[SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos) for o in e.opciones],
+            opciones=[
+                SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
+                for o in e.opciones
+            ],
             imagenes=json.loads(e.imagenes) if e.imagenes else [],
-            videos=json.loads(e.videos) if e.videos else []
+            videos=json.loads(e.videos) if e.videos else [],
+            estado=e.estado,
+            fecha_expiracion=e.fecha_expiracion
         )
         for e in encuestas
     ]
@@ -178,9 +192,14 @@ def listar_finalizadas(db: Session = Depends(get_db)):
             id=e.id,
             titulo=e.titulo,
             usuario_id=e.usuario_id,
-            opciones=[SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos) for o in e.opciones],
+            opciones=[
+                SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
+                for o in e.opciones
+            ],
             imagenes=json.loads(e.imagenes) if e.imagenes else [],
-            videos=json.loads(e.videos) if e.videos else []
+            videos=json.loads(e.videos) if e.videos else [],
+            estado=e.estado,
+            fecha_expiracion=e.fecha_expiracion
         )
         for e in encuestas
     ]

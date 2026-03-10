@@ -45,7 +45,7 @@ interface Survey {
   recompensa_dinero?: number;
   presupuesto_total?: number;
   visibilidad_resultados?: "publica" | "privada";
-  tipo?: "normal"; // separador
+  tipo?: "normal";
 }
 
 // Simple
@@ -57,7 +57,7 @@ interface SurveySimple {
   videos?: string[];
   fecha_expiracion?: string;
   estado?: string;
-  tipo?: "simple"; // separador
+  tipo?: "simple";
 }
 
 // Unión
@@ -77,8 +77,16 @@ export default function SurveysScreen() {
 
   const toggleMute = () => setGlobalMuted((prev) => !prev);
 
+  // Helper para blindar el parseo
+  const toArray = (data: any) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (data.results && Array.isArray(data.results)) return data.results;
+    return [];
+  };
+
   // -------------------
-  // Refrescar encuestas normales + simples
+  // Refrescar encuestas normales + simples con allSettled
   // -------------------
   const refreshSurveys = async () => {
     try {
@@ -87,14 +95,7 @@ export default function SurveysScreen() {
 
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [
-        resDisponibles,
-        resVotadas,
-        resFinalizadas,
-        resDisponiblesSimples,
-        resVotadasSimples,
-        resFinalizadasSimples,
-      ] = await Promise.all([
+      const responses = await Promise.allSettled([
         fetch(`${API_URL}/surveys/disponibles`, { headers }),
         fetch(`${API_URL}/surveys/votadas`, { headers }),
         fetch(`${API_URL}/surveys/finalizadas`, { headers }),
@@ -103,30 +104,42 @@ export default function SurveysScreen() {
         fetch(`${API_URL}/surveys/simple/finalizadas`, { headers }),
       ]);
 
-      const normalesDisponibles = await resDisponibles.json();
-      const normalesVotadas = await resVotadas.json();
-      const normalesFinalizadas = await resFinalizadas.json();
+      const getJson = async (res: any, name: string) => {
+        if (res.status === "fulfilled") {
+          console.log(`${name} status:`, res.value.status);
+          const data = await res.value.json();
+          console.log(`${name} data:`, data);
+          return data;
+        } else {
+          console.log(`${name} falló:`, res.reason);
+          return [];
+        }
+      };
 
-      const simplesDisponibles = await resDisponiblesSimples.json();
-      const simplesVotadas = await resVotadasSimples.json();
-      const simplesFinalizadas = await resFinalizadasSimples.json();
+      const normalesDisponibles = await getJson(responses[0], "Disponibles normales");
+      const normalesVotadas = await getJson(responses[1], "Votadas normales");
+      const normalesFinalizadas = await getJson(responses[2], "Finalizadas normales");
+      const simplesDisponibles = await getJson(responses[3], "Disponibles simples");
+      const simplesVotadas = await getJson(responses[4], "Votadas simples");
+      const simplesFinalizadas = await getJson(responses[5], "Finalizadas simples");
 
       // Fusionar normales + simples
       setDisponibles([
-        ...(normalesDisponibles.results || normalesDisponibles || []).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...(simplesDisponibles || []).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
+        ...toArray(normalesDisponibles).map((s: Survey) => ({ ...s, tipo: "normal" })),
+        ...toArray(simplesDisponibles).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
       ]);
 
       setVotadas([
-        ...(normalesVotadas.results || normalesVotadas || []).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...(simplesVotadas || []).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
+        ...toArray(normalesVotadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
+        ...toArray(simplesVotadas).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
       ]);
 
       setFinalizadas([
-        ...(normalesFinalizadas.results || normalesFinalizadas || []).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...(simplesFinalizadas || []).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
+        ...toArray(normalesFinalizadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
+        ...toArray(simplesFinalizadas).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
       ]);
     } catch (err) {
+      console.log("Error en refreshSurveys:", err);
       setError("No se pudieron refrescar las encuestas");
     }
   };
@@ -230,7 +243,7 @@ export default function SurveysScreen() {
             toggleMute={toggleMute}
             refreshSurveys={refreshSurveys}
             refreshProfile={refreshProfile}
-            userRole={userRole!}
+            userRole={userRole ?? "user"}
           />
         )}
       </Tab.Screen>
