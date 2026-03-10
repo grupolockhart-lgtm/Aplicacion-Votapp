@@ -1,6 +1,6 @@
 // src/screens/SurveysScreen.tsx
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity, Text, View, ActivityIndicator } from "react-native";
+import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
@@ -8,13 +8,11 @@ import { createMaterialTopTabNavigator } from "@react-navigation/material-top-ta
 import DisponiblesScreen from "@/screens/DisponiblesScreen";
 import VotadasScreen from "@/screens/VotadasScreen";
 import FinalizadasScreen from "@/screens/FinalizadasScreen";
-import ResultsScreen from "@/screens/ResultsScreen";
 import SurveyHistory from "@/screens/SurveyHistory";
 
-
-
-
-
+// -------------------
+// Tipos
+// -------------------
 interface Option {
   id: number;
   text: string;
@@ -29,6 +27,7 @@ interface Question {
   total_votes?: number | null;
 }
 
+// Normal
 interface Survey {
   id: number;
   title: string;
@@ -38,18 +37,38 @@ interface Survey {
   questions: Question[];
   media_url?: string;
   media_urls?: string[];
-  media_type?: "native" | "webview";   // ✅ añadido aquí
+  media_type?: "native" | "webview";
   patrocinada?: boolean;
   patrocinador?: string;
   es_patrocinada?: boolean;
+  recompensa_puntos?: number;
+  recompensa_dinero?: number;
+  presupuesto_total?: number;
+  visibilidad_resultados?: "publica" | "privada";
+  tipo?: "normal"; // separador
 }
+
+// Simple
+interface SurveySimple {
+  id: number;
+  titulo: string;
+  opciones: { id: number; texto: string; votos: number }[];
+  imagenes?: string[];
+  videos?: string[];
+  fecha_expiracion?: string;
+  estado?: string;
+  tipo?: "simple"; // separador
+}
+
+// Unión
+export type UnifiedSurvey = Survey | SurveySimple;
 
 const Tab = createMaterialTopTabNavigator();
 
 export default function SurveysScreen() {
-  const [disponibles, setDisponibles] = useState<Survey[]>([]);
-  const [votadas, setVotadas] = useState<Survey[]>([]);
-  const [finalizadas, setFinalizadas] = useState<Survey[]>([]);
+  const [disponibles, setDisponibles] = useState<UnifiedSurvey[]>([]);
+  const [votadas, setVotadas] = useState<UnifiedSurvey[]>([]);
+  const [finalizadas, setFinalizadas] = useState<UnifiedSurvey[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [globalMuted, setGlobalMuted] = useState<boolean>(true);
@@ -58,6 +77,9 @@ export default function SurveysScreen() {
 
   const toggleMute = () => setGlobalMuted((prev) => !prev);
 
+  // -------------------
+  // Refrescar encuestas normales + simples
+  // -------------------
   const refreshSurveys = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
@@ -65,19 +87,45 @@ export default function SurveysScreen() {
 
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [resDisponibles, resVotadas, resFinalizadas] = await Promise.all([
-        fetch(`${API_URL}/surveys/disponibles`, { method: "GET", headers }),
-        fetch(`${API_URL}/surveys/votadas`, { method: "GET", headers }),
-        fetch(`${API_URL}/surveys/finalizadas`, { method: "GET", headers }),
+      const [
+        resDisponibles,
+        resVotadas,
+        resFinalizadas,
+        resDisponiblesSimples,
+        resVotadasSimples,
+        resFinalizadasSimples,
+      ] = await Promise.all([
+        fetch(`${API_URL}/surveys/disponibles`, { headers }),
+        fetch(`${API_URL}/surveys/votadas`, { headers }),
+        fetch(`${API_URL}/surveys/finalizadas`, { headers }),
+        fetch(`${API_URL}/surveys/simple/disponibles`, { headers }),
+        fetch(`${API_URL}/surveys/simple/votadas`, { headers }),
+        fetch(`${API_URL}/surveys/simple/finalizadas`, { headers }),
       ]);
 
-      const dataDisponibles = await resDisponibles.json();
-      const dataVotadas = await resVotadas.json();
-      const dataFinalizadas = await resFinalizadas.json();
+      const normalesDisponibles = await resDisponibles.json();
+      const normalesVotadas = await resVotadas.json();
+      const normalesFinalizadas = await resFinalizadas.json();
 
-      setDisponibles(dataDisponibles.results || dataDisponibles || []);
-      setVotadas(dataVotadas.results || dataVotadas || []);
-      setFinalizadas(dataFinalizadas.results || dataFinalizadas || []);
+      const simplesDisponibles = await resDisponiblesSimples.json();
+      const simplesVotadas = await resVotadasSimples.json();
+      const simplesFinalizadas = await resFinalizadasSimples.json();
+
+      // Fusionar normales + simples
+      setDisponibles([
+        ...(normalesDisponibles.results || normalesDisponibles || []).map((s: Survey) => ({ ...s, tipo: "normal" })),
+        ...(simplesDisponibles || []).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
+      ]);
+
+      setVotadas([
+        ...(normalesVotadas.results || normalesVotadas || []).map((s: Survey) => ({ ...s, tipo: "normal" })),
+        ...(simplesVotadas || []).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
+      ]);
+
+      setFinalizadas([
+        ...(normalesFinalizadas.results || normalesFinalizadas || []).map((s: Survey) => ({ ...s, tipo: "normal" })),
+        ...(simplesFinalizadas || []).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
+      ]);
     } catch (err) {
       setError("No se pudieron refrescar las encuestas");
     }
@@ -201,4 +249,3 @@ const styles = StyleSheet.create({
   loadingText: { marginTop: 10, fontSize: 16, color: "#111827" },
   errorText: { color: "red", fontSize: 16, fontWeight: "bold" },
 });
-

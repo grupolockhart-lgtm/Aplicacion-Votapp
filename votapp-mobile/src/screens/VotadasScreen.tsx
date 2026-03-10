@@ -4,6 +4,11 @@ import { FlatList, ViewToken } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import SurveyCard from "@/components/SurveyCard";
 
+// -------------------
+// Tipos
+// -------------------
+
+// Normal
 interface Option {
   id: number;
   text: string;
@@ -32,10 +37,26 @@ interface Survey {
   recompensa_dinero?: number;
   presupuesto_total?: number;
   visibilidad_resultados?: "publica" | "privada";
+  tipo?: "normal";
 }
 
+// Simple
+interface SurveySimple {
+  id: number;
+  titulo: string;
+  opciones: { id: number; texto: string; votos: number }[];
+  imagenes?: string[];
+  videos?: string[];
+  fecha_expiracion?: string;
+  estado?: string;
+  tipo?: "simple";
+}
+
+// Unión
+type UnifiedSurvey = Survey | SurveySimple;
+
 interface VotadasProps {
-  surveys: Survey[];
+  surveys: UnifiedSurvey[];   // ✅ ahora acepta ambos tipos
   globalMuted: boolean;
   toggleMute: () => void;
   refreshSurveys: () => Promise<void>;
@@ -65,31 +86,38 @@ export default function VotadasScreen({
       data={surveys}
       keyExtractor={(item) => item.id.toString()}
       contentContainerStyle={{ padding: 10 }}
-      renderItem={({ item }) => (
-        <SurveyCard
-          survey={item}
-          globalMuted={globalMuted}
-          toggleMute={toggleMute}
-          badgeText={
-            item.es_patrocinada
-              ? `💰 Patrocinada - Votada (+${item.recompensa_puntos ?? 0} pts / $${item.recompensa_dinero ?? 0})`
-              : "✅ Votada"
-          }
-          isVisible={visibleIds.includes(item.id)}
-          onPress={() =>
-            (navigation as any).navigate("ResultsScreen", {
-              surveyId: item.id,
-              title: item.title,
-              description: item.description,
-              questions: item.questions,
-              media_url: item.media_url,
-              media_urls: item.media_urls,
-              refreshSurveys,
-              refreshProfile,
-            })
-          }
-        />
-      )}
+      renderItem={({ item }) => {
+        const isSimple = item.tipo === "simple";
+        const survey = item as Survey;
+
+        return (
+          <SurveyCard
+            survey={survey}
+            globalMuted={globalMuted}
+            toggleMute={toggleMute}
+            badgeText={
+              isSimple
+                ? "📝 Encuesta Simple - Votada"
+                : survey.es_patrocinada
+                ? `💰 Patrocinada - Votada (+${survey.recompensa_puntos ?? 0} pts / $${survey.recompensa_dinero ?? 0})`
+                : "✅ Votada"
+            }
+            isVisible={visibleIds.includes(item.id)}
+            onPress={() =>
+              (navigation as any).navigate("ResultsScreen", {
+                surveyId: item.id,
+                title: isSimple ? (item as SurveySimple).titulo : survey.title,
+                description: isSimple ? undefined : survey.description,
+                questions: isSimple ? (item as SurveySimple).opciones : survey.questions,
+                media_url: survey.media_url,
+                media_urls: isSimple ? (item as SurveySimple).imagenes : survey.media_urls,
+                refreshSurveys,
+                refreshProfile,
+              })
+            }
+          />
+        );
+      }}
       onViewableItemsChanged={onViewableItemsChanged.current}
       viewabilityConfig={viewabilityConfig}
     />
