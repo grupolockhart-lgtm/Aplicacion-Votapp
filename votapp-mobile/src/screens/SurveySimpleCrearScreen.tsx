@@ -57,11 +57,11 @@ export default function SurveySimpleCrearScreen() {
     };
 
     try {
-      const res = await fetch("http://localhost:8000/api/surveys/simple", {
+        const res = await fetch("https://aplicacion-votapp-test.onrender.com/api/surveys/simple/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      });
+        });
       const data = await res.json();
       console.log("✅ Encuesta creada:", data);
       alert("Encuesta creada correctamente");

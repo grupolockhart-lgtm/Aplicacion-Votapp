@@ -1,13 +1,7 @@
-
-
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timedelta
 from votapp_app.database import Base
-
-
-
-
 
 class SurveySimple(Base):
     __tablename__ = "surveys_simple"
@@ -17,10 +11,16 @@ class SurveySimple(Base):
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
 
+    # Guardar multimedia como texto (JSON serializado)
+    imagenes = Column(Text, default="[]")
+    videos = Column(Text, default="[]")
 
-    # Guardar multimedia como texto (puede ser JSON serializado si prefieres)
-    imagenes = Column(String, nullable=True)
-    videos = Column(String, nullable=True)
+    # Nuevo: estado de la encuesta
+    estado = Column(String, default="disponible")
+    # valores posibles: disponible, votada, finalizada
+
+    # Nuevo: fecha de expiración (por defecto 24 horas después de creación)
+    fecha_expiracion = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(days=1))
 
     # Relación con opciones
     opciones = relationship(
