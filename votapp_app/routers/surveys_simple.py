@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models_simple import SurveySimple, SurveySimpleOption
+from ..models_simple import SurveySimple, SurveySimpleQuestion, SurveySimpleOption
 from ..schemas_simple import (
     SurveySimpleCreate,
     SurveySimpleVote,
     SurveySimpleResponse,
-    SurveySimpleOptionResponse
+    SurveySimpleOptionResponse,
+    SurveySimpleQuestionResponse
 )
 import json
 from datetime import datetime
@@ -24,29 +25,50 @@ def crear_encuesta_simple(survey: SurveySimpleCreate, db: Session = Depends(get_
         imagenes=json.dumps(survey.imagenes) if survey.imagenes else "[]",
         videos=json.dumps(survey.videos) if survey.videos else "[]",
         estado="disponible",
-        fecha_expiracion=survey.fecha_expiracion or (datetime.utcnow())  # si no envían, usa ahora
+        fecha_expiracion=survey.fecha_expiracion or datetime.utcnow()
     )
     db.add(nueva)
     db.commit()
     db.refresh(nueva)
 
-    # insertar opciones
-    for opcion in survey.opciones:
-        opt = SurveySimpleOption(
-            texto=opcion.texto,
-            votos=0,
+    # insertar preguntas y opciones
+    for pregunta in survey.preguntas:
+        nueva_pregunta = SurveySimpleQuestion(
+            texto=pregunta.texto,
             survey_simple_id=nueva.id
         )
-        db.add(opt)
-    db.commit()
+        db.add(nueva_pregunta)
+        db.commit()
+        db.refresh(nueva_pregunta)
 
+        for opcion in pregunta.opciones:
+            nueva_opcion = SurveySimpleOption(
+                texto=opcion.texto,
+                votos=0,
+                pregunta_id=nueva_pregunta.id
+            )
+            db.add(nueva_opcion)
+        db.commit()
+
+    # devolver respuesta con preguntas y opciones anidadas
     return SurveySimpleResponse(
         id=nueva.id,
         titulo=nueva.titulo,
         usuario_id=nueva.usuario_id,
-        opciones=[
-            SurveySimpleOptionResponse(id=opt.id, texto=opt.texto, votos=opt.votos)
-            for opt in nueva.opciones
+        preguntas=[
+            SurveySimpleQuestionResponse(
+                id=p.id,
+                texto=p.texto,
+                opciones=[
+                    SurveySimpleOptionResponse(
+                        id=o.id,
+                        texto=o.texto,
+                        votos=o.votos
+                    )
+                    for o in p.opciones
+                ]
+            )
+            for p in nueva.preguntas
         ],
         imagenes=json.loads(nueva.imagenes) if nueva.imagenes else [],
         videos=json.loads(nueva.videos) if nueva.videos else [],
@@ -64,8 +86,7 @@ def votar_simple(survey_id: int, voto: SurveySimpleVote, db: Session = Depends(g
         raise HTTPException(status_code=404, detail="Encuesta no encontrada")
 
     opcion = db.query(SurveySimpleOption).filter(
-        SurveySimpleOption.survey_simple_id == survey_id,
-        SurveySimpleOption.texto == voto.opcion
+        SurveySimpleOption.id == voto.opcion_id
     ).first()
 
     if not opcion:
@@ -91,9 +112,16 @@ def resultados_simple(survey_id: int, db: Session = Depends(get_db)):
         id=encuesta.id,
         titulo=encuesta.titulo,
         usuario_id=encuesta.usuario_id,
-        opciones=[
-            SurveySimpleOptionResponse(id=opt.id, texto=opt.texto, votos=opt.votos)
-            for opt in encuesta.opciones
+        preguntas=[
+            SurveySimpleQuestionResponse(
+                id=p.id,
+                texto=p.texto,
+                opciones=[
+                    SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
+                    for o in p.opciones
+                ]
+            )
+            for p in encuesta.preguntas
         ],
         imagenes=json.loads(encuesta.imagenes) if encuesta.imagenes else [],
         videos=json.loads(encuesta.videos) if encuesta.videos else [],
@@ -112,9 +140,16 @@ def listar_encuestas_simple(db: Session = Depends(get_db)):
             id=e.id,
             titulo=e.titulo,
             usuario_id=e.usuario_id,
-            opciones=[
-                SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
-                for o in e.opciones
+            preguntas=[
+                SurveySimpleQuestionResponse(
+                    id=p.id,
+                    texto=p.texto,
+                    opciones=[
+                        SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
+                        for o in p.opciones
+                    ]
+                )
+                for p in e.preguntas
             ],
             imagenes=json.loads(e.imagenes) if e.imagenes else [],
             videos=json.loads(e.videos) if e.videos else [],
@@ -139,9 +174,16 @@ def listar_disponibles(db: Session = Depends(get_db)):
             id=e.id,
             titulo=e.titulo,
             usuario_id=e.usuario_id,
-            opciones=[
-                SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
-                for o in e.opciones
+            preguntas=[
+                SurveySimpleQuestionResponse(
+                    id=p.id,
+                    texto=p.texto,
+                    opciones=[
+                        SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
+                        for o in p.opciones
+                    ]
+                )
+                for p in e.preguntas
             ],
             imagenes=json.loads(e.imagenes) if e.imagenes else [],
             videos=json.loads(e.videos) if e.videos else [],
@@ -162,9 +204,16 @@ def listar_votadas(db: Session = Depends(get_db)):
             id=e.id,
             titulo=e.titulo,
             usuario_id=e.usuario_id,
-            opciones=[
-                SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
-                for o in e.opciones
+            preguntas=[
+                SurveySimpleQuestionResponse(
+                    id=p.id,
+                    texto=p.texto,
+                    opciones=[
+                        SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
+                        for o in p.opciones
+                    ]
+                )
+                for p in e.preguntas
             ],
             imagenes=json.loads(e.imagenes) if e.imagenes else [],
             videos=json.loads(e.videos) if e.videos else [],
@@ -192,9 +241,16 @@ def listar_finalizadas(db: Session = Depends(get_db)):
             id=e.id,
             titulo=e.titulo,
             usuario_id=e.usuario_id,
-            opciones=[
-                SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
-                for o in e.opciones
+            preguntas=[
+                SurveySimpleQuestionResponse(
+                    id=p.id,
+                    texto=p.texto,
+                    opciones=[
+                        SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
+                        for o in p.opciones
+                    ]
+                )
+                for p in e.preguntas
             ],
             imagenes=json.loads(e.imagenes) if e.imagenes else [],
             videos=json.loads(e.videos) if e.videos else [],
