@@ -483,23 +483,6 @@ class SurveyHistoryOut(BaseModel):
         from_attributes = True
 
 
-from pydantic import BaseModel
-from typing import List, Optional
-
-# -------------------
-# Modelo: Crear Encuesta Simple
-# -------------------
-class SurveyCreate(BaseModel):
-    titulo: str
-    opciones: List[dict]  # [{"texto": "Opción A", "votos": 0}, {"texto": "Opción B", "votos": 0}]
-    imagenes: Optional[List[str]] = None
-    videos: Optional[List[str]] = None
-
-# -------------------
-# Modelo: Votar en Encuesta Simple
-# -------------------
-class SurveyVote(BaseModel):
-    opcion: str
 
 
 
