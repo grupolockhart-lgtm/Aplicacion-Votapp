@@ -99,9 +99,9 @@ export default function SurveysScreen() {
         fetch(`${API_URL}/surveys/disponibles`, { headers }),
         fetch(`${API_URL}/surveys/votadas`, { headers }),
         fetch(`${API_URL}/surveys/finalizadas`, { headers }),
-        fetch(`${API_URL}/surveys/simple/disponibles`, { headers }),
-        fetch(`${API_URL}/surveys/simple/votadas`, { headers }),
-        fetch(`${API_URL}/surveys/simple/finalizadas`, { headers }),
+        fetch(`${API_URL}/api/surveys/simple/disponibles`, { headers }),
+        fetch(`${API_URL}/api/surveys/simple/votadas`, { headers }),
+        fetch(`${API_URL}/api/surveys/simple/finalizadas`, { headers }),
       ]);
 
       const getJson = async (res: any, name: string) => {
