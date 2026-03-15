@@ -27,8 +27,8 @@ interface Question {
   total_votes?: number | null;
 }
 
-// Normal
-interface Survey {
+// 👇 Exportamos Survey para usarlo en otros archivos
+export interface Survey {
   id: number;
   title: string;
   description?: string;
@@ -45,30 +45,16 @@ interface Survey {
   recompensa_dinero?: number;
   presupuesto_total?: number;
   visibilidad_resultados?: "publica" | "privada";
-  tipo?: "normal";
+  tipo: "normal" | "simple";   // 👈 único contrato
 }
-
-// Simple
-interface SurveySimple {
-  id: number;
-  titulo: string;
-  opciones: { id: number; texto: string; votos: number }[];
-  imagenes?: string[];
-  videos?: string[];
-  fecha_expiracion?: string;
-  estado?: string;
-  tipo?: "simple";
-}
-
-// Unión
-export type UnifiedSurvey = Survey | SurveySimple;
 
 const Tab = createMaterialTopTabNavigator();
 
 export default function SurveysScreen() {
-  const [disponibles, setDisponibles] = useState<UnifiedSurvey[]>([]);
-  const [votadas, setVotadas] = useState<UnifiedSurvey[]>([]);
-  const [finalizadas, setFinalizadas] = useState<UnifiedSurvey[]>([]);
+  const [disponibles, setDisponibles] = useState<Survey[]>([]);
+  const [votadas, setVotadas] = useState<Survey[]>([]);
+  const [finalizadas, setFinalizadas] = useState<Survey[]>([]);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [globalMuted, setGlobalMuted] = useState<boolean>(true);
@@ -77,7 +63,6 @@ export default function SurveysScreen() {
 
   const toggleMute = () => setGlobalMuted((prev) => !prev);
 
-  // Helper para blindar el parseo
   const toArray = (data: any) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
@@ -85,64 +70,120 @@ export default function SurveysScreen() {
     return [];
   };
 
-  // -------------------
-  // Refrescar encuestas normales + simples con allSettled
-  // -------------------
-  const refreshSurveys = async () => {
-    try {
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) return;
+  
+  // 🔑 Normalización de encuestas simples
+const normalizeSimple = (s: any): Survey => ({
+  id: s.id,
+  title: s.titulo,
+  description: "",
+  questions: Array.isArray(s.preguntas)
+    ? s.preguntas.map((q: any) => ({
+        id: q.id,
+        text: q.texto,
+        options: Array.isArray(q.opciones)
+          ? q.opciones.map((o: any) => ({
+              id: o.id,
+              text: o.texto,
+              count: o.votos,
+            }))
+          : [],
+        total_votes: null,
+      }))
+    : [],
+  media_urls: Array.isArray(s.imagenes) ? s.imagenes : [],
+  media_type: "native",
+  tipo: "simple",
+});
 
-      const headers = { Authorization: `Bearer ${token}` };
 
-      const responses = await Promise.allSettled([
-        fetch(`${API_URL}/surveys/disponibles`, { headers }),
-        fetch(`${API_URL}/surveys/votadas`, { headers }),
-        fetch(`${API_URL}/surveys/finalizadas`, { headers }),
-        fetch(`${API_URL}/api/surveys/simple/disponibles`, { headers }),
-        fetch(`${API_URL}/api/surveys/simple/votadas`, { headers }),
-        fetch(`${API_URL}/api/surveys/simple/finalizadas`, { headers }),
-      ]);
 
-      const getJson = async (res: any, name: string) => {
-        if (res.status === "fulfilled") {
-          console.log(`${name} status:`, res.value.status);
-          const data = await res.value.json();
-          console.log(`${name} data:`, data);
-          return data;
-        } else {
-          console.log(`${name} falló:`, res.reason);
+const refreshSurveys = async () => {
+  try {
+    const token = await AsyncStorage.getItem("userToken");
+    if (!token) return;
+
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+
+    console.log("Token usado en fetch:", token);
+
+    const responses = await Promise.allSettled([
+      fetch(`${API_URL}/surveys/disponibles`, { method: "GET", headers }),
+      fetch(`${API_URL}/surveys/votadas`, { method: "GET", headers }),
+      fetch(`${API_URL}/surveys/finalizadas`, { method: "GET", headers }),
+      fetch(`${API_URL}/surveys/simple/disponibles`, { method: "GET", headers }),
+      fetch(`${API_URL}/surveys/simple/votadas`, { method: "GET", headers }),
+      fetch(`${API_URL}/surveys/simple/finalizadas`, { method: "GET", headers }),
+    ]);
+
+    const getJson = async (res: any, name: string) => {
+      if (res.status === "fulfilled") {
+        if (!res.value.ok) {
+          if (name.includes("simples")) {
+            console.error(`${name} error:`, await res.value.text());
+          }
           return [];
         }
-      };
+        try {
+          const json = await res.value.json();
+          if (name.includes("simples")) {
+            console.log(`${name} status:`, res.value.status);
+            console.log(`${name} count:`, json.length);
+          }
+          return json;
+        } catch (err) {
+          if (name.includes("simples")) {
+            console.error(`${name} parse error:`, err);
+          }
+          return [];
+        }
+      } else {
+        if (name.includes("simples")) {
+          console.log(`${name} falló:`, res.reason);
+        }
+        return [];
+      }
+    };
 
-      const normalesDisponibles = await getJson(responses[0], "Disponibles normales");
-      const normalesVotadas = await getJson(responses[1], "Votadas normales");
-      const normalesFinalizadas = await getJson(responses[2], "Finalizadas normales");
-      const simplesDisponibles = await getJson(responses[3], "Disponibles simples");
-      const simplesVotadas = await getJson(responses[4], "Votadas simples");
-      const simplesFinalizadas = await getJson(responses[5], "Finalizadas simples");
+    const normalesDisponibles = await getJson(responses[0], "Disponibles normales");
+    const normalesVotadas = await getJson(responses[1], "Votadas normales");
+    const normalesFinalizadas = await getJson(responses[2], "Finalizadas normales");
 
-      // Fusionar normales + simples
-      setDisponibles([
-        ...toArray(normalesDisponibles).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...toArray(simplesDisponibles).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
-      ]);
+    const simplesDisponibles = await getJson(responses[3], "Disponibles simples");
+    console.log("Respuesta cruda simples disponibles:", simplesDisponibles);
 
-      setVotadas([
-        ...toArray(normalesVotadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...toArray(simplesVotadas).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
-      ]);
+    const simplesVotadas = await getJson(responses[4], "Votadas simples");
+    console.log("Respuesta cruda simples votadas:", simplesVotadas);
 
-      setFinalizadas([
-        ...toArray(normalesFinalizadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...toArray(simplesFinalizadas).map((s: SurveySimple) => ({ ...s, tipo: "simple" })),
-      ]);
-    } catch (err) {
-      console.log("Error en refreshSurveys:", err);
-      setError("No se pudieron refrescar las encuestas");
-    }
-  };
+    const simplesFinalizadas = await getJson(responses[5], "Finalizadas simples");
+    console.log("Respuesta cruda simples finalizadas:", simplesFinalizadas);
+
+    setDisponibles([
+      ...toArray(normalesDisponibles).map((s: Survey) => ({ ...s, tipo: "normal" })),
+      ...toArray(simplesDisponibles).map(normalizeSimple),
+    ]);
+
+    setVotadas([
+      ...toArray(normalesVotadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
+      ...toArray(simplesVotadas).map(normalizeSimple),
+    ]);
+
+    setFinalizadas([
+      ...toArray(normalesFinalizadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
+      ...toArray(simplesFinalizadas).map(normalizeSimple),
+    ]);
+  } catch (err) {
+    console.log("Error en refreshSurveys:", err);
+    setError("No se pudieron refrescar las encuestas");
+  }
+};
+
+
+
+
 
   const refreshProfile = async () => {
     try {
@@ -171,7 +212,6 @@ export default function SurveysScreen() {
         setLoading(false);
       }
     };
-
     loadData();
   }, []);
 
@@ -192,6 +232,15 @@ export default function SurveysScreen() {
     );
   }
 
+// 👇 Aquí logueamos los datos normalizados
+  console.log(
+  "Disponibles simples normalizados:",
+  JSON.stringify(disponibles.filter((s) => s.tipo === "simple"), null, 2)
+);
+
+
+
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -247,6 +296,8 @@ export default function SurveysScreen() {
           />
         )}
       </Tab.Screen>
+
+
 
       {userRole === "admin" && (
         <Tab.Screen name="Historial">

@@ -1,3 +1,4 @@
+# src/models_simple.py
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta
@@ -57,6 +58,6 @@ class SurveySimpleOption(Base):
     texto = Column(String, nullable=False)
     votos = Column(Integer, default=0)
 
-    # 🔎 Corrección: ahora depende de la pregunta, no de la encuesta
+    # Relación con pregunta
     pregunta_id = Column(Integer, ForeignKey("surveys_simple_questions.id"))
     pregunta = relationship("SurveySimpleQuestion", back_populates="opciones")

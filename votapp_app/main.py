@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from mangum import Mangum
 
 # Importa tus módulos
@@ -16,11 +17,19 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 from .routers import surveys_simple
 
-
 import requests
-
 import os
+import logging
 from dotenv import load_dotenv
+
+# -----------------------------
+# Configuración global de logging
+# -----------------------------
+logging.basicConfig(
+    level=logging.DEBUG,  # 👈 muestra DEBUG, INFO, WARNING, ERROR
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)  # 👈 usa el nombre del módulo principal
 
 # -----------------------------
 # Cargar variables de entorno
@@ -33,7 +42,8 @@ load_dotenv()
 app = FastAPI(
     title="VoxPop API",
     description="API para encuestas cívicas con usuarios, perfiles y gamificación",
-    version="1.0.0"
+    version="1.0.0",
+    debug=True   # 👈 activa modo debug
 )
 
 # -----------------------------
@@ -43,7 +53,7 @@ models.Base.metadata.create_all(bind=engine)
 seed_logros()
 
 # -----------------------------
-# Middleware
+# Middleware CORS
 # -----------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -52,6 +62,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# -----------------------------
+# Middleware de logging global
+# -----------------------------
+@app.middleware("http")
+async def log_exceptions(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        logger.exception(f"❌ Error en {request.url.path}: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Error interno en el servidor"}
+        )
 
 # -----------------------------
 # Carpeta media
@@ -69,6 +93,7 @@ app.include_router(admin.router, prefix="/api")
 app.include_router(comments.router, prefix="/api")
 app.include_router(gamificacion.router, prefix="/api")
 app.include_router(rss.router, prefix="/api")
+app.include_router(surveys_simple.router, prefix="/api")
 
 # -----------------------------
 # Endpoint raíz
@@ -109,8 +134,6 @@ def listar_encuestas(limit: int = 10, ciudad: str = None):
         for e in encuestas
     ]
 
-
-
 # -----------------------------
 # Scheduler con APScheduler
 # -----------------------------
@@ -143,8 +166,6 @@ def startup_event():
     scheduler.add_job(job_youtube, "date", run_date=datetime.utcnow() + timedelta(minutes=1))
     scheduler.add_job(job_rss, "date", run_date=datetime.utcnow() + timedelta(minutes=1))
 
-
-
 # -----------------------------
 # Adaptador para Cloud Functions
 # -----------------------------
@@ -154,10 +175,3 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
-
-
-
-# -------------------
-# Surveys Simple
-# -------------------
-app.include_router(surveys_simple.router, prefix="/api")
