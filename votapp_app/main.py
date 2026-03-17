@@ -7,6 +7,7 @@ from mangum import Mangum
 # Importa tus módulos
 from .routers import users, surveys, profiles, admin, comments, gamificacion
 from . import models
+from . import models_simple   # 👈 importa también los modelos simples
 from .database import engine
 from services.auto_surveys import generar_encuestas_desde_noticias
 from services.news_api import obtener_temas_relevantes
@@ -50,6 +51,7 @@ app = FastAPI(
 # Crear tablas y seed inicial
 # -----------------------------
 models.Base.metadata.create_all(bind=engine)
+models_simple.Base.metadata.create_all(bind=engine)  # 👈 crea las tablas simples
 seed_logros()
 
 # -----------------------------

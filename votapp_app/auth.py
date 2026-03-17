@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from .database import SessionLocal
 from .models import Usuario
 
+import logging
+logger = logging.getLogger(__name__)
 
 # -------------------
 # Configuración de seguridad
@@ -58,22 +60,27 @@ def get_current_user(
     db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme)
 ):
-    """Devuelve el usuario autenticado a partir del token"""
     if not token:
         raise HTTPException(status_code=401, detail="Token requerido")
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
+        exp: int = payload.get("exp")
+        logger.info(f"Payload decodificado: sub={user_id}, exp={exp}")
         if user_id is None:
+            logger.error("Token sin sub")
             raise HTTPException(status_code=401, detail="Token inválido")
-    except JWTError:
+    except JWTError as e:
+        logger.error(f"Error decodificando token: {e}")
         raise HTTPException(status_code=401, detail="Token inválido")
 
     usuario = db.query(Usuario).filter(Usuario.id == int(user_id)).first()
     if usuario is None:
+        logger.error(f"Usuario con id {user_id} no encontrado en DB")
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
     return usuario
+
 
 
 # -------------------

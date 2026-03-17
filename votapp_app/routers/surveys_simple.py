@@ -1,30 +1,27 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
-from ..models_simple import SurveySimple, SurveySimpleQuestion, SurveySimpleOption
+from ..models_simple import SurveySimple, SurveySimpleQuestion, SurveySimpleOption, SimpleVote
 from ..schemas_simple import (
     SurveySimpleCreate,
-    SurveySimpleVote,
-    SurveySimpleResponse,
-    SurveySimpleOptionResponse,
-    SurveySimpleQuestionResponse
+    SurveySimpleVote,        # 👈 este sí existe en schemas_simple
+    SurveySimpleResponse
 )
 from ..auth import get_current_user
 import json
 from datetime import datetime, timezone
-from typing import List  
-
+from typing import List
 import logging
+from sqlalchemy import func
 
-def to_iso(dt: datetime | None) -> str | None:
-    return dt.isoformat() if dt else None
+
+
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/surveys/simple", tags=["Surveys Simple"])
 
 # -------------------
-# Función auxiliar para normalizar multimedia
+# Auxiliares
 # -------------------
 def safe_json_list(value) -> list:
     try:
@@ -37,19 +34,71 @@ def safe_json_list(value) -> list:
         return data if isinstance(data, list) else []
     except Exception:
         return []
-    
-# -------------------
-# Función auxiliar para calcular segundos restantes
-# -------------------
-def calcular_segundos_restantes(fecha_expiracion: datetime) -> int:
+
+def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
     ahora = datetime.now(timezone.utc)
-    logger.info(f"[DEBUG] calcular_segundos_restantes: ahora={ahora}, expiracion={fecha_expiracion}")
-    delta = fecha_expiracion - ahora
-    return int(delta.total_seconds())
+    fecha_exp = survey.fecha_expiracion
+    if fecha_exp and fecha_exp.tzinfo is None:
+        fecha_exp = fecha_exp.replace(tzinfo=timezone.utc)
+    segundos_restantes = int((fecha_exp - ahora).total_seconds()) if fecha_exp else 0
+
+    preguntas = []
+    for p in survey.preguntas or []:
+        opciones = [
+            {"id": o.id, "texto": o.texto, "votos": o.votos if o.votos is not None else 0}
+            for o in (p.opciones or [])
+        ]
+
+
+        preguntas.append({"id": p.id, "texto": p.texto, "opciones": opciones})
+
+    return SurveySimpleResponse(
+        id=survey.id,
+        titulo=survey.titulo,
+        fecha_expiracion=fecha_exp.isoformat() if fecha_exp else None,
+        fecha_creacion=survey.fecha_creacion,
+        imagenes=safe_json_list(survey.imagenes),
+        videos=safe_json_list(survey.videos),
+        preguntas=preguntas,
+        description="",
+        media_url=None,
+        media_urls=safe_json_list(survey.imagenes),
+        media_type="native",
+        segundos_restantes=max(segundos_restantes, 0),
+        patrocinada=False,
+        patrocinador=None,
+        es_patrocinada=False,
+        recompensa_puntos=0,
+        recompensa_dinero=0,
+        presupuesto_total=0,
+        visibilidad_resultados="publica",
+        tipo="simple",
+        sexo=None,
+        ciudad=None,
+        ocupacion=None,
+        nivel_educativo=None,
+        religion=None,
+        nacionalidad=None,
+        estado_civil=None,
+        questions=[
+            {
+                "id": q["id"],
+                "text": q["texto"],
+                "options": [
+                    {"id": o["id"], "text": o["texto"], "count": o["votos"]}
+                    for o in q["opciones"]
+                ],
+                "total_votes": None
+            }
+            for q in preguntas
+        ]
+    )
+
+
 
 
 # -------------------
-# Crear encuesta simple con multimedia
+# Crear encuesta simple
 # -------------------
 @router.post("/", response_model=SurveySimpleResponse)
 def crear_encuesta_simple(
@@ -57,13 +106,15 @@ def crear_encuesta_simple(
     db: Session = Depends(get_db),
     usuario = Depends(get_current_user)
 ):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+
     nueva = SurveySimple(
         titulo=survey.titulo,
         usuario_id=usuario.id,
-        imagenes=json.dumps(survey.imagenes) if survey.imagenes else "[]",
-        videos=json.dumps(survey.videos) if survey.videos else "[]",
-        estado="disponible",
-        fecha_expiracion=survey.fecha_expiracion or datetime.utcnow()
+        imagenes=survey.imagenes or [],
+        videos=survey.videos or [],
+        fecha_expiracion=survey.fecha_expiracion or datetime.now(timezone.utc)
     )
     db.add(nueva)
     db.commit()
@@ -87,32 +138,7 @@ def crear_encuesta_simple(
             db.add(nueva_opcion)
         db.commit()
 
-    return SurveySimpleResponse(
-        id=nueva.id,
-        titulo=nueva.titulo,
-        preguntas=[
-            SurveySimpleQuestionResponse(
-                id=p.id,
-                texto=p.texto,
-                opciones=[
-                    SurveySimpleOptionResponse(
-                        id=o.id,
-                        texto=o.texto,
-                        votos=o.votos
-                    )
-                    for o in p.opciones
-                ]
-            )
-            for p in nueva.preguntas
-        ],
-        imagenes=safe_json_list(nueva.imagenes),
-        videos=safe_json_list(nueva.videos),
-        estado=nueva.estado,
-        fecha_expiracion=nueva.fecha_expiracion,
-        fecha_creacion=nueva.fecha_creacion,
-        tipo="simple",
-        segundos_restantes=calcular_segundos_restantes(nueva.fecha_expiracion)
-    )
+    return build_survey_simple_response(nueva)
 
 
 
@@ -126,6 +152,9 @@ def votar_simple(
     db: Session = Depends(get_db),
     usuario = Depends(get_current_user)
 ):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+
     encuesta = db.query(SurveySimple).filter(SurveySimple.id == survey_id).first()
     if not encuesta:
         raise HTTPException(status_code=404, detail="Encuesta no encontrada")
@@ -133,176 +162,149 @@ def votar_simple(
     opcion = db.query(SurveySimpleOption).filter(
         SurveySimpleOption.id == voto.opcion_id
     ).first()
-
     if not opcion:
         raise HTTPException(status_code=400, detail="Opción inválida")
 
+    # registrar voto en tabla SimpleVote
+    nuevo_voto = SimpleVote(
+        usuario_id=usuario.id,
+        survey_simple_id=encuesta.id,
+        opcion_id=opcion.id
+    )
+    db.add(nuevo_voto)
+
     opcion.votos += 1
-    encuesta.estado = "votada"
     db.commit()
     db.refresh(opcion)
 
-    return {"mensaje": "Voto registrado", "opcion": opcion}
+    return {
+        "mensaje": "Voto registrado",
+        "opcion": {"id": opcion.id, "texto": opcion.texto, "votos": opcion.votos}
+    }
+
+
+
 
 # -------------------
-# Obtener resultados de encuesta simple
+# Resultados de encuesta simple
 # -------------------
 @router.get("/{survey_id}/results", response_model=SurveySimpleResponse)
 def resultados_simple(survey_id: int, db: Session = Depends(get_db)):
     encuesta = db.query(SurveySimple).options(
         selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
     ).filter(SurveySimple.id == survey_id).first()
+
     if not encuesta:
         raise HTTPException(status_code=404, detail="Encuesta no encontrada")
 
-    return SurveySimpleResponse(
-        id=encuesta.id,
-        titulo=encuesta.titulo,
-        preguntas=[
-            SurveySimpleQuestionResponse(
-                id=p.id,
-                texto=p.texto,
-                opciones=[
-                    SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
-                    for o in p.opciones
-                ]
+    return build_survey_simple_response(encuesta)
+
+
+
+# -------------------
+# Listar encuestas disponibles (simples)
+# -------------------
+@router.get("/disponibles", response_model=List[SurveySimpleResponse])
+def listar_disponibles(db: Session = Depends(get_db), usuario = Depends(get_current_user)):
+    encuestas = (
+        db.query(SurveySimple)
+        .options(
+            selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
+        )
+            .filter(
+                (SurveySimple.fecha_expiracion == None) |
+                (SurveySimple.fecha_expiracion > datetime.utcnow())
             )
-            for p in encuesta.preguntas
-        ],
-        imagenes=safe_json_list(encuesta.imagenes),
-        videos=safe_json_list(encuesta.videos),
-        estado=encuesta.estado,
-        fecha_expiracion=encuesta.fecha_expiracion,
-        fecha_creacion=encuesta.fecha_creacion,
-        tipo="simple"
+
+
+        .order_by(SurveySimple.id.desc())
+        .all()
     )
 
+    logger.info(f"Usuario actual: {usuario.id}")
+    logger.info(f"Encuestas encontradas: {[e.id for e in encuestas]}")
 
-# -------------------
-# Listar encuestas disponibles
-# -------------------
-
-@router.get("/disponibles", response_model=List[SurveySimpleResponse])
-def listar_disponibles(db: Session = Depends(get_db)):
-    ahora = datetime.utcnow()
-    encuestas = db.query(SurveySimple).options(
-        selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
-    ).filter(
-        SurveySimple.estado == "disponible",
-        SurveySimple.fecha_expiracion > ahora
-    ).all()
-
-    return [
-        SurveySimpleResponse(
-            id=e.id,
-            titulo=e.titulo,
-            preguntas=[
-                SurveySimpleQuestionResponse(
-                    id=q.id,
-                    texto=q.texto,
-                    opciones=[
-                        SurveySimpleOptionResponse(
-                            id=o.id,
-                            texto=o.texto,
-                            votos=o.votos
-                        )
-                        for o in (q.opciones or [])
-                    ]
-                )
-                for q in (e.preguntas or [])
-            ],
-            imagenes=safe_json_list(e.imagenes),
-            videos=safe_json_list(e.videos),
-            estado=e.estado,
-            fecha_expiracion=e.fecha_expiracion,
-            fecha_creacion=e.fecha_creacion,
-            tipo="simple",
-            segundos_restantes=calcular_segundos_restantes(e.fecha_expiracion)
-        )
-        for e in encuestas
-    ]
-
-
-
-
-
-
-
-# -------------------
-# Listar encuestas votadas
-# -------------------
-@router.get("/votadas", response_model=list[SurveySimpleResponse])
-def listar_votadas(db: Session = Depends(get_db)):
-    encuestas = db.query(SurveySimple).options(
-        selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
-    ).filter(SurveySimple.estado == "votada").all()
-
-    return [
-        SurveySimpleResponse(
-            id=e.id,
-            titulo=e.titulo,
-            preguntas=[
-                SurveySimpleQuestionResponse(
-                    id=q.id,
-                    texto=q.texto,
-                    opciones=[
-                        SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
-                        for o in q.opciones
-                    ]
-                )
-                for q in e.preguntas
-            ],
-            imagenes=safe_json_list(e.imagenes),
-            videos=safe_json_list(e.videos),
-            estado=e.estado,
-            fecha_expiracion=e.fecha_expiracion,
-            fecha_creacion=e.fecha_creacion,
-            tipo="simple",
-            segundos_restantes=calcular_segundos_restantes(e.fecha_expiracion)
-        )
-        for e in encuestas
-    ]
-
-
-
-# -------------------
-# Listar encuestas finalizadas (expiradas)
-# -------------------
-@router.get("/finalizadas", response_model=list[SurveySimpleResponse])
-def listar_finalizadas(db: Session = Depends(get_db)):
-    ahora = datetime.utcnow()
-    encuestas = db.query(SurveySimple).options(
-        selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
-    ).filter(SurveySimple.fecha_expiracion <= ahora).all()
-
+    disponibles = []
     for e in encuestas:
-        e.estado = "finalizada"
-    db.commit()
-
-    return [
-        SurveySimpleResponse(
-            id=e.id,
-            titulo=e.titulo,
-            preguntas=[
-                SurveySimpleQuestionResponse(
-                    id=q.id,
-                    texto=q.texto,
-                    opciones=[
-                        SurveySimpleOptionResponse(id=o.id, texto=o.texto, votos=o.votos)
-                        for o in q.opciones
-                    ]
-                )
-                for q in e.preguntas
-            ],
-            imagenes=safe_json_list(e.imagenes),
-            videos=safe_json_list(e.videos),
-            estado=e.estado,
-            fecha_expiracion=e.fecha_expiracion,
-            fecha_creacion=e.fecha_creacion,
-            tipo="simple",
-            segundos_restantes=calcular_segundos_restantes(e.fecha_expiracion)
+        ya_voto = (
+            db.query(SimpleVote)
+            .filter(
+                SimpleVote.usuario_id == usuario.id,
+                SimpleVote.survey_simple_id == e.id,
+            )
+            .first()
         )
-        for e in encuestas
-    ]
+        if ya_voto:
+            continue
+
+        disponibles.append(build_survey_simple_response(e))
+
+    return disponibles or []
 
 
+
+# -------------------
+# Listar encuestas votadas (simples)
+# -------------------
+@router.get("/votadas", response_model=List[SurveySimpleResponse])
+def listar_votadas(db: Session = Depends(get_db), usuario = Depends(get_current_user)):
+    encuestas = (
+        db.query(SurveySimple)
+        .options(
+            selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
+        )
+        .order_by(SurveySimple.id.desc())
+        .all()
+    )
+
+    votadas = []
+    for e in encuestas:
+        ya_voto = (
+            db.query(SimpleVote)
+            .filter(
+                SimpleVote.usuario_id == usuario.id,
+                SimpleVote.survey_simple_id == e.id,
+            )
+            .first()
+        )
+        if ya_voto:
+            votadas.append(build_survey_simple_response(e))
+
+    return votadas or []
+
+
+# -------------------
+# Listar encuestas finalizadas (simples)
+# -------------------
+@router.get("/finalizadas", response_model=List[SurveySimpleResponse])
+def listar_finalizadas(db: Session = Depends(get_db)):
+    encuestas = (
+        db.query(SurveySimple)
+        .options(
+            selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
+        )
+        .filter(SurveySimple.fecha_expiracion <= func.now())
+        .order_by(SurveySimple.id.desc())
+        .all()
+    )
+
+    return [build_survey_simple_response(e) for e in encuestas]
+
+
+
+# -------------------
+# Obtener encuesta simple por ID
+# -------------------
+@router.get("/{survey_id}", response_model=SurveySimpleResponse)
+def obtener_encuesta_simple(
+    survey_id: int,
+    db: Session = Depends(get_db)
+):
+    encuesta = db.query(SurveySimple).options(
+        selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
+    ).filter(SurveySimple.id == survey_id).first()
+
+    if not encuesta:
+        raise HTTPException(status_code=404, detail="Encuesta no encontrada")
+
+    return build_survey_simple_response(encuesta)

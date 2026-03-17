@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ValidationInfo
 from typing import List, Optional
 from datetime import datetime
 import json
@@ -48,15 +48,13 @@ class SurveySimpleResponse(BaseModel):
     preguntas: List[SurveySimpleQuestionResponse]
     imagenes: List[str] = []
     videos: List[str] = []
-    estado: Optional[str] = None
     fecha_expiracion: Optional[datetime] = None
-    fecha_creacion: datetime
+    fecha_creacion: Optional[datetime] = None
 
     # -------------------
     # Campos extra para cumplir contrato de Survey
     # -------------------
     description: str = ""
-    questions: List[dict] = []
     media_url: Optional[str] = None
     media_urls: List[str] = []
     media_type: str = "native"
@@ -85,26 +83,11 @@ class SurveySimpleResponse(BaseModel):
         from_attributes = True
 
     # -------------------
-    # Validadores defensivos
+    # Validadores defensivos (Pydantic v2)
     # -------------------
-    @field_validator("questions", mode="before")
-    def map_questions(cls, v, values):
-        preguntas = values.get("preguntas") or []
-        result = []
-        for q in preguntas:
-            result.append({
-                "id": getattr(q, "id", None),
-                "text": getattr(q, "texto", ""),
-                "options": [
-                    {
-                        "id": getattr(o, "id", None),
-                        "text": getattr(o, "texto", ""),
-                        "count": getattr(o, "votos", 0)
-                    }
-                    for o in getattr(q, "opciones", []) or []
-                ]
-            })
-        return result
+    @field_validator("preguntas", mode="before")
+    def map_preguntas(cls, v, info: ValidationInfo):
+        return v or []
 
     @field_validator("imagenes", mode="before")
     def parse_imagenes(cls, v):
@@ -125,8 +108,8 @@ class SurveySimpleResponse(BaseModel):
         return v or []
 
     @field_validator("media_urls", mode="before")
-    def map_media_urls(cls, v, values):
-        imagenes = values.get("imagenes") or []
+    def map_media_urls(cls, v, info: ValidationInfo):
+        imagenes = info.data.get("imagenes") or []
         return imagenes if imagenes else v or []
 
 # -------------------

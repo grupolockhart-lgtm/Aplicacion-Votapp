@@ -1,6 +1,7 @@
 # src/models_simple.py
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import JSONB
 from datetime import datetime, timedelta
 from votapp_app.database import Base
 
@@ -16,12 +17,11 @@ class SurveySimple(Base):
     # Usuario creador (puede ser null si es anónima)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
 
-    # Guardar multimedia como JSON serializado en texto
-    imagenes = Column(Text, default="[]")
-    videos = Column(Text, default="[]")
 
-    # Estado de la encuesta: disponible, votada, finalizada
-    estado = Column(String, default="disponible")
+
+    # Guardar multimedia como JSONB (listas nativas)
+    imagenes = Column(JSONB, default=list)
+    videos = Column(JSONB, default=list)
 
     # Fecha de expiración: por defecto 24h después de creación
     fecha_expiracion = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(days=1))
@@ -61,3 +61,18 @@ class SurveySimpleOption(Base):
     # Relación con pregunta
     pregunta_id = Column(Integer, ForeignKey("surveys_simple_questions.id"))
     pregunta = relationship("SurveySimpleQuestion", back_populates="opciones")
+
+
+class SimpleVote(Base):
+    __tablename__ = "surveys_simple_votes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    survey_simple_id = Column(Integer, ForeignKey("surveys_simple.id"), nullable=False)
+    opcion_id = Column(Integer, ForeignKey("surveys_simple_options.id"), nullable=False)
+
+    # Relaciones opcionales
+    usuario = relationship("Usuario", backref="simple_votes")
+    survey_simple = relationship("SurveySimple", backref="votes")
+    opcion = relationship("SurveySimpleOption", backref="votes")
+

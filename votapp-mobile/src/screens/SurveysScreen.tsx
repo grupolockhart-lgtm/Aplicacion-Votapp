@@ -70,12 +70,18 @@ export default function SurveysScreen() {
     return [];
   };
 
-  
+
+
+
   // 🔑 Normalización de encuestas simples
+
+
 const normalizeSimple = (s: any): Survey => ({
   id: s.id,
   title: s.titulo,
-  description: "",
+  description: s.description ?? "",
+  fecha_expiracion: s.fecha_expiracion,
+  segundos_restantes: s.segundos_restantes ?? 0,
   questions: Array.isArray(s.preguntas)
     ? s.preguntas.map((q: any) => ({
         id: q.id,
@@ -90,10 +96,22 @@ const normalizeSimple = (s: any): Survey => ({
         total_votes: null,
       }))
     : [],
-  media_urls: Array.isArray(s.imagenes) ? s.imagenes : [],
-  media_type: "native",
+  media_url: s.media_url ?? null,
+  media_urls: Array.isArray(s.media_urls)
+    ? s.media_urls
+    : [...(s.imagenes ?? []), ...(s.videos ?? [])],
+  media_type: s.media_type ?? "native",
+  visibilidad_resultados: s.visibilidad_resultados ?? "publica",
+  patrocinada: s.patrocinada ?? false,
+  es_patrocinada: s.es_patrocinada ?? false,
+  patrocinador: s.patrocinador ?? null,
+  recompensa_puntos: s.recompensa_puntos ?? 0,
+  recompensa_dinero: s.recompensa_dinero ?? 0,
+  presupuesto_total: s.presupuesto_total ?? 0,
   tipo: "simple",
 });
+
+
 
 
 
@@ -114,36 +132,28 @@ const refreshSurveys = async () => {
       fetch(`${API_URL}/surveys/disponibles`, { method: "GET", headers }),
       fetch(`${API_URL}/surveys/votadas`, { method: "GET", headers }),
       fetch(`${API_URL}/surveys/finalizadas`, { method: "GET", headers }),
-      fetch(`${API_URL}/surveys/simple/disponibles`, { method: "GET", headers }),
-      fetch(`${API_URL}/surveys/simple/votadas`, { method: "GET", headers }),
-      fetch(`${API_URL}/surveys/simple/finalizadas`, { method: "GET", headers }),
+      fetch(`${API_URL}/api/surveys/simple/disponibles`, { method: "GET", headers }),
+      fetch(`${API_URL}/api/surveys/simple/votadas`, { method: "GET", headers }),
+      fetch(`${API_URL}/api/surveys/simple/finalizadas`, { method: "GET", headers }),
     ]);
 
     const getJson = async (res: any, name: string) => {
       if (res.status === "fulfilled") {
         if (!res.value.ok) {
-          if (name.includes("simples")) {
-            console.error(`${name} error:`, await res.value.text());
-          }
+          console.error(`${name} error:`, await res.value.text());
           return [];
         }
         try {
           const json = await res.value.json();
-          if (name.includes("simples")) {
-            console.log(`${name} status:`, res.value.status);
-            console.log(`${name} count:`, json.length);
-          }
+          console.log(`${name} status:`, res.value.status);
+          console.log(`${name} count:`, json.length);
           return json;
         } catch (err) {
-          if (name.includes("simples")) {
-            console.error(`${name} parse error:`, err);
-          }
+          console.error(`${name} parse error:`, err);
           return [];
         }
       } else {
-        if (name.includes("simples")) {
-          console.log(`${name} falló:`, res.reason);
-        }
+        console.log(`${name} falló:`, res.reason);
         return [];
       }
     };
@@ -161,27 +171,29 @@ const refreshSurveys = async () => {
     const simplesFinalizadas = await getJson(responses[5], "Finalizadas simples");
     console.log("Respuesta cruda simples finalizadas:", simplesFinalizadas);
 
+    // 👇 Logs para validar flujo
+    console.log("ANTES de normalizar simplesDisponibles:", simplesDisponibles);
+    console.log("Disponibles simples normalizados:", JSON.stringify(simplesDisponibles.map(normalizeSimple), null, 2));
+
     setDisponibles([
       ...toArray(normalesDisponibles).map((s: Survey) => ({ ...s, tipo: "normal" })),
-      ...toArray(simplesDisponibles).map(normalizeSimple),
+      ...simplesDisponibles.map(normalizeSimple),   // 👈 directo
     ]);
 
     setVotadas([
       ...toArray(normalesVotadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
-      ...toArray(simplesVotadas).map(normalizeSimple),
+      ...simplesVotadas.map(normalizeSimple),       // 👈 directo
     ]);
 
     setFinalizadas([
       ...toArray(normalesFinalizadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
-      ...toArray(simplesFinalizadas).map(normalizeSimple),
+      ...simplesFinalizadas.map(normalizeSimple),   // 👈 directo
     ]);
   } catch (err) {
     console.log("Error en refreshSurveys:", err);
     setError("No se pudieron refrescar las encuestas");
   }
 };
-
-
 
 
 
