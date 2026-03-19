@@ -16,9 +16,10 @@ import TestChart from "./src/screens/TestChart";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import LogoutScreen from "./src/screens/LogoutScreen";
 import WalletHistoryScreen from "./src/screens/WalletHistoryScreen";
-import SurveyHistory from "./src/screens/SurveyHistory"; 
-import SurveyHistoryScreen from "./src/screens/SurveyHistoryScreen"; 
+import SurveyHistory from "./src/screens/SurveyHistory";
+import SurveyHistoryScreen from "./src/screens/SurveyHistoryScreen";
 import SurveySimpleCrearScreen from "./src/screens/SurveySimpleCrearScreen";
+import SurveySimplePreviewScreen from "./src/screens/SurveySimplePreviewScreen"; // 👈 importada
 
 import type { RootStackParamList } from "./src/Types/Navigation";
 
@@ -45,7 +46,7 @@ function MainTabs() {
             />
           );
         },
-        tabBarShowLabel: true, // 👈 muestra texto debajo
+        tabBarShowLabel: true,
       })}
     >
       <Tab.Screen
@@ -53,15 +54,11 @@ function MainTabs() {
         component={SurveysScreen}
         options={{ title: "Encuestas" }}
       />
-
       <Tab.Screen
         name="CrearEncuesta"
         component={SurveySimpleCrearScreen}
-        options={{
-          title: "Crear", // 👈 etiqueta debajo del "+"
-        }}
+        options={{ title: "Crear" }}
       />
-
       <Tab.Screen
         name="ProfileScreen"
         component={ProfileScreen}
@@ -75,10 +72,7 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <NavigationContainer>
-        <Stack.Navigator
-          id="RootStack"
-          initialRouteName="LoginScreen"
-        >
+        <Stack.Navigator id="RootStack" initialRouteName="LoginScreen">
           <Stack.Screen
             name="LoginScreen"
             component={LoginScreen}
@@ -133,6 +127,13 @@ export default function App() {
             name="WalletHistoryScreen"
             component={WalletHistoryScreen}
             options={{ title: "Historial de billetera" }}
+          />
+
+          {/* 👇 Nueva pantalla de previsualización */}
+          <Stack.Screen
+            name="SurveySimplePreviewScreen"
+            component={SurveySimplePreviewScreen}
+            options={{ title: "Previsualización" }}
           />
         </Stack.Navigator>
       </NavigationContainer>

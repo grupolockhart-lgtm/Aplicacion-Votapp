@@ -23,6 +23,7 @@ interface Survey {
   recompensa_dinero?: number;
   presupuesto_total?: number;
   visibilidad_resultados?: "publica" | "privada";
+  tipo?: "normal" | "simple";   // 👈 agregado para encuestas simples
 }
 
 export default function SurveyCard({
@@ -72,7 +73,7 @@ export default function SurveyCard({
   return (
     <View style={[styles.post, survey.es_patrocinada && styles.patrocinadaPost]}>
       {survey.media_url?.includes("youtube.com") ? (
-        // ✅ Siempre prioriza YouTube si el enlace es válido
+        // ✅ Prioriza YouTube si el enlace es válido
         <FeedMediaYoutube source_url={survey.media_url} />
       ) : survey.media_url && /\.(mp4|mov)$/i.test(survey.media_url) ? (
         // ✅ Videos locales (mp4/mov)

@@ -5,9 +5,12 @@ export type RootStackParamList = {
 
   // Pantallas principales
   SurveysScreen: undefined;
-  CrearEncuesta: undefined;   // 👈 agregado para el botón central "+"
+  CrearEncuesta: undefined;
   ProfileScreen: undefined;
   LogoutScreen: undefined;
+
+  // Nueva pantalla de previsualización
+  SurveySimplePreviewScreen: { draftSurvey: any };  // 👈 agregado
 
   // Flujo de votación
   VoteScreen: {
@@ -56,8 +59,6 @@ export type RootStackParamList = {
     history: { id: number; title: string; completed_at: string }[];
   };
 };
-
-
 
 
 

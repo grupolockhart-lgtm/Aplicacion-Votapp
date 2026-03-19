@@ -23,6 +23,10 @@ import os
 import logging
 from dotenv import load_dotenv
 
+BASE_URL = "https://aplicacion-votapp-test.onrender.com"
+
+
+
 # -----------------------------
 # Configuración global de logging
 # -----------------------------
@@ -177,3 +181,54 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+
+
+# -----------------------------
+# Carpeta media
+# -----------------------------
+os.makedirs("media/avatars", exist_ok=True)
+os.makedirs("media/images", exist_ok=True)   # 👈 nueva carpeta para imágenes
+app.mount("/media", StaticFiles(directory="media"), name="media")
+
+# -----------------------------
+# Endpoint de subida de imágenes
+# -----------------------------
+from fastapi import UploadFile, File
+import uuid, shutil
+
+@app.post("/api/upload/image")
+
+async def upload_image(file: UploadFile = File(...)):
+    filename = f"{uuid.uuid4()}.jpg"
+    file_path = os.path.join("media/images", filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    return {"url": f"{BASE_URL}/media/images/{filename}"}
+
+
+
+
+
+# -----------------------------
+# Carpeta de videos
+# -----------------------------
+os.makedirs("media/videos", exist_ok=True)
+
+# -----------------------------
+# Endpoint de subida de videos
+# -----------------------------
+from fastapi import UploadFile, File
+import uuid, shutil
+
+@app.post("/api/upload/video")
+
+async def upload_video(file: UploadFile = File(...)):
+    filename = f"{uuid.uuid4()}.mp4"
+    file_path = os.path.join("media/videos", filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    return {"url": f"{BASE_URL}/media/videos/{filename}"}
+
+
+
+

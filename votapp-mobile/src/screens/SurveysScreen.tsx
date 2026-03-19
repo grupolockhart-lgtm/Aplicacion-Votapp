@@ -33,6 +33,7 @@ export interface Survey {
   title: string;
   description?: string;
   fecha_expiracion?: string;
+  fecha_creacion?: string;   // 👈 añadimos este campo
   segundos_restantes?: number;
   questions: Question[];
   media_url?: string;
@@ -45,8 +46,10 @@ export interface Survey {
   recompensa_dinero?: number;
   presupuesto_total?: number;
   visibilidad_resultados?: "publica" | "privada";
-  tipo: "normal" | "simple";   // 👈 único contrato
+  tipo: "normal" | "simple";
 }
+
+
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -75,12 +78,12 @@ export default function SurveysScreen() {
 
   // 🔑 Normalización de encuestas simples
 
-
 const normalizeSimple = (s: any): Survey => ({
   id: s.id,
   title: s.titulo,
   description: s.description ?? "",
   fecha_expiracion: s.fecha_expiracion,
+  fecha_creacion: s.fecha_creacion,   // 👈 añadimos aquí
   segundos_restantes: s.segundos_restantes ?? 0,
   questions: Array.isArray(s.preguntas)
     ? s.preguntas.map((q: any) => ({
@@ -96,7 +99,9 @@ const normalizeSimple = (s: any): Survey => ({
         total_votes: null,
       }))
     : [],
-  media_url: s.media_url ?? null,
+  // 👇 Ajuste clave: si no hay media_url explícito, tomamos la primera imagen
+  media_url: s.media_url ?? (s.imagenes?.[0] ?? null),
+  // 👇 Aseguramos que todas las imágenes y videos estén en media_urls
   media_urls: Array.isArray(s.media_urls)
     ? s.media_urls
     : [...(s.imagenes ?? []), ...(s.videos ?? [])],
@@ -110,6 +115,8 @@ const normalizeSimple = (s: any): Survey => ({
   presupuesto_total: s.presupuesto_total ?? 0,
   tipo: "simple",
 });
+
+
 
 
 
@@ -132,10 +139,12 @@ const refreshSurveys = async () => {
       fetch(`${API_URL}/surveys/disponibles`, { method: "GET", headers }),
       fetch(`${API_URL}/surveys/votadas`, { method: "GET", headers }),
       fetch(`${API_URL}/surveys/finalizadas`, { method: "GET", headers }),
-      fetch(`${API_URL}/api/surveys/simple/disponibles`, { method: "GET", headers }),
-      fetch(`${API_URL}/api/surveys/simple/votadas`, { method: "GET", headers }),
-      fetch(`${API_URL}/api/surveys/simple/finalizadas`, { method: "GET", headers }),
+      fetch(`${API_URL}/surveys/simple/disponibles`, { method: "GET", headers }),   // 👈 sin /api extra
+      fetch(`${API_URL}/surveys/simple/votadas`, { method: "GET", headers }),       // 👈 sin /api extra
+      fetch(`${API_URL}/surveys/simple/finalizadas`, { method: "GET", headers }),   // 👈 sin /api extra
     ]);
+
+
 
     const getJson = async (res: any, name: string) => {
       if (res.status === "fulfilled") {
@@ -171,24 +180,24 @@ const refreshSurveys = async () => {
     const simplesFinalizadas = await getJson(responses[5], "Finalizadas simples");
     console.log("Respuesta cruda simples finalizadas:", simplesFinalizadas);
 
-    // 👇 Logs para validar flujo
-    console.log("ANTES de normalizar simplesDisponibles:", simplesDisponibles);
-    console.log("Disponibles simples normalizados:", JSON.stringify(simplesDisponibles.map(normalizeSimple), null, 2));
 
+    
     setDisponibles([
       ...toArray(normalesDisponibles).map((s: Survey) => ({ ...s, tipo: "normal" })),
-      ...simplesDisponibles.map(normalizeSimple),   // 👈 directo
+      ...toArray(simplesDisponibles).map(normalizeSimple),   // 👈 ahora seguro
     ]);
 
     setVotadas([
       ...toArray(normalesVotadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
-      ...simplesVotadas.map(normalizeSimple),       // 👈 directo
+      ...toArray(simplesVotadas).map(normalizeSimple),
     ]);
 
     setFinalizadas([
       ...toArray(normalesFinalizadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
-      ...simplesFinalizadas.map(normalizeSimple),   // 👈 directo
+      ...toArray(simplesFinalizadas).map(normalizeSimple),
     ]);
+
+
   } catch (err) {
     console.log("Error en refreshSurveys:", err);
     setError("No se pudieron refrescar las encuestas");

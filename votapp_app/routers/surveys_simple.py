@@ -112,13 +112,12 @@ def crear_encuesta_simple(
     nueva = SurveySimple(
         titulo=survey.titulo,
         usuario_id=usuario.id,
-        imagenes=survey.imagenes or [],
-        videos=survey.videos or [],
+        imagenes=json.dumps(survey.imagenes or []),
+        videos=json.dumps(survey.videos or []),
         fecha_expiracion=survey.fecha_expiracion or datetime.now(timezone.utc)
     )
     db.add(nueva)
-    db.commit()
-    db.refresh(nueva)
+    db.flush()   # 👈 asegura que nueva.id exista
 
     for pregunta in survey.preguntas:
         nueva_pregunta = SurveySimpleQuestion(
@@ -126,8 +125,7 @@ def crear_encuesta_simple(
             survey_simple_id=nueva.id
         )
         db.add(nueva_pregunta)
-        db.commit()
-        db.refresh(nueva_pregunta)
+        db.flush()
 
         for opcion in pregunta.opciones:
             nueva_opcion = SurveySimpleOption(
@@ -136,9 +134,14 @@ def crear_encuesta_simple(
                 pregunta_id=nueva_pregunta.id
             )
             db.add(nueva_opcion)
-        db.commit()
+
+    db.commit()   # 👈 un solo commit al final
+    db.refresh(nueva)
+
+    print("Encuesta creada con ID:", nueva.id)  # 👈 log para confirmar
 
     return build_survey_simple_response(nueva)
+
 
 
 
