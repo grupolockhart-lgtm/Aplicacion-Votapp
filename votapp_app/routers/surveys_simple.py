@@ -48,21 +48,25 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
             {"id": o.id, "texto": o.texto, "votos": o.votos if o.votos is not None else 0}
             for o in (p.opciones or [])
         ]
-
-
         preguntas.append({"id": p.id, "texto": p.texto, "opciones": opciones})
+
+    # 👇 deserializar correctamente
+    imagenes = safe_json_list(survey.imagenes)
+    videos = safe_json_list(survey.videos)
 
     return SurveySimpleResponse(
         id=survey.id,
         titulo=survey.titulo,
         fecha_expiracion=fecha_exp.isoformat() if fecha_exp else None,
         fecha_creacion=survey.fecha_creacion,
-        imagenes=safe_json_list(survey.imagenes),
-        videos=safe_json_list(survey.videos),
+        imagenes=imagenes,
+        videos=videos,
         preguntas=preguntas,
         description="",
-        media_url=None,
-        media_urls=safe_json_list(survey.imagenes),
+        # 👇 usar la primera imagen como media_url
+        media_url=imagenes[0] if imagenes else None,
+        # 👇 incluir imágenes y videos en media_urls
+        media_urls=imagenes + videos,
         media_type="native",
         segundos_restantes=max(segundos_restantes, 0),
         patrocinada=False,
@@ -112,10 +116,11 @@ def crear_encuesta_simple(
     nueva = SurveySimple(
         titulo=survey.titulo,
         usuario_id=usuario.id,
-        imagenes=json.dumps(survey.imagenes or []),
-        videos=json.dumps(survey.videos or []),
+        imagenes=survey.imagenes or [],
+        videos=survey.videos or [],
         fecha_expiracion=survey.fecha_expiracion or datetime.now(timezone.utc)
     )
+
     db.add(nueva)
     db.flush()   # 👈 asegura que nueva.id exista
 

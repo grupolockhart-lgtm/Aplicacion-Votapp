@@ -76,14 +76,13 @@ export default function SurveysScreen() {
 
 
 
-  // 🔑 Normalización de encuestas simples
-
+ // 🔑 Normalización de encuestas simples
 const normalizeSimple = (s: any): Survey => ({
   id: s.id,
   title: s.titulo,
   description: s.description ?? "",
   fecha_expiracion: s.fecha_expiracion,
-  fecha_creacion: s.fecha_creacion,   // 👈 añadimos aquí
+  fecha_creacion: s.fecha_creacion,   // 👈 añadido para poder ordenar por fecha
   segundos_restantes: s.segundos_restantes ?? 0,
   questions: Array.isArray(s.preguntas)
     ? s.preguntas.map((q: any) => ({
@@ -115,6 +114,8 @@ const normalizeSimple = (s: any): Survey => ({
   presupuesto_total: s.presupuesto_total ?? 0,
   tipo: "simple",
 });
+
+
 
 
 

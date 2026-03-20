@@ -32,7 +32,14 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
   // -------------------
   const publicarEncuesta = async () => {
     try {
-      console.log("Payload enviado:", JSON.stringify(draftSurvey));
+      // Clona el draft y asegura que las imágenes estén incluidas
+      const payload = {
+        ...draftSurvey,
+        imagenes: draftSurvey.imagenes ?? [], // 👈 aquí garantizas que se envíe
+        videos: draftSurvey.videos ?? [],
+      };
+
+      console.log("Payload enviado:", JSON.stringify(payload));
 
       const res = await fetch(`${API_URL}/surveys/simple/`, {
         method: "POST",
@@ -40,7 +47,7 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(draftSurvey),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -57,6 +64,8 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
       alert("Error publicando encuesta, revisa consola");
     }
   };
+
+
 
   // -------------------
   // RETURN (UI)
