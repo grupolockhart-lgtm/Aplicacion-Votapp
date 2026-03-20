@@ -1,7 +1,4 @@
-
-
-
-
+// src/screens/ResultsScreen.tsx
 import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
@@ -28,9 +25,9 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../Types/Navigation";
 
 import SurveyCard from "@/components/SurveyCard";
+import { useSurveyContext } from "../context/SurveyContext"; // 👈 usamos el contexto
 
 type Props = NativeStackScreenProps<RootStackParamList, "ResultsScreen">;
-
 
 interface OptionResult {
   id: number;
@@ -48,22 +45,14 @@ interface QuestionResult {
 export default function ResultsScreen({ route, navigation }: Props) {
   const {
     surveyId,
+    surveyType, // 👈 parámetro para diferenciar normal/simple
     media_url,
     media_urls,
     title,
     description,
-    refreshSurveys,
-    refreshProfile,
   } = route.params;
 
-
-
-
-
-console.log("Params en ResultsScreen:", route.params);
-console.log("typeof refreshProfile:", typeof refreshProfile);
-console.log("typeof refreshSurveys:", typeof refreshSurveys);
-
+  const { refreshSurveys, refreshProfile } = useSurveyContext(); // 👈 funciones desde contexto
 
   const [questionResults, setQuestionResults] = useState<QuestionResult[]>([]);
   const [surveyTitle, setSurveyTitle] = useState(title || "Encuesta");
@@ -81,12 +70,17 @@ console.log("typeof refreshSurveys:", typeof refreshSurveys);
         const token = await AsyncStorage.getItem("userToken");
         if (!token) {
           Alert.alert("Error", "Debes iniciar sesión para ver resultados.");
-          (navigation as any).navigate("LoginScreen");
+          navigation.navigate("LoginScreen");
           setLoading(false);
           return;
         }
 
-        const res = await fetch(`${API_URL}/surveys/${surveyId}/results`, {
+        const endpoint =
+          surveyType === "normal"
+            ? `${API_URL}/surveys/${surveyId}/results`
+            : `${API_URL}/surveys_simple/${surveyId}/results`;
+
+        const res = await fetch(endpoint, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -109,7 +103,7 @@ console.log("typeof refreshSurveys:", typeof refreshSurveys);
 
         setSurveyTitle(data?.title || surveyTitle);
 
-        // ✅ Refrescar perfil y encuestas al cargar resultados
+        // ✅ refrescar perfil y encuestas desde contexto
         await refreshProfile();
         await refreshSurveys();
       } catch (err: any) {
@@ -120,7 +114,7 @@ console.log("typeof refreshSurveys:", typeof refreshSurveys);
     };
 
     loadResults();
-  }, [surveyId, navigation]);
+  }, [surveyId, surveyType, navigation]);
 
   useEffect(() => {
     rotateAnims.forEach((anim) => {
@@ -144,7 +138,7 @@ console.log("typeof refreshSurveys:", typeof refreshSurveys);
 
   const colorScale = ["#2196F3", "#4CAF50", "#FF9800", "#9C27B0", "#F44336"];
 
-  return (
+   return (
     <ScrollView contentContainerStyle={styles.container}>
       <SurveyCard
         survey={{
@@ -213,6 +207,8 @@ console.log("typeof refreshSurveys:", typeof refreshSurveys);
               />
             </VictoryChart>
 
+
+
             {/* 🥧 Gráfica de pastel */}
             <Animated.View style={{ transform: [{ rotate: spin }] }}>
               <VictoryPie
@@ -237,21 +233,7 @@ console.log("typeof refreshSurveys:", typeof refreshSurveys);
                 }}
               />
               <View style={styles.centerLabel}>
-                <Text
-                  style={[
-                    styles.centerLabelText,
-                    {
-                      color:
-                        totalVotes > 100
-                          ? "#10B981"
-                          : totalVotes >= 50
-                          ? "#F59E0B"
-                          : "#EF4444",
-                    },
-                  ]}
-                >
-                  {totalVotes} votos
-                </Text>
+                <Text style={styles.centerLabelText}>{totalVotes} votos</Text>
               </View>
             </Animated.View>
 
@@ -284,16 +266,9 @@ console.log("typeof refreshSurveys:", typeof refreshSurveys);
   );
 }
 
-
 const styles = StyleSheet.create({
-  centered: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center" 
-  },
-  container: { 
-    padding: 20 
-  },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { padding: 20 },
   card: {
     marginBottom: 40,
     backgroundColor: "#fff",
@@ -304,49 +279,14 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  questionText: { 
-    fontSize: 18, 
-    fontWeight: "600", 
-    marginBottom: 10,   // 👈 aquí estaba incompleto
-    color: "#111827"
-  },
-  totalVotes: { 
-    marginBottom: 10, 
-    fontSize: 14, 
-    color: "#6B7280" 
-  },
-  centerLabel: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    height: "100%",
-  },
-  centerLabelText: { 
-    fontSize: 16, 
-    fontWeight: "700" 
-  },
-  legend: { 
-    flexDirection: "row", 
-    flexWrap: "wrap", 
-    marginTop: 10 
-  },
-  legendItem: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    marginRight: 15, 
-    marginBottom: 5 
-  },
-  legendColor: { 
-    width: 14, 
-    height: 14, 
-    marginRight: 6, 
-    borderRadius: 3 
-  },
-  legendText: { 
-    fontSize: 12, 
-    color: "#333" 
-  },
+  questionText: { fontSize: 18, fontWeight: "600", marginBottom: 10, color: "#111827" },
+  totalVotes: { marginBottom: 10, fontSize: 14, color: "#6B7280" },
+  centerLabel: { position: "absolute", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" },
+  centerLabelText: { fontSize: 16, fontWeight: "700" },
+  legend: { flexDirection: "row", flexWrap: "wrap", marginTop: 10 },
+  legendItem: { flexDirection: "row", alignItems: "center", marginRight: 15, marginBottom: 5 },
+  legendColor: { width: 14, height: 14, marginRight: 6, borderRadius: 3 },
+  legendText: { fontSize: 12, color: "#333" },
 });
 
 

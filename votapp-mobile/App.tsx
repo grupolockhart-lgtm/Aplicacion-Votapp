@@ -19,9 +19,12 @@ import WalletHistoryScreen from "./src/screens/WalletHistoryScreen";
 import SurveyHistory from "./src/screens/SurveyHistory";
 import SurveyHistoryScreen from "./src/screens/SurveyHistoryScreen";
 import SurveySimpleCrearScreen from "./src/screens/SurveySimpleCrearScreen";
-import SurveySimplePreviewScreen from "./src/screens/SurveySimplePreviewScreen"; // 👈 importada
+import SurveySimplePreviewScreen from "./src/screens/SurveySimplePreviewScreen";
 
 import type { RootStackParamList } from "./src/Types/Navigation";
+
+// 👇 importa el provider
+import SurveyProvider from "./src/context/SurveyProvider";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -33,9 +36,9 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
           const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-            SurveysScreen: "list",   // 📋
-            CrearEncuesta: "add-circle", // ➕
-            ProfileScreen: "person", // 👤
+            SurveysScreen: "list",
+            CrearEncuesta: "add-circle",
+            ProfileScreen: "person",
           };
 
           return (
@@ -71,72 +74,73 @@ function MainTabs() {
 export default function App() {
   return (
     <GestureHandlerRootView style={styles.container}>
-      <NavigationContainer>
-        <Stack.Navigator id="RootStack" initialRouteName="LoginScreen">
-          <Stack.Screen
-            name="LoginScreen"
-            component={LoginScreen}
-            options={{ title: "Iniciar sesión" }}
-          />
-          <Stack.Screen
-            name="RegisterScreen"
-            component={RegisterScreen}
-            options={{ title: "Registrarse" }}
-          />
-          <Stack.Screen
-            name="MainTabs"
-            component={MainTabs}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="VoteScreen"
-            component={VoteScreen}
-            options={{ title: "Votar" }}
-          />
-          <Stack.Screen
-            name="ResultsScreen"
-            component={ResultsScreen}
-            options={{ title: "Resultados" }}
-          />
-          <Stack.Screen
-            name="SurveyCommentsScreen"
-            component={SurveyCommentsScreen}
-            options={{ title: "Comentarios" }}
-          />
-          <Stack.Screen
-            name="SurveyHistory"
-            component={SurveyHistory}
-            options={{ title: "Historial de encuesta" }}
-          />
-          <Stack.Screen
-            name="SurveyHistoryScreen"
-            component={SurveyHistoryScreen}
-            options={{ title: "Historial completo de encuestas" }}
-          />
-          <Stack.Screen
-            name="TestChart"
-            component={TestChart}
-            options={{ title: "Gráfico de prueba" }}
-          />
-          <Stack.Screen
-            name="LogoutScreen"
-            component={LogoutScreen}
-            options={{ title: "Cerrar sesión" }}
-          />
-          <Stack.Screen
-            name="WalletHistoryScreen"
-            component={WalletHistoryScreen}
-            options={{ title: "Historial de billetera" }}
-          />
-
-          {/* 👇 Nueva pantalla de previsualización */}
-          <Stack.Screen
-            name="SurveySimplePreviewScreen"
-            component={SurveySimplePreviewScreen}
-            options={{ title: "Previsualización" }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
+      {/* 👇 envuelve todo con SurveyProvider */}
+      <SurveyProvider>
+        <NavigationContainer>
+          <Stack.Navigator id="RootStack" initialRouteName="LoginScreen">
+            <Stack.Screen
+              name="LoginScreen"
+              component={LoginScreen}
+              options={{ title: "Iniciar sesión" }}
+            />
+            <Stack.Screen
+              name="RegisterScreen"
+              component={RegisterScreen}
+              options={{ title: "Registrarse" }}
+            />
+            <Stack.Screen
+              name="MainTabs"
+              component={MainTabs}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="VoteScreen"
+              component={VoteScreen}
+              options={{ title: "Votar" }}
+            />
+            <Stack.Screen
+              name="ResultsScreen"
+              component={ResultsScreen}
+              options={{ title: "Resultados" }}
+            />
+            <Stack.Screen
+              name="SurveyCommentsScreen"
+              component={SurveyCommentsScreen}
+              options={{ title: "Comentarios" }}
+            />
+            <Stack.Screen
+              name="SurveyHistory"
+              component={SurveyHistory}
+              options={{ title: "Historial de encuesta" }}
+            />
+            <Stack.Screen
+              name="SurveyHistoryScreen"
+              component={SurveyHistoryScreen}
+              options={{ title: "Historial completo de encuestas" }}
+            />
+            <Stack.Screen
+              name="TestChart"
+              component={TestChart}
+              options={{ title: "Gráfico de prueba" }}
+            />
+            <Stack.Screen
+              name="LogoutScreen"
+              component={LogoutScreen}
+              options={{ title: "Cerrar sesión" }}
+            />
+            <Stack.Screen
+              name="WalletHistoryScreen"
+              component={WalletHistoryScreen}
+              options={{ title: "Historial de billetera" }}
+            />
+            <Stack.Screen
+              name="SurveySimplePreviewScreen"
+              component={SurveySimplePreviewScreen}
+              options={{ title: "Previsualización" }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SurveyProvider>
     </GestureHandlerRootView>
   );
 }

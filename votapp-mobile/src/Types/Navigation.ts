@@ -10,11 +10,12 @@ export type RootStackParamList = {
   LogoutScreen: undefined;
 
   // Nueva pantalla de previsualización
-  SurveySimplePreviewScreen: { draftSurvey: any };  // 👈 agregado
+  SurveySimplePreviewScreen: { draftSurvey: any };
 
   // Flujo de votación
   VoteScreen: {
     surveyId: number;
+    surveyType: "normal" | "simple"; // 👈 agregado
     questions: {
       id: number;
       text: string;
@@ -22,20 +23,19 @@ export type RootStackParamList = {
     }[];
     media_url?: string;
     media_urls?: string[];
-    refreshSurveys: () => Promise<void>;
-    refreshProfile: () => Promise<void>;
   };
 
   // Resultados
   ResultsScreen: {
     surveyId: number;
+    surveyType: "normal" | "simple"; // 👈 agregado
     title?: string;
     description?: string;
     media_url?: string;
     media_urls?: string[];
-    refreshSurveys: () => Promise<void>;
-    refreshProfile: () => Promise<void>;
   };
+
+
 
   // Comentarios
   SurveyCommentsScreen: { surveyId: number };
@@ -59,6 +59,7 @@ export type RootStackParamList = {
     history: { id: number; title: string; completed_at: string }[];
   };
 };
+
 
 
 
