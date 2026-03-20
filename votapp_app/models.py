@@ -8,6 +8,7 @@ from votapp_app.database import Base
 
 
 from sqlalchemy import Date
+from sqlalchemy.sql import func
 
 
 # -----------------------------
@@ -102,6 +103,8 @@ class Survey(Base):
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     fecha_expiracion = Column(DateTime, nullable=True)
+
+    fecha_creacion = Column(DateTime, server_default=func.now(), nullable=False)
 
     # Filtros de segmentación
     sexo = Column(Text, nullable=True)
