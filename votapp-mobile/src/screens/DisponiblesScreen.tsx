@@ -72,8 +72,6 @@ export default function DisponiblesScreen({
                 media_url: item.media_url,
                 media_urls: item.media_urls,
                 media_type: item.media_type,
-                refreshSurveys,
-                refreshProfile,
               })
             }
           >

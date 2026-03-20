@@ -67,8 +67,6 @@ export default function FinalizadasScreen({
                 questions: item.questions,
                 media_url: item.media_url,
                 media_urls: item.media_urls,
-                refreshSurveys,
-                refreshProfile,
               })
             }
           />

@@ -25,7 +25,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../Types/Navigation";
 
 import SurveyCard from "@/components/SurveyCard";
-import { useSurveyContext } from "../context/SurveyContext"; // 👈 usamos el contexto
+import { useSurveyContext } from "../context/SurveyContext";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ResultsScreen">;
 
@@ -33,7 +33,6 @@ interface OptionResult {
   id: number;
   text: string;
   votes: number;
-  percentage?: number;
 }
 
 interface QuestionResult {
@@ -45,14 +44,14 @@ interface QuestionResult {
 export default function ResultsScreen({ route, navigation }: Props) {
   const {
     surveyId,
-    surveyType, // 👈 parámetro para diferenciar normal/simple
+    surveyType,
     media_url,
     media_urls,
     title,
     description,
   } = route.params;
 
-  const { refreshSurveys, refreshProfile } = useSurveyContext(); // 👈 funciones desde contexto
+  const { refreshSurveys, refreshProfile } = useSurveyContext();
 
   const [questionResults, setQuestionResults] = useState<QuestionResult[]>([]);
   const [surveyTitle, setSurveyTitle] = useState(title || "Encuesta");
@@ -103,7 +102,6 @@ export default function ResultsScreen({ route, navigation }: Props) {
 
         setSurveyTitle(data?.title || surveyTitle);
 
-        // ✅ refrescar perfil y encuestas desde contexto
         await refreshProfile();
         await refreshSurveys();
       } catch (err: any) {
@@ -138,7 +136,7 @@ export default function ResultsScreen({ route, navigation }: Props) {
 
   const colorScale = ["#2196F3", "#4CAF50", "#FF9800", "#9C27B0", "#F44336"];
 
-   return (
+     return (
     <ScrollView contentContainerStyle={styles.container}>
       <SurveyCard
         survey={{
@@ -207,8 +205,6 @@ export default function ResultsScreen({ route, navigation }: Props) {
               />
             </VictoryChart>
 
-
-
             {/* 🥧 Gráfica de pastel */}
             <Animated.View style={{ transform: [{ rotate: spin }] }}>
               <VictoryPie
@@ -216,7 +212,10 @@ export default function ResultsScreen({ route, navigation }: Props) {
                 colorScale={colorScale}
                 style={{ data: { stroke: "#fff", strokeWidth: 2 } }}
                 labels={(args) =>
-                  `${((args.datum?.y ?? 0) / totalVotes * 100).toFixed(1)}%`
+                  `${(
+                    ((args.datum?.y ?? 0) / totalVotes) *
+                    100
+                  ).toFixed(1)}%`
                 }
                 labelComponent={
                   <VictoryLabel style={{ fontSize: 14, fill: "#000" }} />
@@ -279,18 +278,28 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  questionText: { fontSize: 18, fontWeight: "600", marginBottom: 10, color: "#111827" },
+  questionText: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 10,
+    color: "#111827",
+  },
   totalVotes: { marginBottom: 10, fontSize: 14, color: "#6B7280" },
-  centerLabel: { position: "absolute", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" },
+  centerLabel: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    height: "100%",
+  },
   centerLabelText: { fontSize: 16, fontWeight: "700" },
   legend: { flexDirection: "row", flexWrap: "wrap", marginTop: 10 },
-  legendItem: { flexDirection: "row", alignItems: "center", marginRight: 15, marginBottom: 5 },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 15,
+    marginBottom: 5,
+  },
   legendColor: { width: 14, height: 14, marginRight: 6, borderRadius: 3 },
   legendText: { fontSize: 12, color: "#333" },
 });
-
-
-   
-
-
- 

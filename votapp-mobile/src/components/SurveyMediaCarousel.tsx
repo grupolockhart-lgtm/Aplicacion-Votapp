@@ -1,10 +1,9 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import { View, StyleSheet, Dimensions, Animated, Image } from "react-native";
 import FeedMedia from "@/components/FeedMedia";
 import FeedMediaYoutube from "@/components/FeedMediaYoutube";
 
 const { width } = Dimensions.get("window");
-const MAX_HEIGHT = 400; // límite máximo
 
 interface MediaItem {
   url: string;
@@ -20,7 +19,6 @@ interface Props {
 
 export default function SurveyMediaCarousel({ media, globalMuted, toggleMute, isActive }: Props) {
   const scrollX = useRef(new Animated.Value(0)).current;
-  const [heights, setHeights] = useState<number[]>(media.map(() => width * 0.56));
   const [activeIndex, setActiveIndex] = useState(0);
 
   const handleScrollEnd = (event: any) => {
@@ -28,28 +26,7 @@ export default function SurveyMediaCarousel({ media, globalMuted, toggleMute, is
     setActiveIndex(index);
   };
 
-  // calcular altura real solo si es imagen
-  useEffect(() => {
-    media.forEach((item, i) => {
-      if (item.type === "image") {
-        Image.getSize(
-          item.url,
-          (imgWidth, imgHeight) => {
-            if (imgWidth > 0 && imgHeight > 0) {
-              const ratio = imgHeight / imgWidth;
-              const calculatedHeight = width * ratio;
-              setHeights((prev) => {
-                const copy = [...prev];
-                copy[i] = Math.min(calculatedHeight, MAX_HEIGHT);
-                return copy;
-              });
-            }
-          },
-          (error) => console.log("Error obteniendo tamaño de imagen:", error)
-        );
-      }
-    });
-  }, [media]);
+  const fixedHeight = width * 0.56; // relación fija 16:9
 
   return (
     <View style={styles.container}>
@@ -68,7 +45,7 @@ export default function SurveyMediaCarousel({ media, globalMuted, toggleMute, is
           { useNativeDriver: false }
         )}
         renderItem={({ item, index }) => (
-          <View style={[styles.slide, { height: heights[index] }]}>
+          <View style={[styles.slide, { height: fixedHeight }]}>
             {item.type === "native" ? (
               <FeedMedia
                 media_url={item.url}
@@ -79,7 +56,11 @@ export default function SurveyMediaCarousel({ media, globalMuted, toggleMute, is
             ) : item.type === "webview" ? (
               <FeedMediaYoutube source_url={item.url} />
             ) : (
-              <Image source={{ uri: item.url }} style={{ width: "100%", height: "100%" }} resizeMode="contain" />
+              <Image
+                source={{ uri: String(item.url) }}
+                style={{ width: width, height: fixedHeight }}
+                resizeMode="cover"
+              />
             )}
           </View>
         )}

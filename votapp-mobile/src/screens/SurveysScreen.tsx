@@ -119,10 +119,6 @@ const normalizeSimple = (s: any): Survey => ({
 
 
 
-
-
-
-
 const refreshSurveys = async () => {
   try {
     const token = await AsyncStorage.getItem("userToken");

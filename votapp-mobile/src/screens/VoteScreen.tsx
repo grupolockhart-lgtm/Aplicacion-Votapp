@@ -17,7 +17,7 @@ import FeedMediaYoutube from "../components/FeedMediaYoutube";
 import SurveyMediaCarousel from "../components/SurveyMediaCarousel";
 
 import type { RootStackParamList } from "../Types/Navigation";
-import { useSurveyContext } from "../context/SurveyContext"; // 👈 usamos el contexto
+import { useSurveyContext } from "../context/SurveyContext";
 
 interface Option {
   id: number;
@@ -34,8 +34,6 @@ type Props = NativeStackScreenProps<RootStackParamList, "VoteScreen">;
 
 export default function VoteScreen({ route, navigation }: Props) {
   const { surveyId, surveyType, questions, media_url, media_urls } = route.params;
-
-  // 👇 obtenemos las funciones desde el contexto
   const { refreshSurveys, refreshProfile } = useSurveyContext();
 
   const [answers, setAnswers] = useState<{ [key: number]: number }>({});
@@ -158,7 +156,59 @@ export default function VoteScreen({ route, navigation }: Props) {
 
   return (
     <ScrollView style={styles.container}>
-      {/* renderizado de media y preguntas igual que antes */}
+      <Text style={styles.title}>Encuesta</Text>
+
+      {media_url?.includes("youtube.com") ? (
+        <FeedMediaYoutube source_url={media_url} />
+      ) : media_url && /\.(mp4|mov)$/i.test(media_url) ? (
+        <FeedMedia
+          media_url={media_url}
+          isActive={true}
+          globalMuted={globalMuted}
+          toggleMute={() => setGlobalMuted(!globalMuted)}
+        />
+      ) : Array.isArray(media_urls) && media_urls.length > 0 ? (
+        <SurveyMediaCarousel
+          media={media_urls.map((url) => ({ url, type: "image" }))}
+          globalMuted={globalMuted}
+          toggleMute={() => setGlobalMuted(!globalMuted)}
+          isActive={true}
+        />
+      ) : (
+        <Text style={{ padding: 12, color: "#888" }}>
+          No hay contenido multimedia disponible
+        </Text>
+      )}
+
+      {questions.map((q: Question) => (
+        <View key={q.id} style={styles.questionBlock}>
+          <Text style={styles.questionText}>{q.text}</Text>
+          {q.options.map((o: Option) => (
+            <TouchableOpacity
+              key={o.id}
+              style={[
+                styles.optionButton,
+                answers[q.id] === o.id && styles.optionSelected,
+              ]}
+              onPress={() => handleSelect(q.id, o.id)}
+            >
+              <Text style={styles.optionText}>{o.text}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ))}
+
+      <TouchableOpacity
+        style={styles.submitButton}
+        onPress={handleSubmit}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.submitText}>Confirmar Voto</Text>
+        )}
+      </TouchableOpacity>
     </ScrollView>
   );
 }
