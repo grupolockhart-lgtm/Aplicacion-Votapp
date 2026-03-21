@@ -233,7 +233,7 @@ def mi_voto_simple(
 # -------------------
 # Resultados de encuesta simple
 # -------------------
-@router.get("/{survey_id}/results", response_model=SurveySimpleResponse)
+@router.get("/surveys/simple/{survey_id}/results", response_model=SurveySimpleResponse)
 def resultados_simple(survey_id: int, db: Session = Depends(get_db)):
     encuesta = db.query(SurveySimple).options(
         selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
@@ -242,7 +242,48 @@ def resultados_simple(survey_id: int, db: Session = Depends(get_db)):
     if not encuesta:
         raise HTTPException(status_code=404, detail="Encuesta no encontrada")
 
-    return build_survey_simple_response(encuesta)
+    preguntas = []
+    for pregunta in encuesta.preguntas:
+        # Traer conteo de votos por opción en una sola consulta
+        conteos = (
+            db.query(SurveySimpleVote.opcion_id, func.count(SurveySimpleVote.id))
+            .filter(SurveySimpleVote.pregunta_id == pregunta.id)
+            .group_by(SurveySimpleVote.opcion_id)
+            .all()
+        )
+        votos_por_opcion = {opcion_id: total for opcion_id, total in conteos}
+        total_votes = sum(votos_por_opcion.values())
+
+        opciones = []
+        for opcion in pregunta.opciones:
+            votos = votos_por_opcion.get(opcion.id, 0)
+            porcentaje = (votos / total_votes * 100) if total_votes > 0 else 0
+            opciones.append({
+                "id": opcion.id,
+                "texto": opcion.texto,
+                "votos": votos,
+                "percentage": round(porcentaje, 1)
+            })
+
+        preguntas.append({
+            "id": pregunta.id,
+            "texto": pregunta.texto,
+            "opciones": opciones,
+            "total_votes": total_votes
+        })
+
+    return {
+        "id": encuesta.id,
+        "titulo": encuesta.titulo,
+        "preguntas": preguntas,
+        "imagenes": encuesta.imagenes or [],
+        "videos": encuesta.videos or [],
+        "fecha_expiracion": encuesta.fecha_expiracion,
+        "fecha_creacion": encuesta.fecha_creacion,
+        "tipo": "simple"
+    }
+
+
 
 
 

@@ -48,7 +48,8 @@ export default function VoteScreen({ route, navigation }: Props) {
       const endpoint =
         surveyType === "normal"
           ? `${API_URL}/surveys/${surveyId}/my-vote`
-          : `${API_URL}/${surveyId}/my-vote`;
+          : `${API_URL}/surveys/simple/${surveyId}/my-vote`;
+
 
 
       try {
@@ -109,7 +110,7 @@ export default function VoteScreen({ route, navigation }: Props) {
     const endpoint =
       surveyType === "normal"
         ? `${API_URL}/surveys/${surveyId}/vote`
-        : `${API_URL}/${surveyId}/vote`;
+        : `${API_URL}/surveys/simple/${surveyId}/vote`;
 
 
     try {

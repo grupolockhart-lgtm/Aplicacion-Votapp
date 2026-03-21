@@ -77,7 +77,8 @@ export default function ResultsScreen({ route, navigation }: Props) {
         const endpoint =
           surveyType === "normal"
             ? `${API_URL}/surveys/${surveyId}/results`
-            : `${API_URL}/surveys_simple/${surveyId}/results`;
+            : `${API_URL}/surveys/simple/${surveyId}/results`;
+
 
         const res = await fetch(endpoint, {
           headers: { Authorization: `Bearer ${token}` },
