@@ -172,14 +172,17 @@ def votar_simple(
 
     resultados = []
     for ans in voto.answers:
-        opcion = db.query(SurveySimpleOption).filter(SurveySimpleOption.id == ans.option_id).first()
+        opcion = db.query(SurveySimpleOption).filter(
+            SurveySimpleOption.id == ans.option_id
+        ).first()
         if not opcion:
             raise HTTPException(status_code=400, detail=f"Opción inválida: {ans.option_id}")
 
         nuevo_voto = SimpleVote(
             usuario_id=usuario.id,
             survey_simple_id=encuesta.id,
-            opcion_id=opcion.id
+            pregunta_id=ans.question_id,   # ✅ ahora se guarda la pregunta
+            opcion_id=ans.option_id
         )
         db.add(nuevo_voto)
         opcion.votos += 1
@@ -215,11 +218,13 @@ def mi_voto_simple(
     ).all()
 
     answers = [
-        {"question_id": v.opcion.pregunta_id, "option_id": v.opcion_id}
+        {"question_id": v.pregunta_id, "option_id": v.opcion_id}   # ✅ ahora devuelve la pregunta
         for v in votos
     ]
 
     return {"answers": answers}
+
+
 
 
 

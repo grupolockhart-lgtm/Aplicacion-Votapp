@@ -69,10 +69,14 @@ class SimpleVote(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     survey_simple_id = Column(Integer, ForeignKey("surveys_simple.id"), nullable=False)
+    pregunta_id = Column(Integer, ForeignKey("surveys_simple_questions.id"), nullable=False)  # ✅ nuevo campo
     opcion_id = Column(Integer, ForeignKey("surveys_simple_options.id"), nullable=False)
 
     # Relaciones opcionales
     usuario = relationship("Usuario", backref="simple_votes")
     survey_simple = relationship("SurveySimple", backref="votes")
+    pregunta = relationship("SurveySimpleQuestion", backref="votes")   # ✅ relación nueva
     opcion = relationship("SurveySimpleOption", backref="votes")
+
+
 
