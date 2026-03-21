@@ -99,9 +99,7 @@ app.include_router(admin.router, prefix="/api")
 app.include_router(comments.router, prefix="/api")
 app.include_router(gamificacion.router, prefix="/api")
 app.include_router(rss.router, prefix="/api")
-app.include_router(surveys_simple.router, prefix="/api/surveys_simple", tags=["surveys_simple"])
-
-
+app.include_router(surveys_simple.router, prefix="/api")
 
 # -----------------------------
 # Endpoint raíz
