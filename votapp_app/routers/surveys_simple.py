@@ -233,7 +233,7 @@ def mi_voto_simple(
 # -------------------
 # Resultados de encuesta simple
 # -------------------
-@router.get("/surveys/simple/{survey_id}/results", response_model=SurveySimpleResponse)
+@router.get("/{survey_id}/results", response_model=SurveySimpleResponse)
 def resultados_simple(survey_id: int, db: Session = Depends(get_db)):
     encuesta = db.query(SurveySimple).options(
         selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
@@ -273,15 +273,27 @@ def resultados_simple(survey_id: int, db: Session = Depends(get_db)):
         })
 
     return {
-        "id": encuesta.id,
-        "titulo": encuesta.titulo,
-        "preguntas": preguntas,
-        "imagenes": encuesta.imagenes or [],
-        "videos": encuesta.videos or [],
-        "fecha_expiracion": encuesta.fecha_expiracion,
-        "fecha_creacion": encuesta.fecha_creacion,
-        "tipo": "simple"
-    }
+    "id": encuesta.id,
+    "title": encuesta.titulo,
+    "results": [
+        {
+            "question_id": p["id"],
+            "question_text": p["texto"],
+            "options": [
+                {"id": o["id"], "text": o["texto"], "votes": o["votos"]}
+                for o in p["opciones"]
+            ]
+        }
+        for p in preguntas
+    ],
+    "imagenes": encuesta.imagenes or [],
+    "videos": encuesta.videos or [],
+    "fecha_expiracion": encuesta.fecha_expiracion,
+    "fecha_creacion": encuesta.fecha_creacion,
+    "tipo": "simple"
+}
+
+
 
 
 
