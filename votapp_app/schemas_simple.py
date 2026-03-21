@@ -115,5 +115,9 @@ class SurveySimpleResponse(BaseModel):
 # -------------------
 # Voto
 # -------------------
+class SurveySimpleAnswer(BaseModel):
+    question_id: int
+    option_id: int
+
 class SurveySimpleVote(BaseModel):
-    opcion_id: int
+    answers: List[SurveySimpleAnswer]

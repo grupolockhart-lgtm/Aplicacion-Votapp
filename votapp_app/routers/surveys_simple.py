@@ -170,27 +170,56 @@ def votar_simple(
     if not voto.answers or len(voto.answers) == 0:
         raise HTTPException(status_code=400, detail="No se recibió ninguna respuesta")
 
-    opcion_id = voto.answers[0].option_id
-    opcion = db.query(SurveySimpleOption).filter(SurveySimpleOption.id == opcion_id).first()
-    if not opcion:
-        raise HTTPException(status_code=400, detail="Opción inválida")
+    resultados = []
+    for ans in voto.answers:
+        opcion = db.query(SurveySimpleOption).filter(SurveySimpleOption.id == ans.option_id).first()
+        if not opcion:
+            raise HTTPException(status_code=400, detail=f"Opción inválida: {ans.option_id}")
 
-    nuevo_voto = SimpleVote(
-        usuario_id=usuario.id,
-        survey_simple_id=encuesta.id,
-        opcion_id=opcion.id
-    )
-    db.add(nuevo_voto)
+        nuevo_voto = SimpleVote(
+            usuario_id=usuario.id,
+            survey_simple_id=encuesta.id,
+            opcion_id=opcion.id
+        )
+        db.add(nuevo_voto)
+        opcion.votos += 1
+        resultados.append({"id": opcion.id, "texto": opcion.texto, "votos": opcion.votos})
 
-    opcion.votos += 1
     db.commit()
-    db.refresh(opcion)
 
     return {
-        "mensaje": "Voto registrado",
-        "opcion": {"id": opcion.id, "texto": opcion.texto, "votos": opcion.votos}
+        "mensaje": "Votos registrados",
+        "opciones": resultados
     }
 
+
+# -------------------
+# Consultar si el usuario ya votó en encuesta simple
+# -------------------
+@router.get("/{survey_id}/my-vote")
+def mi_voto_simple(
+    survey_id: int,
+    db: Session = Depends(get_db),
+    usuario = Depends(get_current_user)
+):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+
+    encuesta = db.query(SurveySimple).filter(SurveySimple.id == survey_id).first()
+    if not encuesta:
+        raise HTTPException(status_code=404, detail="Encuesta no encontrada")
+
+    votos = db.query(SimpleVote).filter(
+        SimpleVote.usuario_id == usuario.id,
+        SimpleVote.survey_simple_id == survey_id
+    ).all()
+
+    answers = [
+        {"question_id": v.opcion.pregunta_id, "option_id": v.opcion_id}
+        for v in votos
+    ]
+
+    return {"answers": answers}
 
 
 

@@ -48,7 +48,8 @@ export default function VoteScreen({ route, navigation }: Props) {
       const endpoint =
         surveyType === "normal"
           ? `${API_URL}/surveys/${surveyId}/my-vote`
-          : `${API_URL}/surveys_simple/${surveyId}/my-vote`;
+          : `${API_URL}/${surveyId}/my-vote`;
+
 
       try {
         const res = await fetch(endpoint, {
@@ -108,7 +109,8 @@ export default function VoteScreen({ route, navigation }: Props) {
     const endpoint =
       surveyType === "normal"
         ? `${API_URL}/surveys/${surveyId}/vote`
-        : `${API_URL}/surveys_simple/${surveyId}/vote`;
+        : `${API_URL}/${surveyId}/vote`;
+
 
     try {
       setLoading(true);
