@@ -66,6 +66,7 @@ export default function DisponiblesScreen({
             onPress={() =>
               (navigation as any).navigate("VoteScreen", {
                 surveyId: item.id,
+                surveyType: item.tipo,   // 👈 faltaba esto
                 title: item.title,
                 description: item.description,
                 questions: item.questions,

@@ -51,7 +51,8 @@ export default function VotadasScreen({
           isVisible={visibleIds.includes(item.id)}
           onPress={() =>
             (navigation as any).navigate("ResultsScreen", {
-              surveyId: item.id,
+              surveyId: item.id,          // 👈 siempre id
+              surveyType: item.tipo,      // 👈 "normal" o "simple"
               title: item.title,
               description: item.description,
               questions: item.questions,

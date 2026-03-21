@@ -167,13 +167,14 @@ def votar_simple(
     if not encuesta:
         raise HTTPException(status_code=404, detail="Encuesta no encontrada")
 
-    opcion = db.query(SurveySimpleOption).filter(
-        SurveySimpleOption.id == voto.opcion_id
-    ).first()
+    if not voto.answers or len(voto.answers) == 0:
+        raise HTTPException(status_code=400, detail="No se recibió ninguna respuesta")
+
+    opcion_id = voto.answers[0].option_id
+    opcion = db.query(SurveySimpleOption).filter(SurveySimpleOption.id == opcion_id).first()
     if not opcion:
         raise HTTPException(status_code=400, detail="Opción inválida")
 
-    # registrar voto en tabla SimpleVote
     nuevo_voto = SimpleVote(
         usuario_id=usuario.id,
         survey_simple_id=encuesta.id,
@@ -189,6 +190,8 @@ def votar_simple(
         "mensaje": "Voto registrado",
         "opcion": {"id": opcion.id, "texto": opcion.texto, "votos": opcion.votos}
     }
+
+
 
 
 
