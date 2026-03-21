@@ -116,8 +116,8 @@ class SurveySimpleResponse(BaseModel):
 # Voto
 # -------------------
 class SurveySimpleAnswer(BaseModel):
-    question_id: int
-    option_id: int
+    pregunta_id: int   # ✅ corregido: coincide con SimpleVote.pregunta_id
+    opcion_id: int     # ✅ corregido: coincide con SimpleVote.opcion_id
 
 class SurveySimpleVote(BaseModel):
     answers: List[SurveySimpleAnswer]

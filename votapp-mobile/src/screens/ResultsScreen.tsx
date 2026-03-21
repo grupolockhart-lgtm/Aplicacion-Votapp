@@ -87,7 +87,8 @@ export default function ResultsScreen({ route, navigation }: Props) {
         const data = await res.json();
         if (!res.ok) throw new Error(data?.detail || "Error al cargar resultados");
 
-        if (Array.isArray(data?.results)) {
+                // 👇 Aquí es donde debes poner la lógica para diferenciar normal vs simple
+        if (surveyType === "normal" && Array.isArray(data?.results)) {
           setQuestionResults(
             data.results.map((q: any) => ({
               question_id: q.question_id,
@@ -99,9 +100,23 @@ export default function ResultsScreen({ route, navigation }: Props) {
               })),
             }))
           );
-        }
+          setSurveyTitle(data?.title || surveyTitle);
+        } else if (surveyType === "simple" && Array.isArray(data?.preguntas)) {
+            setQuestionResults(
+              data.preguntas.map((q: any) => ({
+                question_id: q.id,
+                question_text: q.texto,
+                options: q.opciones.map((opt: any) => ({
+                  id: opt.id,
+                  text: opt.texto,
+                  votes: Number(opt.votos),
+                })),
+              }))
+            );
+            setSurveyTitle(data?.titulo || surveyTitle);
+          }
 
-        setSurveyTitle(data?.title || surveyTitle);
+
 
         await refreshProfile();
         await refreshSurveys();
@@ -137,134 +152,145 @@ export default function ResultsScreen({ route, navigation }: Props) {
 
   const colorScale = ["#2196F3", "#4CAF50", "#FF9800", "#9C27B0", "#F44336"];
 
-     return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <SurveyCard
-        survey={{
-          id: surveyId,
-          title: surveyTitle,
-          description,
-          media_url,
-          media_urls,
-        }}
-        globalMuted={globalMuted}
-        toggleMute={() => setGlobalMuted(!globalMuted)}
-        badgeText="📊 Resultados"
-        onPress={() => {}}
-        isVisible={true}
-      />
+return (
+  <ScrollView contentContainerStyle={styles.container}>
+    <SurveyCard
+      survey={{
+        id: surveyId,
+        title: surveyTitle,
+        description,
+        media_url,
+        media_urls,
+      }}
+      globalMuted={globalMuted}
+      toggleMute={() => setGlobalMuted(!globalMuted)}
+      badgeText="📊 Resultados"
+      onPress={() => {}}
+      isVisible={true}
+    />
 
-      {questionResults.map((q, index) => {
-        const totalVotes = q.options.reduce((sum, opt) => sum + opt.votes, 0);
-        const spin = rotateAnims[index].interpolate({
-          inputRange: [0, 1],
-          outputRange: ["0deg", "360deg"],
-        });
+    {questionResults.map((q: any, index) => {
+      const opciones = q.opciones ?? q.options; // ✅ soporta ambos tipos
+      const totalVotes = opciones.reduce(
+        (sum: number, opt: any) => sum + (opt.votos ?? opt.votes),
+        0
+      );
+      const spin = rotateAnims[index].interpolate({
+        inputRange: [0, 1],
+        outputRange: ["0deg", "360deg"],
+      });
 
-        return (
-          <View key={q.question_id} style={styles.card}>
-            <Text style={styles.questionText}>{q.question_text}</Text>
-            <Text style={styles.totalVotes}>Total votos: {totalVotes}</Text>
+      return (
+        <View key={q.pregunta_id ?? q.question_id} style={styles.card}>
+          <Text style={styles.questionText}>
+            {q.pregunta_texto ?? q.question_text}
+          </Text>
+          <Text style={styles.totalVotes}>Total votos: {totalVotes}</Text>
 
-            {/* 📊 Gráfica de barras */}
-            <VictoryChart
-              width={Dimensions.get("window").width - 80}
-              height={320}
-              domainPadding={{ x: 25, y: 20 }}
-              padding={{ top: 20, bottom: 80, left: 50, right: 20 }}
-            >
-              <VictoryAxis dependentAxis />
-              <VictoryBar
-                data={q.options.map((opt, i) => ({
-                  x: opt.text,
-                  y: opt.votes,
-                  fill: colorScale[i % colorScale.length],
-                  percentage:
-                    totalVotes > 0
-                      ? ((opt.votes / totalVotes) * 100).toFixed(1)
-                      : "0",
-                }))}
-                style={{ data: { fill: (args) => args.datum?.fill } }}
-                labels={(args) => `${args.datum?.percentage ?? 0}%`}
-                labelComponent={
-                  <VictoryLabel dy={-10} style={{ fontSize: 12, fill: "#333" }} />
-                }
-                animate={{ duration: 1000, easing: "bounce" }}
-              />
-              <VictoryAxis
-                tickFormat={(t) =>
-                  t.length > 12 ? t.match(/.{1,12}/g)?.join("\n") : t
-                }
-                style={{
-                  tickLabels: {
-                    angle: -45,
-                    fontSize: 10,
-                    textAnchor: "end",
-                    fill: "#333",
-                  },
-                }}
-              />
-            </VictoryChart>
-
-            {/* 🥧 Gráfica de pastel */}
-            <Animated.View style={{ transform: [{ rotate: spin }] }}>
-              <VictoryPie
-                data={q.options.map((opt) => ({ x: opt.text, y: opt.votes }))}
-                colorScale={colorScale}
-                style={{ data: { stroke: "#fff", strokeWidth: 2 } }}
-                labels={(args) =>
-                  `${(
-                    ((args.datum?.y ?? 0) / totalVotes) *
-                    100
-                  ).toFixed(1)}%`
-                }
-                labelComponent={
-                  <VictoryLabel style={{ fontSize: 14, fill: "#000" }} />
-                }
-                labelRadius={100}
-                width={Dimensions.get("window").width - 40}
-                height={280}
-                innerRadius={70}
-                padAngle={3}
-                animate={{
-                  duration: 1500,
-                  easing: "elastic",
-                  onLoad: { duration: 1500 },
-                }}
-              />
-              <View style={styles.centerLabel}>
-                <Text style={styles.centerLabelText}>{totalVotes} votos</Text>
-              </View>
-            </Animated.View>
-
-            {/* 📌 Leyenda */}
-            <View style={styles.legend}>
-              {q.options.map((opt, i) => {
-                const percentage =
+          {/* 📊 Gráfica de barras */}
+          <VictoryChart
+            width={Dimensions.get("window").width - 80}
+            height={320}
+            domainPadding={{ x: 25, y: 20 }}
+            padding={{ top: 20, bottom: 80, left: 50, right: 20 }}
+          >
+            <VictoryAxis dependentAxis />
+            <VictoryBar
+              data={opciones.map((opt: any, i: number) => ({
+                x: opt.texto ?? opt.text,
+                y: opt.votos ?? opt.votes,
+                fill: colorScale[i % colorScale.length],
+                percentage:
                   totalVotes > 0
-                    ? ((opt.votes / totalVotes) * 100).toFixed(1)
-                    : "0";
-                return (
-                  <View key={opt.id} style={styles.legendItem}>
-                    <View
-                      style={[
-                        styles.legendColor,
-                        { backgroundColor: colorScale[i % colorScale.length] },
-                      ]}
-                    />
-                    <Text style={styles.legendText}>
-                      {opt.text} ({percentage}%)
-                    </Text>
-                  </View>
-                );
-              })}
+                    ? (((opt.votos ?? opt.votes) / totalVotes) * 100).toFixed(1)
+                    : "0",
+              }))}
+              style={{ data: { fill: (args) => args.datum?.fill } }}
+              labels={(args) => `${args.datum?.percentage ?? 0}%`}
+              labelComponent={
+                <VictoryLabel dy={-10} style={{ fontSize: 12, fill: "#333" }} />
+              }
+              animate={{ duration: 1000, easing: "bounce" }}
+            />
+            <VictoryAxis
+              tickFormat={(t) =>
+                t.length > 12 ? t.match(/.{1,12}/g)?.join("\n") : t
+              }
+              style={{
+                tickLabels: {
+                  angle: -45,
+                  fontSize: 10,
+                  textAnchor: "end",
+                  fill: "#333",
+                },
+              }}
+            />
+          </VictoryChart>
+
+          {/* 🥧 Gráfica de pastel */}
+          <Animated.View style={{ transform: [{ rotate: spin }] }}>
+            <VictoryPie
+              data={opciones.map((opt: any) => ({
+                x: opt.texto ?? opt.text,
+                y: opt.votos ?? opt.votes,
+              }))}
+              colorScale={colorScale}
+              style={{ data: { stroke: "#fff", strokeWidth: 2 } }}
+              labels={(args) =>
+                `${(
+                  ((args.datum?.y ?? 0) / totalVotes) *
+                  100
+                ).toFixed(1)}%`
+              }
+              labelComponent={
+                <VictoryLabel style={{ fontSize: 14, fill: "#000" }} />
+              }
+              labelRadius={100}
+              width={Dimensions.get("window").width - 40}
+              height={280}
+              innerRadius={70}
+              padAngle={3}
+              animate={{
+                duration: 1500,
+                easing: "elastic",
+                onLoad: { duration: 1500 },
+              }}
+            />
+            <View style={styles.centerLabel}>
+              <Text style={styles.centerLabelText}>{totalVotes} votos</Text>
             </View>
+          </Animated.View>
+
+          {/* 📌 Leyenda */}
+          <View style={styles.legend}>
+            {opciones.map((opt: any, i: number) => {
+              const votos = opt.votos ?? opt.votes;
+              const texto = opt.texto ?? opt.text;
+              const percentage =
+                totalVotes > 0 ? ((votos / totalVotes) * 100).toFixed(1) : "0";
+              return (
+                <View key={opt.opcion_id ?? opt.id} style={styles.legendItem}>
+                  <View
+                    style={[
+                      styles.legendColor,
+                      { backgroundColor: colorScale[i % colorScale.length] },
+                    ]}
+                  />
+                  <Text style={styles.legendText}>
+                    {texto} ({percentage}%)
+                  </Text>
+                </View>
+              );
+            })}
           </View>
-        );
-      })}
-    </ScrollView>
-  );
+        </View>
+      );
+    })}
+  </ScrollView>
+);
 }
+
+
 
 const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },

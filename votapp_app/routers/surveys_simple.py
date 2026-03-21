@@ -57,7 +57,7 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
     return SurveySimpleResponse(
         id=survey.id,
         titulo=survey.titulo,
-        fecha_expiracion=fecha_exp.isoformat() if fecha_exp else None,
+        fecha_expiracion=fecha_exp,   # ✅ devuelve datetime, no string
         fecha_creacion=survey.fecha_creacion,
         imagenes=imagenes,
         videos=videos,
@@ -83,20 +83,9 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
         nivel_educativo=None,
         religion=None,
         nacionalidad=None,
-        estado_civil=None,
-        questions=[
-            {
-                "id": q["id"],
-                "text": q["texto"],
-                "options": [
-                    {"id": o["id"], "text": o["texto"], "count": o["votos"]}
-                    for o in q["opciones"]
-                ],
-                "total_votes": None
-            }
-            for q in preguntas
-        ]
+        estado_civil=None
     )
+
 
 
 
@@ -173,16 +162,16 @@ def votar_simple(
     resultados = []
     for ans in voto.answers:
         opcion = db.query(SurveySimpleOption).filter(
-            SurveySimpleOption.id == ans.option_id
+            SurveySimpleOption.id == ans.opcion_id
         ).first()
         if not opcion:
-            raise HTTPException(status_code=400, detail=f"Opción inválida: {ans.option_id}")
+            raise HTTPException(status_code=400, detail=f"Opción inválida: {ans.opcion_id}")
 
         nuevo_voto = SimpleVote(
             usuario_id=usuario.id,
             survey_simple_id=encuesta.id,
-            pregunta_id=ans.question_id,   # ✅ ahora se guarda la pregunta
-            opcion_id=ans.option_id
+            pregunta_id=ans.pregunta_id,   # ✅ corregido
+            opcion_id=ans.opcion_id        # ✅ corregido
         )
         db.add(nuevo_voto)
         opcion.votos += 1
@@ -218,7 +207,7 @@ def mi_voto_simple(
     ).all()
 
     answers = [
-        {"question_id": v.pregunta_id, "option_id": v.opcion_id}   # ✅ ahora devuelve la pregunta
+        {"pregunta_id": v.pregunta_id, "opcion_id": v.opcion_id}   # ✅ corregido
         for v in votos
     ]
 
@@ -244,54 +233,41 @@ def resultados_simple(survey_id: int, db: Session = Depends(get_db)):
 
     preguntas = []
     for pregunta in encuesta.preguntas:
-        # Traer conteo de votos por opción en una sola consulta
         conteos = (
-            db.query(SurveySimpleVote.opcion_id, func.count(SurveySimpleVote.id))
-            .filter(SurveySimpleVote.pregunta_id == pregunta.id)
-            .group_by(SurveySimpleVote.opcion_id)
+            db.query(SimpleVote.opcion_id, func.count(SimpleVote.id))
+            .filter(SimpleVote.pregunta_id == pregunta.id)
+            .group_by(SimpleVote.opcion_id)
             .all()
         )
         votos_por_opcion = {opcion_id: total for opcion_id, total in conteos}
-        total_votes = sum(votos_por_opcion.values())
 
         opciones = []
         for opcion in pregunta.opciones:
             votos = votos_por_opcion.get(opcion.id, 0)
-            porcentaje = (votos / total_votes * 100) if total_votes > 0 else 0
             opciones.append({
                 "id": opcion.id,
                 "texto": opcion.texto,
-                "votos": votos,
-                "percentage": round(porcentaje, 1)
+                "votos": votos
             })
 
         preguntas.append({
             "id": pregunta.id,
             "texto": pregunta.texto,
-            "opciones": opciones,
-            "total_votes": total_votes
+            "opciones": opciones
         })
 
     return {
-    "id": encuesta.id,
-    "title": encuesta.titulo,
-    "results": [
-        {
-            "question_id": p["id"],
-            "question_text": p["texto"],
-            "options": [
-                {"id": o["id"], "text": o["texto"], "votes": o["votos"]}
-                for o in p["opciones"]
-            ]
-        }
-        for p in preguntas
-    ],
-    "imagenes": encuesta.imagenes or [],
-    "videos": encuesta.videos or [],
-    "fecha_expiracion": encuesta.fecha_expiracion,
-    "fecha_creacion": encuesta.fecha_creacion,
-    "tipo": "simple"
-}
+        "id": encuesta.id,
+        "titulo": encuesta.titulo,
+        "preguntas": preguntas,
+        "imagenes": getattr(encuesta, "imagenes", []) or [],
+        "videos": getattr(encuesta, "videos", []) or [],
+        "fecha_expiracion": encuesta.fecha_expiracion,
+        "fecha_creacion": encuesta.fecha_creacion,
+        "tipo": "simple"
+    }
+
+
 
 
 
