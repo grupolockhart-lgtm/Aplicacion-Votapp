@@ -102,10 +102,12 @@ export default function VoteScreen({ route, navigation }: Props) {
 
     const payload = {
       answers: Object.entries(answers).map(([qId, optId]) => ({
-        question_id: Number(qId),
-        option_id: optId,
+        pregunta_id: Number(qId),   // 👈 antes era question_id
+        opcion_id: optId,           // 👈 antes era option_id
       })),
     };
+
+
 
     const endpoint =
       surveyType === "normal"
@@ -134,9 +136,20 @@ export default function VoteScreen({ route, navigation }: Props) {
       }
 
       if (!res.ok) {
-        const message = data?.detail || data?.message || "Error al enviar voto";
+        let message = "Error al enviar voto";
+
+        if (typeof data?.detail === "string") {
+          message = data.detail;
+        } else if (typeof data?.message === "string") {
+          message = data.message;
+        } else if (data) {
+          message = JSON.stringify(data);
+        }
+
         throw new Error(message);
       }
+
+
 
       Alert.alert("¡Respuestas enviadas!", "Tus votos han sido registrados correctamente.");
       await refreshProfile();
@@ -151,10 +164,25 @@ export default function VoteScreen({ route, navigation }: Props) {
         description: "Resultados de la encuesta",
       });
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Error desconocido");
+      console.error("Error al enviar voto:", err);
+
+      let message = "Error desconocido";
+
+      if (err instanceof Error) {
+        message = err.message;
+      } else if (typeof err === "object") {
+        // Si el backend devuelve { detail: "...", ... }
+        message = err.detail || err.message || JSON.stringify(err);
+      } else {
+        message = String(err);
+      }
+
+      Alert.alert("Error", message);
     } finally {
       setLoading(false);
     }
+
+
   };
 
   return (
