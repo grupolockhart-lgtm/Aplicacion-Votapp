@@ -169,13 +169,10 @@ const refreshSurveys = async () => {
     const normalesFinalizadas = await getJson(responses[2], "Finalizadas normales");
 
     const simplesDisponibles = await getJson(responses[3], "Disponibles simples");
-    console.log("Respuesta cruda simples disponibles:", simplesDisponibles);
 
     const simplesVotadas = await getJson(responses[4], "Votadas simples");
-    console.log("Respuesta cruda simples votadas:", simplesVotadas);
 
     const simplesFinalizadas = await getJson(responses[5], "Finalizadas simples");
-    console.log("Respuesta cruda simples finalizadas:", simplesFinalizadas);
 
 
     

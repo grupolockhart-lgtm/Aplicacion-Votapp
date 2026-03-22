@@ -85,7 +85,13 @@ export default function ResultsScreen({ route, navigation }: Props) {
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.detail || "Error al cargar resultados");
+
+        if (!res.ok) {
+          // lanza un Error con el mensaje real
+          throw new Error(data?.detail || "Error al cargar resultados");
+        }
+
+
 
                 // 👇 Aquí es donde debes poner la lógica para diferenciar normal vs simple
         if (surveyType === "normal" && Array.isArray(data?.results)) {
@@ -120,11 +126,27 @@ export default function ResultsScreen({ route, navigation }: Props) {
 
         await refreshProfile();
         await refreshSurveys();
+        
       } catch (err: any) {
-        Alert.alert("Error", err.message || String(err));
+        console.error("Error al cargar resultados:", err);
+
+        let message = "Error desconocido";
+
+        if (err instanceof Error) {
+          message = err.message;
+        } else if (typeof err === "object") {
+          message = JSON.stringify(err);
+        } else {
+          message = String(err);
+        }
+
+        Alert.alert("Error", message);
       } finally {
         setLoading(false);
       }
+
+
+
     };
 
     loadResults();
