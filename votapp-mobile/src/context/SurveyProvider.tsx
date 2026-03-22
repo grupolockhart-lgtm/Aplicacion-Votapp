@@ -25,12 +25,12 @@ export default function SurveyProvider({ children }: Props) {
           // multimedia
           imagenes: Array.isArray(s.imagenes) ? s.imagenes : [],
           videos: Array.isArray(s.videos) ? s.videos : [],
-          media_url: s.media_url ?? (s.imagenes?.[0] ?? null),
-          media_urls: Array.isArray(s.media_urls)
+            media_url: s.media_url ?? (s.imagenes?.[0] ?? null),
+            media_urls: Array.isArray(s.media_urls)
             ? s.media_urls
-            : s.media_urls
-            ? [s.media_urls]
             : [...(s.imagenes ?? []), ...(s.videos ?? [])],
+
+
           media_type: s.media_type ?? "native",
           // tiempos
           fecha_creacion: s.fecha_creacion,

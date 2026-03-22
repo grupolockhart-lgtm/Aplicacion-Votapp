@@ -100,12 +100,22 @@ export default function VoteScreen({ route, navigation }: Props) {
       return;
     }
 
-    const payload = {
-      answers: Object.entries(answers).map(([qId, optId]) => ({
-        pregunta_id: Number(qId),   // 👈 antes era question_id
-        opcion_id: optId,           // 👈 antes era option_id
-      })),
-    };
+    const payload =
+      surveyType === "normal"
+        ? {
+            answers: Object.entries(answers).map(([qId, optId]) => ({
+              question_id: Number(qId),   // ✅ normales
+              option_id: Number(optId),
+            })),
+          }
+        : {
+            answers: Object.entries(answers).map(([qId, optId]) => ({
+              pregunta_id: Number(qId),   // ✅ simples
+              opcion_id: Number(optId),
+            })),
+          };
+
+
 
 
 

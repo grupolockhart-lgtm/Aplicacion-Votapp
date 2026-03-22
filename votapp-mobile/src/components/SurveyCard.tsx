@@ -13,7 +13,7 @@ interface Survey {
   title: string;
   description?: string;
   media_url?: string;
-  media_urls?: string[] | string;
+  media_urls?: string[];   // 👈 ahora siempre array
   media_type?: string;
   segundos_restantes?: number;
   patrocinada?: boolean;
@@ -23,7 +23,7 @@ interface Survey {
   recompensa_dinero?: number;
   presupuesto_total?: number;
   visibilidad_resultados?: "publica" | "privada";
-  tipo?: "normal" | "simple";   // 👈 agregado para encuestas simples
+  tipo?: "normal" | "simple";
 }
 
 export default function SurveyCard({
@@ -70,21 +70,23 @@ export default function SurveyCard({
     }
   }, [isFocused, survey.id]);
 
+    // 👇 Aquí sí puedes loguear
+  console.log("SurveyCard:", survey.id, survey.media_url, survey.media_urls);
+
+
+
   return (
     <View style={[styles.post, survey.es_patrocinada && styles.patrocinadaPost]}>
       {survey.media_url?.includes("youtube.com") ? (
-        // ✅ Prioriza YouTube si el enlace es válido
         <FeedMediaYoutube source_url={survey.media_url} />
       ) : survey.media_url && /\.(mp4|mov)$/i.test(survey.media_url) ? (
-        // ✅ Videos locales (mp4/mov)
         <FeedMedia
           media_url={survey.media_url}
           isActive={active}
           globalMuted={globalMuted}
           toggleMute={toggleMute}
         />
-      ) : Array.isArray(survey.media_urls) && survey.media_urls.length > 0 ? (
-        // ✅ Carrusel solo si no hay video
+      ) : survey.media_urls && survey.media_urls.length > 0 ? (
         <SurveyMediaCarousel
           media={survey.media_urls.map((url) => ({ url, type: "image" }))}
           globalMuted={globalMuted}

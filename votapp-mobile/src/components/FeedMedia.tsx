@@ -83,9 +83,17 @@ export default function FeedMedia({
   // Si es imagen
   return (
     <View style={[styles.container, { height }]}>
-      <Image source={{ uri: media_url }} style={styles.media} resizeMode="contain" />
+      <Image
+        source={{ uri: media_url }}
+        style={{ width: 300, height: 200, backgroundColor: "red" }}
+        resizeMode="cover"
+        onError={(e) => console.log("Error cargando imagen:", e.nativeEvent)}
+        onLoad={() => console.log("Imagen cargada OK")}
+      />
     </View>
   );
+
+
 }
 
 const styles = StyleSheet.create({
