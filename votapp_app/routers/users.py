@@ -7,15 +7,24 @@ from passlib.context import CryptContext
 import os, shutil
 
 from .. import models, schemas, database
-from ..auth import get_current_user   # ✅ importa la función que valida el token
+from ..auth import get_current_user   # ✅ valida el token
 
 # 👇 importa las clases y funciones específicas
 from ..models import Usuario
+from ..models_simple import SurveySimple
 from ..schemas import UserOut, UserUpdate
+from ..schemas_simple import SurveySimpleResponse
 from ..database import get_db
 
+from typing import List
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+
+
+
+
 
 # -----------------------------
 # Configuración de seguridad
@@ -314,6 +323,33 @@ def get_user_survey_history(
         }
         for p in participaciones
     ]
+
+
+
+# -----------------------------
+# Listar encuestas simples de un usuario
+# -----------------------------
+@router.get("/me/surveys/simple", response_model=List[SurveySimpleResponse])
+def listar_encuestas_simples(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    # validar que el usuario existe
+    usuario = db.query(Usuario).filter(Usuario.id == current_user.id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    encuestas = (
+        db.query(SurveySimple)
+        .filter(SurveySimple.usuario_id == current_user.id)
+        .all()
+    )
+
+    return encuestas
+
+
+
+
 
 
 

@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import List
 import logging
 from sqlalchemy import func
+from ..models import Usuario
 
 
 
@@ -382,3 +383,7 @@ def obtener_encuesta_simple(
         raise HTTPException(status_code=404, detail="Encuesta no encontrada")
 
     return build_survey_simple_response(encuesta)
+
+
+
+
