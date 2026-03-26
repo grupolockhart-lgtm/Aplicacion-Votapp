@@ -477,10 +477,18 @@ class CommentOut(BaseModel):
 class SurveyHistoryOut(BaseModel):
     id: int
     title: str
-    completed_at: datetime
+    completed_at: Optional[datetime] = None
+    media_url: Optional[str] = None
+    media_urls: List[str] = Field(default_factory=list)  # 👈 siempre lista
 
     class Config:
-        from_attributes = True
+        orm_mode = True
+
+
+
+
+
+
 
 
 

@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from jose import jwt
 from passlib.context import CryptContext
 import os, shutil
+import json
+
 
 from .. import models, schemas, database
 from ..auth import get_current_user   # ✅ valida el token
@@ -17,6 +19,8 @@ from ..schemas_simple import SurveySimpleResponse
 from ..database import get_db
 
 from typing import List
+from surveys_simple import safe_json_list
+
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -298,7 +302,6 @@ def upload_avatar(
 
 
 
-
 # -----------------------------
 # Endpoint Historial de Encuestas
 # -----------------------------
@@ -315,14 +318,38 @@ def get_user_survey_history(
         .all()
     )
 
-    return [
-        {
-            "id": p.survey.id,
-            "title": p.survey.title,
-            "completed_at": p.fecha_participacion,  # alias aquí
-        }
-        for p in participaciones
-    ]
+    result = []
+    for p in participaciones:
+        survey = p.survey
+
+        # Deserializamos media_urls con safe_json_list
+        media_urls = safe_json_list(survey.media_urls)
+
+        # Fallback: si hay media_url y la lista está vacía, lo agregamos
+        if survey.media_url and not media_urls:
+            media_urls = [survey.media_url]
+
+        result.append({
+            "id": survey.id,
+            "title": survey.title,
+            "completed_at": p.fecha_participacion,
+            "media_url": survey.media_url,
+            "media_urls": media_urls,
+        })
+
+    return result
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

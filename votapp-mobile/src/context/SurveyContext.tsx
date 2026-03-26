@@ -1,4 +1,3 @@
-// src/context/SurveyContext.tsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
@@ -42,7 +41,7 @@ export interface Survey {
   }[];
 }
 
-// 👇 Tipo de perfil de usuario
+// 👇 Tipo de perfil de usuario (extendido con campos privados)
 export interface UserProfile {
   id: number;
   nombre?: string;
@@ -50,6 +49,15 @@ export interface UserProfile {
   avatar_url?: string;
   puntos?: number;
   encuestas_creadas?: number;
+
+  // Campos privados adicionales
+  telefono_movil?: string;
+  ciudad?: string;
+  estado_civil?: string;
+  nivel_educativo?: string;
+  profesion?: string;
+  ocupacion?: string;
+  religion?: string;
 }
 
 // 👇 Tipo del contexto

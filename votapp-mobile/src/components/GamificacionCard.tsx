@@ -1,33 +1,41 @@
+// src/components/GamificacionCard.tsx
+
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
+
+interface GamificacionProps {
+  refreshTrigger?: boolean;
+  puntosProp?: number;
+  nivelProp?: number;
+  rachaProp?: number;
+}
 
 export default function GamificacionCard({
   refreshTrigger,
   puntosProp,
   nivelProp,
   rachaProp,
-}: {
-  refreshTrigger?: boolean;
-  puntosProp?: number;
-  nivelProp?: number;
-  rachaProp?: number;
-}) {
+}: GamificacionProps) {
   const [puntos, setPuntos] = useState(puntosProp ?? 0);
   const [racha, setRacha] = useState(rachaProp ?? 0);
   const [nivel, setNivel] = useState(nivelProp ?? 1);
   const [logros, setLogros] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [selectedLogro, setSelectedLogro] = useState<any | null>(null);
+
   const fetchGamificacion = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("userToken");
       if (!token) return;
+
       const res = await fetch(`${API_URL}/gamificacion/estado`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       const data = await res.json();
       setPuntos(data.puntos);
       setRacha(data.racha_dias);
@@ -51,27 +59,128 @@ export default function GamificacionCard({
   }, [refreshTrigger]);
 
   return (
-    <View>
-      <Text style={styles.text}>Puntos: {puntos}</Text>
-      <Text style={styles.text}>Racha: {racha} días</Text>
-      <Text style={styles.text}>Nivel: {nivel}</Text>
+    <View style={styles.container}>
+      {/* Datos principales en horizontal */}
+      <View style={styles.row}>
+        <Text style={styles.item}>⭐ Puntos: {puntos}</Text>
+        <Text style={styles.item}>🔥 Racha: {racha} días</Text>
+        <Text style={styles.item}>🏆 Nivel: {nivel}</Text>
+      </View>
+
+      {/* Logros en scroll horizontal */}
       {logros.length > 0 ? (
-        <>
-          <Text style={styles.header}>Logros:</Text>
-          {logros.map((item, index) => (
-            <Text key={index} style={styles.text}>
-              {item.icono} {item.nombre} - {item.descripcion}
-            </Text>
-          ))}
-        </>
+        <View style={styles.logrosWrapper}>
+          <View style={styles.logrosContainer}>
+            <Text style={styles.header}>Logros:</Text>
+            <FlatList
+              data={logros}
+              horizontal
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity onPress={() => setSelectedLogro(item)}>
+                  <View style={styles.logroItem}>
+                    <Text style={styles.icon}>{item.icono}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              showsHorizontalScrollIndicator={false}
+              nestedScrollEnabled={true}   // ✅ agregado para evitar el warning
+            />
+          </View>
+        </View>
       ) : (
         <Text style={styles.text}>Aún no tienes logros</Text>
       )}
+
+      {/* Modal para detalle de logro */}
+      <Modal
+        visible={!!selectedLogro}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedLogro(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{selectedLogro?.nombre}</Text>
+            <Text style={styles.modalDescription}>{selectedLogro?.descripcion}</Text>
+            <TouchableOpacity onPress={() => setSelectedLogro(null)}>
+              <Text style={styles.closeButton}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 10,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  item: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+    marginHorizontal: 8,
+  },
   text: { fontSize: 14, marginBottom: 4, color: "#111827" },
-  header: { fontSize: 16, marginTop: 8, marginBottom: 4, fontWeight: "bold", color: "#1f2937" },
+  header: {
+    fontSize: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    fontWeight: "bold",
+    color: "#1f2937",
+    marginRight: 8,
+  },
+  logrosWrapper: {
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  logrosContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  logroItem: {
+    alignItems: "center",
+    marginRight: 12,
+  },
+  icon: {
+    fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 20,
+    width: "80%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  modalDescription: {
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  closeButton: {
+    fontSize: 16,
+    color: "#2563EB",
+    fontWeight: "600",
+    textAlign: "center",
+  },
 });

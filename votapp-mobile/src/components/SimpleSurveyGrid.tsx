@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Text,
+  Dimensions,
+  StyleSheet,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
@@ -29,15 +31,32 @@ interface SimpleSurvey {
   titulo: string;
   preguntas: Pregunta[];
   imagenes: string[];
+  created_at?: string; // 👈 fecha opcional
 }
 
-export default function SimpleSurveyGrid() {
+type Props = {
+  data?: SimpleSurvey[];
+};
+
+export default function SimpleSurveyGrid({ data }: Props) {
   const [surveys, setSurveys] = useState<SimpleSurvey[]>([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
 
   useEffect(() => {
     const loadSurveys = async () => {
+      if (data) {
+        const sorted = [...data].sort((a, b) => {
+          if (a.created_at && b.created_at) {
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          }
+          return b.id - a.id;
+        });
+        setSurveys(sorted);
+        setLoading(false);
+        return;
+      }
+
       try {
         const token = await AsyncStorage.getItem("userToken");
         if (!token) {
@@ -45,14 +64,37 @@ export default function SimpleSurveyGrid() {
           return;
         }
 
-        const res = await fetch(`${API_URL}/api/users/me/surveys/simple`, {
+        const res = await fetch(`${API_URL}/users/me/surveys/simple`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        const data = await res.json();
-        console.log("Encuestas simples cargadas:", data);
+        const raw = await res.json();
+        const normalized = Array.isArray(raw)
+          ? raw.map((s: any) => ({
+              id: s.id,
+              titulo: s.titulo ?? s.title,
+              preguntas: (s.preguntas ?? s.questions ?? []).map((q: any) => ({
+                id: q.id,
+                texto: q.texto ?? q.text,
+                opciones: (q.opciones ?? q.options ?? []).map((o: any) => ({
+                  id: o.id,
+                  texto: o.texto ?? o.text,
+                  votos: o.votos ?? o.count ?? 0,
+                })),
+              })),
+              imagenes: s.imagenes ?? s.media_urls ?? [],
+              created_at: s.created_at ?? s.date ?? null,
+            }))
+          : [];
 
-        setSurveys(data);
+        normalized.sort((a, b) => {
+          if (a.created_at && b.created_at) {
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          }
+          return b.id - a.id;
+        });
+
+        setSurveys(normalized);
       } catch (err) {
         console.error("Error cargando encuestas simples:", err);
       } finally {
@@ -60,25 +102,26 @@ export default function SimpleSurveyGrid() {
       }
     };
     loadSurveys();
-  }, []);
+  }, [data]);
 
   if (loading) return <ActivityIndicator size="large" color="#2563EB" />;
 
   if (!loading && surveys.length === 0) {
     return (
       <View style={{ alignItems: "center", marginTop: 10 }}>
-        <Text style={{ color: "#6B7280" }}>No tienes encuestas simples aún</Text>
+        <Text style={{ color: "#6B7280" }}>No hay encuestas disponibles</Text>
       </View>
     );
   }
+
+  const screenWidth = Dimensions.get("window").width;
+  const cardWidth = (screenWidth - 64) / 3; // 👈 ancho para 3 columnas
 
   return (
     <FlatList
       data={surveys}
       keyExtractor={(item) => item.id.toString()}
-      numColumns={2}
-      key={2}
-      columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 12 }}
+      numColumns={3}
       contentContainerStyle={{ paddingHorizontal: 16 }}
       renderItem={({ item }) => {
         const firstImage =
@@ -97,41 +140,44 @@ export default function SimpleSurveyGrid() {
                 media_url: firstImage,
               })
             }
-            style={{
-              flex: 1,
-              margin: 6,
-              padding: 12,
-              borderRadius: 8,
-              backgroundColor: "#F9FAFB",
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 2,
-            }}
+            style={[styles.card, { width: cardWidth }]}
           >
-            <Text style={{ fontSize: 16, fontWeight: "bold", marginBottom: 8 }}>
-              {item.titulo}
-            </Text>
             <Image
               source={{ uri: firstImage }}
-              style={{ width: "100%", height: 120, borderRadius: 8 }}
+              style={styles.image}
               resizeMode="cover"
             />
-            {item.preguntas.map((pregunta) => (
-              <View key={pregunta.id} style={{ marginTop: 10 }}>
-                <Text style={{ fontSize: 14, fontWeight: "600" }}>
-                  {pregunta.texto}
-                </Text>
-                {pregunta.opciones.map((opcion) => (
-                  <Text key={opcion.id} style={{ fontSize: 13, color: "#374151" }}>
-                    • {opcion.texto} ({opcion.votos} votos)
-                  </Text>
-                ))}
-              </View>
-            ))}
+            <Text style={styles.title} numberOfLines={2}>
+              {item.titulo}
+            </Text>
           </TouchableOpacity>
         );
       }}
     />
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    margin: 6,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#F9FAFB",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    alignItems: "center",
+  },
+  image: {
+    width: "100%",
+    height: 80, // 👈 thumbnail compacto
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  title: {
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+});
