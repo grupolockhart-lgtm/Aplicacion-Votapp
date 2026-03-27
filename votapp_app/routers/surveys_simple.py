@@ -8,15 +8,14 @@ from ..schemas_simple import (
     SurveySimpleResponse
 )
 from ..auth import get_current_user
-import json
 from datetime import datetime, timezone
 from typing import List
 import logging
 from sqlalchemy import func
 from ..models import Usuario
 
-
-
+# 👇 importa la función oficial desde utils
+from votapp_app.utils import safe_json_list
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/surveys/simple", tags=["Surveys Simple"])
@@ -24,18 +23,6 @@ router = APIRouter(prefix="/surveys/simple", tags=["Surveys Simple"])
 # -------------------
 # Auxiliares
 # -------------------
-def safe_json_list(value) -> list:
-    try:
-        if isinstance(value, str):
-            data = json.loads(value or "[]")
-        elif isinstance(value, (list, dict)):
-            data = value
-        else:
-            return []
-        return data if isinstance(data, list) else []
-    except Exception:
-        return []
-
 def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
     ahora = datetime.now(timezone.utc)
     fecha_exp = survey.fecha_expiracion
@@ -51,7 +38,7 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
         ]
         preguntas.append({"id": p.id, "texto": p.texto, "opciones": opciones})
 
-    # 👇 deserializar correctamente
+    # 👇 deserializar correctamente usando utils
     imagenes = safe_json_list(survey.imagenes)
     videos = safe_json_list(survey.videos)
 
@@ -86,7 +73,6 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
         nacionalidad=None,
         estado_civil=None
     )
-
 
 
 

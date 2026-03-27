@@ -19,7 +19,9 @@ from ..schemas_simple import SurveySimpleResponse
 from ..database import get_db
 
 from typing import List
-from surveys_simple import safe_json_list
+from votapp_app.utils import safe_json_list
+
+
 
 
 router = APIRouter(prefix="/users", tags=["users"])
