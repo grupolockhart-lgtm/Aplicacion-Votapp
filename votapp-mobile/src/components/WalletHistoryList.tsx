@@ -11,8 +11,8 @@ type Movimiento = {
   fecha: string;
   patrocinado: boolean;
   survey: {
-    titulo_corto: string;
-    imagenes: string[];
+    title: string;          // 👈 usar campo real
+    media_urls: string[];   // 👈 usar campo real
   };
 };
 
@@ -38,7 +38,7 @@ export default function WalletHistoryList() {
 
         if (res.ok) {
           const data: WalletResponse = await res.json();
-          setMovements(data.movimientos); // 👈 ahora tomamos solo los movimientos
+          setMovements(data.movimientos); // 👈 tomamos solo los movimientos
         } else if (res.status === 404) {
           setMovements([]);
         } else {
@@ -65,9 +65,9 @@ export default function WalletHistoryList() {
       <SimpleSurveyGrid
         data={movements.map((m) => ({
           id: m.id,
-          titulo: m.survey.titulo_corto,
+          titulo: m.survey.title,          // 👈 usar title
           preguntas: [],
-          imagenes: m.survey.imagenes,
+          imagenes: m.survey.media_urls,   // 👈 usar media_urls
           ingreso: m.monto,
           fecha: m.fecha,
         }))}

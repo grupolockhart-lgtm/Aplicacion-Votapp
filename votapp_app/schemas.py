@@ -217,41 +217,41 @@ class SurveyCreate(BaseModel):
     visibilidad_resultados: Literal["publica", "privada"] = "publica"
 
 
-
-class OptionOut(BaseModel):
-    id: Optional[int] = None    # 👈 ahora opcional
-    text: str
-    count: Optional[int] = None
-    percentage: Optional[float] = None
-
-    class Config:
-        from_attributes = True
-
-
-class QuestionOut(BaseModel):
-    id: Optional[int] = None    # 👈 ahora opcional
-    text: str
-    options: List[OptionOut]
-    total_votes: Optional[int] = None
+class OpcionOut(BaseModel):
+    id: Optional[int] = None
+    texto: str
+    votos: Optional[int] = None
+    porcentaje: Optional[float] = None
 
     class Config:
         from_attributes = True
 
+
+class PreguntaOut(BaseModel):
+    id: Optional[int] = None
+    texto: str
+    opciones: List[OpcionOut]
+    total_votos: Optional[int] = None
+
+    class Config:
+        from_attributes = True
 
 
 class SurveyOut(BaseModel):
     id: int
-    title: str
+    titulo: str
     description: Optional[str] = None
     fecha_expiracion: Optional[datetime] = None
-    questions: List[QuestionOut]
+    fecha_creacion: Optional[datetime] = None
+    segundos_restantes: Optional[int] = None
+    preguntas: List[PreguntaOut]
+    imagenes: List[str] = Field(default_factory=list)
+    videos: List[str] = Field(default_factory=list)
     media_url: Optional[str] = None
     media_urls: List[str] = Field(default_factory=list)
-    media_type: Optional[str] = None   # 👈 nuevo campo
+    media_type: Optional[str] = None
 
-    # -----------------------------
     # Segmentación
-    # -----------------------------
     sexo: Optional[str] = None
     ciudad: Optional[str] = None
     ocupacion: Optional[str] = None
@@ -260,25 +260,22 @@ class SurveyOut(BaseModel):
     nacionalidad: Optional[str] = None
     estado_civil: Optional[str] = None
 
-    # -----------------------------
     # Patrocinio
-    # -----------------------------
     patrocinada: bool
     patrocinador: Optional[str] = None
-    recompensa_puntos: Optional[int] = None   # 👈 ahora opcional
-    recompensa_dinero: Optional[int] = None   # 👈 ahora opcional
-    presupuesto_total: Optional[int] = None   # 👈 ahora opcional
+    recompensa_puntos: Optional[int] = None
+    recompensa_dinero: Optional[int] = None
+    presupuesto_total: Optional[int] = None
     visibilidad_resultados: Literal["publica", "privada"]
 
-    # -----------------------------
-    # Campo derivado calculado
-    # -----------------------------
     @property
     def es_patrocinada(self) -> bool:
         return self.patrocinada and bool(self.patrocinador)
 
     class Config:
         from_attributes = True
+
+
 
 
 # ✅ Para crear un comentario
@@ -316,7 +313,9 @@ SurveyDetailOut.model_rebuild()
 class SurveyUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    estado: Optional[str] = None
+    active: Optional[bool] = None   # 👈 usar el campo real de la tabla
+
+
 
 
 class SurveyHistoryOut(BaseModel):
@@ -406,11 +405,11 @@ class UsuarioLogroOut(BaseModel):
 # Billetera
 # -------------------
 
-class SurveyWalletOut(BaseModel):   # 👈 esquema simplificado para billetera
-    titulo_corto: str
-    imagenes: Optional[List[str]] = None
+class SurveyWalletOut(BaseModel):
+    title: str   # 👈 usar el campo real de la tabla
+    media_urls: Optional[List[str]] = None
 
-    @field_validator("imagenes", mode="before")
+    @field_validator("media_urls", mode="before")
     def parse_media_urls(cls, v):
         if isinstance(v, str):
             try:
@@ -421,6 +420,8 @@ class SurveyWalletOut(BaseModel):   # 👈 esquema simplificado para billetera
 
     class Config:
         from_attributes = True
+
+
 
 
 class MovimientoWalletOut(BaseModel):

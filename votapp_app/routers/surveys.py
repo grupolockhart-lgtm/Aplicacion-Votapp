@@ -18,7 +18,9 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.exc import IntegrityError
 from ..database import get_db
 from .logros import verificar_logros
-from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyOut
+from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyWalletOut
+
+
 
 
 
@@ -856,8 +858,8 @@ def get_wallet_history(
             models.MovimientoWallet.id.label("id"),
             models.MovimientoWallet.monto.label("monto"),
             models.MovimientoWallet.fecha.label("fecha"),
-            models.Survey.title.label("titulo_corto"),
-            models.Survey.media_urls.label("imagenes")
+            models.Survey.title.label("title"),          # 👈 usar campo real
+            models.Survey.media_urls.label("media_urls") # 👈 usar campo real
         )
         .join(models.SponsorTransaction, models.SponsorTransaction.id == models.MovimientoWallet.sponsor_transaction_id)
         .join(models.Survey, models.Survey.id == models.SponsorTransaction.survey_id)
@@ -875,12 +877,14 @@ def get_wallet_history(
                 monto=m.monto,
                 fecha=m.fecha,
                 patrocinado=True,
-                survey=SurveyOut(
-                    titulo_corto=m.titulo_corto,
-                    imagenes=m.imagenes
+                survey=SurveyWalletOut(   # 👈 usar schema corregido
+                    title=m.title,
+                    media_urls=m.media_urls
                 )
             )
             for m in movimientos
         ]
     )
+
+
 

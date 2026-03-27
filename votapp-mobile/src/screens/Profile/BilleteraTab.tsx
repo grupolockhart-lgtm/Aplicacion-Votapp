@@ -12,8 +12,8 @@ type Movimiento = {
   fecha: string;
   patrocinado: boolean;
   survey: {
-    titulo_corto: string;
-    imagenes: string[];
+    title: string;          // 👈 usar campo real
+    media_urls: string[];   // 👈 usar campo real
   };
 };
 

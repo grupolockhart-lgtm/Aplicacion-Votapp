@@ -8,8 +8,8 @@ type Movimiento = {
   fecha: string;
   patrocinado: boolean;
   survey: {
-    titulo_corto: string;
-    imagenes: string[];
+    title: string;          // 👈 usar campo real
+    media_urls: string[];   // 👈 usar campo real
   };
 };
 
@@ -40,13 +40,13 @@ export default function BilleteraCard({ wallet }: Props) {
 
               {wallet.movimientos.slice(0, 3).map((m) => (
                 <View key={m.id} style={styles.movementCard}>
-                  {m.survey?.imagenes?.[0] && (
+                  {m.survey?.media_urls?.[0] && (
                     <Image
-                      source={{ uri: m.survey.imagenes[0] }}
+                      source={{ uri: m.survey.media_urls[0] }}
                       style={styles.image}
                     />
                   )}
-                  <Text style={styles.text}>{m.survey.titulo_corto}</Text>
+                  <Text style={styles.text}>{m.survey.title}</Text>
                   <Text style={styles.text}>Monto: ${m.monto}</Text>
                   <Text style={styles.text}>
                     Fecha: {new Date(m.fecha).toLocaleDateString()}
