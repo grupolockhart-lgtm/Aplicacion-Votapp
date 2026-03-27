@@ -18,6 +18,10 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.exc import IntegrityError
 from ..database import get_db
 from .logros import verificar_logros
+from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyOut
+
+
+
 
 
 
@@ -833,4 +837,50 @@ def historial_encuestas(
 
     return {"usuario_id": usuario.id, "historial": resultado}
 
+
+# -----------------------------
+# Historial de billetera (movimientos reales con encuestas patrocinadas)
+# -----------------------------
+@router.get("/users/me/wallet/history", response_model=WalletOut)
+def get_wallet_history(
+    db: Session = Depends(database.get_db),
+    usuario: models.Usuario = Depends(get_current_user_only)
+):
+    wallet = db.query(models.Wallet).filter(models.Wallet.usuario_id == usuario.id).first()
+    if not wallet:
+        raise HTTPException(status_code=404, detail="Billetera no encontrada")
+
+    # Traer movimientos enlazados a sponsor_transactions y surveys
+    movimientos = (
+        db.query(
+            models.MovimientoWallet.id.label("id"),
+            models.MovimientoWallet.monto.label("monto"),
+            models.MovimientoWallet.fecha.label("fecha"),
+            models.Survey.title.label("titulo_corto"),
+            models.Survey.media_urls.label("imagenes")
+        )
+        .join(models.SponsorTransaction, models.SponsorTransaction.id == models.MovimientoWallet.sponsor_transaction_id)
+        .join(models.Survey, models.Survey.id == models.SponsorTransaction.survey_id)
+        .filter(models.MovimientoWallet.wallet_id == wallet.id)
+        .all()
+    )
+
+    return WalletOut(
+        id=wallet.id,
+        balance=wallet.balance,
+        actualizado_en=wallet.actualizado_en,
+        movimientos=[
+            MovimientoWalletOut(
+                id=m.id,
+                monto=m.monto,
+                fecha=m.fecha,
+                patrocinado=True,
+                survey=SurveyOut(
+                    titulo_corto=m.titulo_corto,
+                    imagenes=m.imagenes
+                )
+            )
+            for m in movimientos
+        ]
+    )
 

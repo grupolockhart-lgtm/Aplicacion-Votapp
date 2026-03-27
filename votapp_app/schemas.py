@@ -1,4 +1,8 @@
-from pydantic import BaseModel, computed_field, Field, EmailStr
+
+
+
+
+from pydantic import BaseModel, computed_field, Field, field_validator, EmailStr
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -6,16 +10,15 @@ from datetime import datetime, date
 from sqlalchemy.ext.declarative import declarative_base
 from typing import List, Optional, Literal
 
+import json
 
 Base = declarative_base()
-
-
-
 
 
 # -------------------
 # Usuarios
 # -------------------
+
 class UserCreate(BaseModel):
     nombre: str
     apellido: Optional[str] = None
@@ -34,8 +37,6 @@ class UserCreate(BaseModel):
     ciudad: Optional[str] = None
     estado_civil: Optional[str] = None     # 👈 nuevo campo
     rol: str = "user"
-
-
 
 
 class UserLogin(BaseModel):
@@ -97,7 +98,6 @@ class UserUpdate(BaseModel):
 
 
 
-
 # -----------------------------
 # Modelo de Usuario
 # -----------------------------
@@ -128,18 +128,9 @@ class Usuario(Base):
     rol = Column(String, default="user")
 
     # Relaciones
-    comments = relationship(
-        "Comment",
-        back_populates="user",
-        foreign_keys="Comment.usuario_id"
-    )
+    comments = relationship("Comment", back_populates="user", foreign_keys="Comment.usuario_id")
 
 
-
-
-# -----------------------------
-# Modelo de Comentarios
-# -----------------------------
 class Comment(Base):
     __tablename__ = "comments"
 
@@ -152,10 +143,6 @@ class Comment(Base):
     # Relaciones
     survey = relationship("Survey", back_populates="comments")
     user = relationship("Usuario", back_populates="comments")
-
-
-
-
 
 
 # -------------------
@@ -180,9 +167,17 @@ class PublicProfileUpdate(BaseModel):
     bio: Optional[str] = None
 
 
+
+
+################################################################################
+
+
+
+
 # -------------------
-# Encuestas
+# Encuestas (creacion y salida)
 # -------------------
+
 class OptionCreate(BaseModel):
     text: str
 
@@ -223,10 +218,6 @@ class SurveyCreate(BaseModel):
 
 
 
-from pydantic import BaseModel, Field
-from typing import List, Optional, Literal
-from datetime import datetime
-
 class OptionOut(BaseModel):
     id: Optional[int] = None    # 👈 ahora opcional
     text: str
@@ -248,10 +239,6 @@ class QuestionOut(BaseModel):
 
 
 
-
-# -----------------------------
-# Schema SurveyOut
-# -----------------------------
 class SurveyOut(BaseModel):
     id: int
     title: str
@@ -293,23 +280,24 @@ class SurveyOut(BaseModel):
     class Config:
         from_attributes = True
 
-# -----------------------------
-# Comentarios
-# -----------------------------
+
+# ✅ Para crear un comentario
+class CommentCreate(BaseModel):
+    survey_id: int
+    content: str
+
 class CommentOut(BaseModel):
     id: int
-    content: str
-    user_id: int
     survey_id: int
-    created_at: str
+    usuario_id: int   # 👈 igual que en el modelo Comment
+    content: str
+    created_at: datetime
 
     class Config:
-        from_attributes = True   # ✅ en Pydantic v2
+        from_attributes = True   # reemplaza orm_mode
 
 
-# -----------------------------
-# Encuestas detalladas
-# -----------------------------
+
 class SurveyDetailOut(SurveyOut):
     comments: List[CommentOut] = Field(default_factory=list)
 
@@ -317,26 +305,46 @@ class SurveyDetailOut(SurveyOut):
         from_attributes = True
 
 
-# -----------------------------
+
 # Resolver referencias
-# -----------------------------
+
 SurveyOut.model_rebuild()
 SurveyDetailOut.model_rebuild()
 
 
 
+class SurveyUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    estado: Optional[str] = None
+
+
+class SurveyHistoryOut(BaseModel):
+    id: int
+    title: str
+    completed_at: Optional[datetime] = None
+    media_url: Optional[str] = None
+    media_urls: List[str] = Field(default_factory=list)
+
+    class Config:
+        from_attributes = True
 
 
 
 
+
+
+
+#########################################################################
 
 
 
 
 
 # -------------------
-# Votos
+# Votos y resultados
 # -------------------
+
 class Answer(BaseModel):
     question_id: int
     option_id: int
@@ -351,9 +359,6 @@ class VoteBatchCreate(BaseModel):
     answers: List[Answer]
 
 
-# -------------------
-# Resultados
-# -------------------
 class OptionResult(BaseModel):
     id: int
     text: str
@@ -372,6 +377,7 @@ class SurveyResult(BaseModel):
     media_url: Optional[str] = None
     media_urls: Optional[List[str]] = Field(default_factory=list)
     results: List[QuestionResult]
+
 
 
 # -------------------
@@ -396,17 +402,33 @@ class UsuarioLogroOut(BaseModel):
 
 
 
-
-
-
 # -------------------
 # Billetera
 # -------------------
+
+class SurveyWalletOut(BaseModel):   # 👈 esquema simplificado para billetera
+    titulo_corto: str
+    imagenes: Optional[List[str]] = None
+
+    @field_validator("imagenes", mode="before")
+    def parse_media_urls(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return [v]
+        return v
+
+    class Config:
+        from_attributes = True
+
+
 class MovimientoWalletOut(BaseModel):
     id: int
-    tipo: str
     monto: int
     fecha: datetime
+    patrocinado: bool
+    survey: Optional[SurveyWalletOut]   # 👈 aquí se usa el esquema simplificado
 
     class Config:
         from_attributes = True
@@ -423,14 +445,6 @@ class WalletOut(BaseModel):
 
 
 
-# -------------------
-# Encuestas (actualización y salida)
-# -------------------
-
-class SurveyUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    estado: Optional[str] = None
 
 
 
@@ -438,51 +452,31 @@ class SurveyUpdate(BaseModel):
 
 
 
-# ✅ Nuevo schema con comentarios embebidos
-from typing import List
-
-class SurveyDetailOut(SurveyOut):
-    comments: List[CommentOut] = []
 
 
 
 
-# -----------------------------
-# Schemas de Comentarios
-# -----------------------------
-
-
-# ✅ Para crear un comentario
-class CommentCreate(BaseModel):
-    survey_id: int
-    content: str
-
-
-class CommentOut(BaseModel):
-    id: int
-    survey_id: int
-    usuario_id: int   # 👈 igual que en el modelo Comment
-    content: str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True   # reemplaza orm_mode
 
 
 
 
-# -------------------
-# Survey History Schema
-# -------------------
-class SurveyHistoryOut(BaseModel):
-    id: int
-    title: str
-    completed_at: Optional[datetime] = None
-    media_url: Optional[str] = None
-    media_urls: List[str] = Field(default_factory=list)  # 👈 siempre lista
 
-    class Config:
-        orm_mode = True
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

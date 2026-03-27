@@ -10,6 +10,9 @@ from votapp_app.database import Base
 from sqlalchemy import Date
 from sqlalchemy.sql import func
 
+from .database import Base
+
+import enum
 
 # -----------------------------
 # Usuarios
@@ -63,6 +66,43 @@ class Usuario(Base):
     participaciones = relationship("Participacion", back_populates="user", cascade="all, delete-orphan")
 
 
+# -----------------------------
+# Wallet
+# -----------------------------
+class Wallet(Base):
+    __tablename__ = "wallets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), unique=True)
+    balance = Column(Integer, default=0)
+    actualizado_en = Column(DateTime, default=datetime.utcnow)
+
+    usuario = relationship("Usuario", back_populates="billetera")
+    movimientos = relationship("MovimientoWallet", back_populates="wallet")
+
+
+
+
+
+# -----------------------------
+# Movimientos de billetera
+# -----------------------------
+class MovimientoWallet(Base):
+    __tablename__ = "wallet_movements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    wallet_id = Column(Integer, ForeignKey("wallets.id"))
+    sponsor_transaction_id = Column(Integer, ForeignKey("sponsor_transactions.id"))
+    tipo = Column(String)  # ingreso / retiro
+    monto = Column(Integer)
+    fecha = Column(DateTime, default=datetime.utcnow)
+
+    wallet = relationship("Wallet", back_populates="movimientos")
+    sponsor_transaction = relationship("SponsorTransaction", back_populates="movimientos")
+
+
+
+
 
 
 
@@ -90,7 +130,7 @@ class PerfilPublico(Base):
 # Encuestas
 # -----------------------------
 
-import enum
+
 
 class VisibilidadResultados(enum.Enum):
     publica = "publica"
@@ -103,8 +143,13 @@ class Survey(Base):
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     fecha_expiracion = Column(DateTime, nullable=True)
-
     fecha_creacion = Column(DateTime, server_default=func.now(), nullable=False)
+
+    # Relación única con transacciones patrocinadas
+    sponsor_transactions = relationship("SponsorTransaction", back_populates="survey")
+
+
+
 
     # Filtros de segmentación
     sexo = Column(Text, nullable=True)
@@ -113,27 +158,26 @@ class Survey(Base):
     nivel_educativo = Column(Text, nullable=True)
     religion = Column(Text, nullable=True)
     nacionalidad = Column(Text, nullable=True)
-    estado_civil = Column(String, nullable=True)   # 👈 nuevo campo
+    estado_civil = Column(String, nullable=True)
 
     # Multimedia
     media_url = Column(String, nullable=True)
     media_urls = Column(Text, nullable=True)  # JSON serializado
-    media_type = Column(String, default="none")   # 👈 nuevo campo para clasificar (native/webview)
+    media_type = Column(String, default="none")
 
     # Patrocinio
-    patrocinada = Column(Boolean, default=False)              # bandera de patrocinio
-    patrocinador = Column(String, nullable=True)              # nombre del patrocinador
-    recompensa_puntos = Column(Integer, default=0)            # puntos de recompensa
-    recompensa_dinero = Column(Integer, default=0)            # dinero de recompensa
-    presupuesto_total = Column(Integer, default=0)            # presupuesto asignado
+    patrocinada = Column(Boolean, default=False)
+    patrocinador = Column(String, nullable=True)
+    recompensa_puntos = Column(Integer, default=0)
+    recompensa_dinero = Column(Integer, default=0)
+    presupuesto_total = Column(Integer, default=0)
     visibilidad_resultados = Column(Enum(VisibilidadResultados), default=VisibilidadResultados.publica)
     source_url = Column(String, unique=True, nullable=True)
 
     # Relaciones
     questions = relationship("Question", back_populates="survey", cascade="all, delete-orphan")
     votes = relationship("Vote", back_populates="survey")
-    transactions = relationship("SponsorTransaction", back_populates="survey")  # relación con transacciones
-    comments = relationship("Comment", back_populates="survey", cascade="all, delete-orphan")  # 👈 nueva relación
+    comments = relationship("Comment", back_populates="survey", cascade="all, delete-orphan")
     participaciones = relationship("Participacion", back_populates="survey", cascade="all, delete-orphan")
     active = Column(Boolean, default=True)
 
@@ -199,32 +243,6 @@ class UsuarioLogro(Base):
     logro = relationship("Logro")
 
 # -----------------------------
-# Billetera digital
-# -----------------------------
-class Wallet(Base):
-    __tablename__ = "wallets"
-
-    id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), unique=True)
-    balance = Column(Integer, default=0)  # dinero real
-    actualizado_en = Column(DateTime, default=datetime.utcnow)
-
-    usuario = relationship("Usuario", back_populates="billetera")
-    movimientos = relationship("MovimientoWallet", back_populates="wallet")
-
-class MovimientoWallet(Base):
-    __tablename__ = "wallet_movements"
-
-    id = Column(Integer, primary_key=True, index=True)
-    wallet_id = Column(Integer, ForeignKey("wallets.id"))
-    tipo = Column(String)  # ingreso / retiro
-    monto = Column(Integer)
-    fecha = Column(DateTime, default=datetime.utcnow)
-
-    wallet = relationship("Wallet", back_populates="movimientos")
-
-
-# -----------------------------
 # Transacciones de patrocinio
 # -----------------------------
 class SponsorTransaction(Base):
@@ -233,14 +251,14 @@ class SponsorTransaction(Base):
     id = Column(Integer, primary_key=True, index=True)
     survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    monto_dinero = Column(Integer, default=0)
-    puntos = Column(Integer, default=0)
+    monto_dinero = Column(Integer, default=0)   # dinero real patrocinado
+    puntos = Column(Integer, default=0)         # puntos otorgados
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     # Relaciones
-    survey = relationship("Survey", back_populates="transactions")
+    survey = relationship("Survey", back_populates="sponsor_transactions")
     usuario = relationship("Usuario")
-
+    movimientos = relationship("MovimientoWallet", back_populates="sponsor_transaction")
 
 
 # -----------------------------

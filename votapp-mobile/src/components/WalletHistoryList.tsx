@@ -1,29 +1,32 @@
 // src/components/WalletHistoryList.tsx
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
 import { API_URL } from "../config/api";
-import { RootStackParamList } from "../Types/Navigation";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import SimpleSurveyGrid from "./SimpleSurveyGrid";
 
-type WalletMovement = {
+type Movimiento = {
   id: number;
-  tipo: "ingreso" | "retiro";
   monto: number;
   fecha: string;
-  patrocinado?: boolean;
-  bonus?: boolean;
+  patrocinado: boolean;
+  survey: {
+    titulo_corto: string;
+    imagenes: string[];
+  };
+};
+
+type WalletResponse = {
+  id: number;
+  balance: number;
+  actualizado_en: string;
+  movimientos: Movimiento[];
 };
 
 export default function WalletHistoryList() {
-  const [movements, setMovements] = useState<WalletMovement[]>([]);
+  const [movements, setMovements] = useState<Movimiento[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
     const fetchMovements = async () => {
@@ -34,8 +37,8 @@ export default function WalletHistoryList() {
         });
 
         if (res.ok) {
-          const data = await res.json();
-          setMovements(data);
+          const data: WalletResponse = await res.json();
+          setMovements(data.movimientos); // 👈 ahora tomamos solo los movimientos
         } else if (res.status === 404) {
           setMovements([]);
         } else {
@@ -58,26 +61,17 @@ export default function WalletHistoryList() {
 
   return (
     <View>
-      {/* 👇 Usamos SimpleSurveyGrid con data */}
+      {/* 👇 Grid con encuestas patrocinadas */}
       <SimpleSurveyGrid
         data={movements.map((m) => ({
           id: m.id,
-          titulo: m.tipo === "ingreso" ? `Ingreso de ${m.monto}` : `Retiro de ${m.monto}`,
-          preguntas: [], // no aplican preguntas aquí
-          imagenes: [],  // sin imágenes en movimientos
+          titulo: m.survey.titulo_corto,
+          preguntas: [],
+          imagenes: m.survey.imagenes,
+          ingreso: m.monto,
+          fecha: m.fecha,
         }))}
       />
-
-      <TouchableOpacity
-        style={{ marginTop: 8 }}
-        onPress={() =>
-          navigation.navigate("WalletHistoryScreen", { movimientos: movements })
-        }
-      >
-        <Text style={{ color: "#2563EB", fontWeight: "600" }}>
-          Ver historial completo →
-        </Text>
-      </TouchableOpacity>
     </View>
   );
 }
