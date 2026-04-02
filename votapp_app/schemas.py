@@ -237,6 +237,7 @@ class PreguntaOut(BaseModel):
         from_attributes = True
 
 
+
 class SurveyOut(BaseModel):
     id: int
     titulo: str
@@ -321,12 +322,17 @@ class SurveyUpdate(BaseModel):
 class SurveyHistoryOut(BaseModel):
     id: int
     title: str
+    description: Optional[str] = None
+    tipo: Optional[str] = None
     completed_at: Optional[datetime] = None
     media_url: Optional[str] = None
     media_urls: List[str] = Field(default_factory=list)
+    questions: List[PreguntaOut] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
+
+
 
 
 

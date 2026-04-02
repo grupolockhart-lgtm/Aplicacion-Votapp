@@ -4,10 +4,14 @@ import { View, ActivityIndicator, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
 import SimpleSurveyGrid from "../components/SimpleSurveyGrid";
+import { useNavigation } from "@react-navigation/native";
 
 interface SurveyHistory {
   id: number;
   title: string;
+  description?: string | null;
+  tipo?: string | null; // "simple" o "normal"
+  questions?: any[] | null;
   completed_at: string;
   media_url?: string | null;
   media_urls?: string[] | null;
@@ -16,6 +20,7 @@ interface SurveyHistory {
 export default function SurveyHistoryList() {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -32,35 +37,37 @@ export default function SurveyHistoryList() {
 
         const raw: SurveyHistory[] = await res.json();
 
-        // 👇 Log de datos crudos del backend
-        raw.forEach((s) => {
-          console.log(
-            `RAW Encuesta ${s.id} → title: ${s.title}, media_url: ${s.media_url}, media_urls: ${JSON.stringify(s.media_urls)}`
-          );
-        });
-
-        // 👇 Normalizamos igual que en SurveysScreen
         const normalized = Array.isArray(raw)
-          ? raw.map((s: SurveyHistory) => ({
-              id: s.id,
-              titulo: s.title,
-              preguntas: [],
-              imagenes:
+          ? raw.map((s: SurveyHistory) => {
+              const imagenes =
                 Array.isArray(s.media_urls) && s.media_urls.length > 0
                   ? s.media_urls
                   : s.media_url
                   ? [s.media_url]
-                  : [],
-              created_at: s.completed_at ?? null,
-            }))
-          : [];
+                  : [];
 
-        // 👇 Log de encuestas normalizadas
-        normalized.forEach((encuesta) => {
-          console.log(
-            `NORMALIZADA Encuesta ${encuesta.id} → titulo: ${encuesta.titulo}, imagen: ${encuesta.imagenes[0]}`
-          );
-        });
+              return {
+                id: s.id,
+                titulo: s.title,
+                preguntas: s.questions ?? [],
+                imagenes,
+                created_at: s.completed_at ?? null,
+                description: s.description ?? "",
+                tipo: s.tipo ?? "normal",
+                // 👇 añadimos la acción de navegación directamente en el objeto
+                onPress: () =>
+                  (navigation as any).navigate("ResultsScreen", {
+                    surveyId: s.id,
+                    surveyType: s.tipo ?? "normal",
+                    title: s.title,
+                    description: s.description,
+                    questions: s.questions,
+                    media_url: s.media_url,
+                    media_urls: s.media_urls,
+                  }),
+              };
+            })
+          : [];
 
         setSurveys(normalized);
       } catch (err) {
@@ -85,3 +92,4 @@ export default function SurveyHistoryList() {
 
   return <SimpleSurveyGrid data={surveys} />;
 }
+

@@ -26,20 +26,22 @@ interface Pregunta {
   opciones: Opcion[];
 }
 
-interface SimpleSurvey {
+interface Survey {
   id: number;
   titulo: string;
-  preguntas: Pregunta[];
+  preguntas?: Pregunta[];
   imagenes: string[];
-  created_at?: string; // 👈 fecha opcional
+  created_at?: string;
+  tipo?: string;          // 👈 ahora soporta "simple" o "normal"
+  description?: string;
 }
 
 type Props = {
-  data?: SimpleSurvey[];
+  data?: Survey[];
 };
 
 export default function SimpleSurveyGrid({ data }: Props) {
-  const [surveys, setSurveys] = useState<SimpleSurvey[]>([]);
+  const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
 
@@ -84,6 +86,8 @@ export default function SimpleSurveyGrid({ data }: Props) {
               })),
               imagenes: s.imagenes ?? s.media_urls ?? [],
               created_at: s.created_at ?? s.date ?? null,
+              tipo: s.tipo ?? "simple",          // 👈 normalizamos tipo
+              description: s.description ?? "",
             }))
           : [];
 
@@ -96,7 +100,7 @@ export default function SimpleSurveyGrid({ data }: Props) {
 
         setSurveys(normalized);
       } catch (err) {
-        console.error("Error cargando encuestas simples:", err);
+        console.error("Error cargando encuestas:", err);
       } finally {
         setLoading(false);
       }
@@ -115,7 +119,7 @@ export default function SimpleSurveyGrid({ data }: Props) {
   }
 
   const screenWidth = Dimensions.get("window").width;
-  const cardWidth = (screenWidth - 64) / 3; // 👈 ancho para 3 columnas
+  const cardWidth = (screenWidth - 64) / 3;
 
   return (
     <FlatList
@@ -134,22 +138,18 @@ export default function SimpleSurveyGrid({ data }: Props) {
             onPress={() =>
               navigation.navigate("ResultsScreen", {
                 surveyId: item.id,
-                surveyType: "simple",
+                surveyType: item.tipo ?? "normal", // 👈 ahora dinámico
                 title: item.titulo,
-                description: "Encuesta simple",
+                description: item.description ?? "",
+                questions: item.preguntas,
                 media_url: firstImage,
+                media_urls: item.imagenes,
               })
             }
             style={[styles.card, { width: cardWidth }]}
           >
-            <Image
-              source={{ uri: firstImage }}
-              style={styles.image}
-              resizeMode="cover"
-            />
-            <Text style={styles.title} numberOfLines={2}>
-              {item.titulo}
-            </Text>
+            <Image source={{ uri: firstImage }} style={styles.image} resizeMode="cover" />
+            <Text style={styles.title} numberOfLines={2}>{item.titulo}</Text>
           </TouchableOpacity>
         );
       }}
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: "100%",
-    height: 80, // 👈 thumbnail compacto
+    height: 80,
     borderRadius: 6,
     marginBottom: 6,
   },

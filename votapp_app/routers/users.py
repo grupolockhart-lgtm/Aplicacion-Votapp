@@ -324,22 +324,36 @@ def get_user_survey_history(
     for p in participaciones:
         survey = p.survey
 
-        # Deserializamos media_urls con safe_json_list
         media_urls = safe_json_list(survey.media_urls)
-
-        # Fallback: si hay media_url y la lista está vacía, lo agregamos
         if survey.media_url and not media_urls:
             media_urls = [survey.media_url]
+
+        # 👇 añadimos campos extra
+        preguntas = []
+        for q in survey.questions:
+            preguntas.append({
+                "id": q.id,
+                "texto": q.texto,
+                "opciones": [
+                    {"id": o.id, "texto": o.texto}
+                    for o in q.opciones
+                ],
+            })
 
         result.append({
             "id": survey.id,
             "title": survey.title,
+            "description": survey.description,
+            "tipo": survey.tipo,
             "completed_at": p.fecha_participacion,
             "media_url": survey.media_url,
             "media_urls": media_urls,
+            "questions": preguntas,
         })
 
     return result
+
+
 
 
 
