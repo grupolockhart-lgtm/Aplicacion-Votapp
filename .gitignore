@@ -1,2 +1,41 @@
 # Ignorar dependencias
 node_modules/
+
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Entornos virtuales
+.venv/
+env/
+venv/
+
+# Archivos de logs
+*.log
+
+# Archivos de base de datos locales
+*.sqlite3
+*.db
+
+# --- Node / Expo ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de build
+.expo/
+.expo-shared/
+dist/
+build/
+
+# --- Configuración del sistema ---
+.DS_Store
+Thumbs.db
+
+# --- IDEs ---
+.vscode/
+.idea/
