@@ -49,11 +49,11 @@ export default function SurveyHistoryList() {
                 titulo: s.title,
                 preguntas: (s.questions ?? []).map((q: any) => ({
                   id: q.id,
-                  texto: q.texto ?? q.text,
+                  text: q.texto ?? q.text, // 👈 corregido
                   opciones: (q.opciones ?? []).map((o: any) => ({
                     id: o.id,
-                    texto: o.texto ?? o.text,
-                    votos: o.votos ?? 0, // 👈 asegurar campo votos
+                    text: o.texto ?? o.text, // 👈 corregido
+                    votos: o.votos ?? 0,
                   })),
                   total_votos: q.total_votos ?? 0,
                 })),
@@ -65,8 +65,7 @@ export default function SurveyHistoryList() {
             })
           : [];
 
-
-
+        console.log("Historial normalizado:", normalized); // 👈 validar en consola
         setSurveys(normalized);
       } catch (err) {
         console.error("Error cargando historial:", err);
