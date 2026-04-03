@@ -70,9 +70,6 @@ export default function SurveyCard({
     }
   }, [isFocused, survey.id]);
 
-    // 👇 Aquí sí puedes loguear
-  console.log("SurveyCard:", survey.id, survey.media_url, survey.media_urls);
-
 
 
   return (

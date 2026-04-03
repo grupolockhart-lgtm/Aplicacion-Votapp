@@ -4,7 +4,6 @@ import { View, ActivityIndicator, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
 import SimpleSurveyGrid from "../components/SimpleSurveyGrid";
-import { useNavigation } from "@react-navigation/native";
 
 interface SurveyHistory {
   id: number;
@@ -20,7 +19,6 @@ interface SurveyHistory {
 export default function SurveyHistoryList() {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigation = useNavigation();
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -31,7 +29,7 @@ export default function SurveyHistoryList() {
           return;
         }
 
-        const res = await fetch(`${API_URL}/users/me/surveys/history`, {
+        const res = await fetch(`${API_URL}/me/surveys/history`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -49,25 +47,25 @@ export default function SurveyHistoryList() {
               return {
                 id: s.id,
                 titulo: s.title,
-                preguntas: s.questions ?? [],
+                preguntas: (s.questions ?? []).map((q: any) => ({
+                  id: q.id,
+                  texto: q.texto ?? q.text,
+                  opciones: (q.opciones ?? []).map((o: any) => ({
+                    id: o.id,
+                    texto: o.texto ?? o.text,
+                    votos: o.votos ?? 0, // 👈 asegurar campo votos
+                  })),
+                  total_votos: q.total_votos ?? 0,
+                })),
                 imagenes,
-                created_at: s.completed_at ?? null,
+                created_at: s.completed_at ?? new Date().toISOString(),
                 description: s.description ?? "",
                 tipo: s.tipo ?? "normal",
-                // 👇 añadimos la acción de navegación directamente en el objeto
-                onPress: () =>
-                  (navigation as any).navigate("ResultsScreen", {
-                    surveyId: s.id,
-                    surveyType: s.tipo ?? "normal",
-                    title: s.title,
-                    description: s.description,
-                    questions: s.questions,
-                    media_url: s.media_url,
-                    media_urls: s.media_urls,
-                  }),
               };
             })
           : [];
+
+
 
         setSurveys(normalized);
       } catch (err) {
@@ -92,4 +90,3 @@ export default function SurveyHistoryList() {
 
   return <SimpleSurveyGrid data={surveys} />;
 }
-
