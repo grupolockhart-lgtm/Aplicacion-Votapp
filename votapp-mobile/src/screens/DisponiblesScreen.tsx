@@ -42,13 +42,6 @@ export default function DisponiblesScreen({
       )}
       keyExtractor={(item) => item.id.toString()}
       renderItem={({ item }) => {
-        // 👇 Log compacto solo para encuestas simples
-        if (item.tipo === "simple") {
-          console.log("RenderItem recibió encuesta simple:", {
-            id: item.id,
-            title: item.title,
-          });
-        }
 
         return (
           <SurveyCard

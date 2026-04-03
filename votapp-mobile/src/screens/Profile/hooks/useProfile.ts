@@ -17,8 +17,6 @@ export const useProfile = (navigation: any) => {
       });
       const data = await res.json();
 
-      // 👇 Log para inspeccionar la estructura real
-      console.log("Perfil recibido desde backend:", data);
 
       if (!res.ok) throw new Error(data?.detail || "Error al cargar perfil");
 

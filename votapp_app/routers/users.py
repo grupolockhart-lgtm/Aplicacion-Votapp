@@ -303,10 +303,11 @@ def upload_avatar(
     }
 
 
-
 # -----------------------------
 # Endpoint Historial de Encuestas
 # -----------------------------
+
+from sqlalchemy.orm import joinedload
 
 @router.get("/me/surveys/history", response_model=list[schemas.SurveyHistoryOut])
 def get_user_survey_history(
@@ -315,20 +316,29 @@ def get_user_survey_history(
 ):
     participaciones = (
         db.query(models.Participacion)
-        .join(models.Survey, models.Participacion.survey_id == models.Survey.id)
         .filter(models.Participacion.usuario_id == current_user.id)
+        .options(
+            joinedload(models.Participacion.survey)
+            .joinedload(models.Survey.questions)
+            .joinedload(models.Question.opciones)
+        )
         .all()
     )
+
+    print("Usuario actual:", current_user.id)
+    print("Participaciones encontradas:", [p.id for p in participaciones])
 
     result = []
     for p in participaciones:
         survey = p.survey
+        if not survey:
+            print(f"⚠️ Participación {p.id} no tiene survey asociado")
+            continue
 
         media_urls = safe_json_list(survey.media_urls)
         if survey.media_url and not media_urls:
             media_urls = [survey.media_url]
 
-        # 👇 añadimos campos extra
         preguntas = []
         for q in survey.questions:
             preguntas.append({
@@ -351,7 +361,10 @@ def get_user_survey_history(
             "questions": preguntas,
         })
 
+    print("Result construido:", result)
     return result
+
+
 
 
 

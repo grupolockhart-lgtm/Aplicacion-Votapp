@@ -247,13 +247,6 @@ const refreshSurveys = async () => {
     );
   }
 
-// 👇 Aquí logueamos los datos normalizados
-  console.log(
-  "Disponibles simples normalizados:",
-  JSON.stringify(disponibles.filter((s) => s.tipo === "simple"), null, 2)
-);
-
-
 
   
   return (
