@@ -321,16 +321,16 @@ class SurveyUpdate(BaseModel):
 
 class SurveyHistoryOut(BaseModel):
     id: int
-    title: str
+    titulo: str   # 👈 usar mismo nombre que SurveyOut
     description: Optional[str] = None
     tipo: Optional[str] = None
     completed_at: Optional[datetime] = None
-    media_url: Optional[str] = None
-    media_urls: List[str] = Field(default_factory=list)
-    questions: List[PreguntaOut] = Field(default_factory=list)
+    imagenes: List[str] = Field(default_factory=list)  # 👈 en vez de media_urls
+    preguntas: List[PreguntaOut] = Field(default_factory=list)  # 👈 en vez de questions
 
     class Config:
         from_attributes = True
+
 
 
 

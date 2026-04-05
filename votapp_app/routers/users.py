@@ -20,7 +20,7 @@ from ..database import get_db
 
 from typing import List
 from votapp_app.utils import safe_json_list
-
+from sqlalchemy.orm import joinedload
 
 
 
@@ -307,7 +307,6 @@ def upload_avatar(
 # Endpoint Historial de Encuestas
 # -----------------------------
 
-from sqlalchemy.orm import joinedload
 
 @router.get("/me/surveys/history", response_model=list[schemas.SurveyHistoryOut])
 def get_user_survey_history(
@@ -316,16 +315,16 @@ def get_user_survey_history(
 ):
     participaciones = (
         db.query(models.Participacion)
-        .filter(models.Participacion.usuario_id == current_user.id)
+        .filter(models.Participacion.usuario_id == int(current_user.id))
         .options(
             joinedload(models.Participacion.survey)
             .joinedload(models.Survey.questions)
-            .joinedload(models.Question.opciones)
+            .joinedload(models.Question.options)
         )
         .all()
     )
 
-    print("Usuario actual:", current_user.id)
+    print("Usuario actual:", current_user.id, type(current_user.id))
     print("Participaciones encontradas:", [p.id for p in participaciones])
 
     result = []
@@ -335,34 +334,42 @@ def get_user_survey_history(
             print(f"⚠️ Participación {p.id} no tiene survey asociado")
             continue
 
+        print(f"➡️ Survey {survey.id}: {survey.title}")
+        print("Preguntas encontradas:", [q.text for q in survey.questions])
+
         media_urls = safe_json_list(survey.media_urls)
         if survey.media_url and not media_urls:
             media_urls = [survey.media_url]
 
         preguntas = []
         for q in survey.questions:
+            print(f"   Pregunta {q.id}: {q.text}")
+            print("   Opciones:", [o.text for o in q.options])
+
             preguntas.append({
                 "id": q.id,
-                "texto": q.texto,
+                "texto": q.text,
                 "opciones": [
-                    {"id": o.id, "texto": o.texto}
-                    for o in q.opciones
+                    {"id": o.id, "texto": o.text}
+                    for o in q.options
                 ],
             })
 
         result.append({
             "id": survey.id,
-            "title": survey.title,
+            "titulo": survey.title,  # 👈 usar 'titulo'
             "description": survey.description,
             "tipo": survey.tipo,
             "completed_at": p.fecha_participacion,
-            "media_url": survey.media_url,
-            "media_urls": media_urls,
-            "questions": preguntas,
+            "imagenes": media_urls,  # 👈 usar 'imagenes'
+            "preguntas": preguntas,  # 👈 usar 'preguntas'
         })
+
+
 
     print("Result construido:", result)
     return result
+
 
 
 

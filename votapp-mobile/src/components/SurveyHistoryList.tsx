@@ -1,81 +1,49 @@
-// src/screens/SurveyHistoryList.tsx
-import React, { useEffect, useState } from "react";
+// src/components/SurveyHistoryList.tsx
+import React, { useState } from "react";
 import { View, ActivityIndicator, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
 import SimpleSurveyGrid from "../components/SimpleSurveyGrid";
-
-interface SurveyHistory {
-  id: number;
-  title: string;
-  description?: string | null;
-  tipo?: string | null; // "simple" o "normal"
-  questions?: any[] | null;
-  completed_at: string;
-  media_url?: string | null;
-  media_urls?: string[] | null;
-}
+import { useFocusEffect } from "@react-navigation/native";
+import { SurveyHistoryOut } from "../Types/survey"; // 👈 ahora sí existe
 
 export default function SurveyHistoryList() {
-  const [surveys, setSurveys] = useState<any[]>([]);
+  const [surveys, setSurveys] = useState<SurveyHistoryOut[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        const token = await AsyncStorage.getItem("userToken");
-        if (!token) {
-          console.warn("No se encontró token de usuario");
-          return;
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+
+      async function loadHistory() {
+        try {
+          const token = await AsyncStorage.getItem("userToken");
+          if (!token) {
+            console.warn("No se encontró token de usuario");
+            return;
+          }
+
+          const res = await fetch(`${API_URL}/api/users/me/surveys/history`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const raw: SurveyHistoryOut[] = await res.json();
+
+          if (isActive) {
+            console.log("Historial recibido:", raw);
+            setSurveys(raw);
+          }
+        } catch (err) {
+          console.error("Error cargando historial:", err);
+        } finally {
+          if (isActive) setLoading(false);
         }
-
-        const res = await fetch(`${API_URL}/me/surveys/history`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const raw: SurveyHistory[] = await res.json();
-
-        const normalized = Array.isArray(raw)
-          ? raw.map((s: SurveyHistory) => {
-              const imagenes =
-                Array.isArray(s.media_urls) && s.media_urls.length > 0
-                  ? s.media_urls
-                  : s.media_url
-                  ? [s.media_url]
-                  : [];
-
-              return {
-                id: s.id,
-                titulo: s.title,
-                preguntas: (s.questions ?? []).map((q: any) => ({
-                  id: q.id,
-                  text: q.texto ?? q.text, // 👈 corregido
-                  opciones: (q.opciones ?? []).map((o: any) => ({
-                    id: o.id,
-                    text: o.texto ?? o.text, // 👈 corregido
-                    votos: o.votos ?? 0,
-                  })),
-                  total_votos: q.total_votos ?? 0,
-                })),
-                imagenes,
-                created_at: s.completed_at ?? new Date().toISOString(),
-                description: s.description ?? "",
-                tipo: s.tipo ?? "normal",
-              };
-            })
-          : [];
-
-        console.log("Historial normalizado:", normalized); // 👈 validar en consola
-        setSurveys(normalized);
-      } catch (err) {
-        console.error("Error cargando historial:", err);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    loadHistory();
-  }, []);
+      loadHistory();
+      return () => { isActive = false; };
+    }, [])
+  );
 
   if (loading) return <ActivityIndicator size="large" color="#2563EB" />;
 
