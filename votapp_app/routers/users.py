@@ -325,6 +325,10 @@ def get_user_survey_history(
     print("Usuario actual:", current_user.id, type(current_user.id))
     print("Participaciones encontradas:", [p.id for p in participaciones])
 
+    # 👇 Bloque clave: si no hay participaciones, devolvemos lista vacía
+    if not participaciones:
+        return []
+
     result = []
     for p in participaciones:
         survey = p.survey
@@ -335,33 +339,26 @@ def get_user_survey_history(
         print(f"➡️ Survey {survey.id}: {survey.title}")
         print("Preguntas encontradas:", [q.text for q in survey.questions])
 
-        media_urls = safe_json_list(survey.media_urls)
+        media_urls = safe_json_list(survey.media_urls) or []
         if survey.media_url and not media_urls:
             media_urls = [survey.media_url]
 
-        preguntas = []
-        for q in survey.questions:
-            print(f"   Pregunta {q.id}: {q.text}")
-            print("   Opciones:", [o.text for o in q.options])
-
-            preguntas.append({
+        preguntas = [
+            {
                 "id": q.id,
                 "texto": q.text,
-                "opciones": [
-                    {"id": o.id, "texto": o.text}
-                    for o in q.options
-                ],
-            })
+                "opciones": [{"id": o.id, "texto": o.text} for o in q.options],
+            }
+            for q in survey.questions
+        ]
 
-        # Bloque corregido
         result.append({
             "id": survey.id,
-            "titulo": survey.title,  # 👈 usar 'titulo'
+            "titulo": survey.title,
             "description": survey.description,
-            # "tipo": survey.tipo,  # ❌ eliminado porque no existe en la tabla
             "completed_at": p.fecha_participacion.isoformat() if p.fecha_participacion else None,
-            "imagenes": media_urls,  # 👈 usar 'imagenes'
-            "preguntas": preguntas,  # 👈 usar 'preguntas'
+            "imagenes": media_urls,
+            "preguntas": preguntas,
         })
 
     print("Result construido:", result)

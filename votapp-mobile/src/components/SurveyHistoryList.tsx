@@ -5,7 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
 import SimpleSurveyGrid from "../components/SimpleSurveyGrid";
 import { useFocusEffect } from "@react-navigation/native";
-import { SurveyHistoryOut } from "../Types/survey"; // 👈 ahora sí existe
+import { SurveyHistoryOut } from "../Types/survey";
 
 export default function SurveyHistoryList() {
   const [surveys, setSurveys] = useState<SurveyHistoryOut[]>([]);
@@ -18,20 +18,34 @@ export default function SurveyHistoryList() {
       async function loadHistory() {
         try {
           const token = await AsyncStorage.getItem("userToken");
+          console.log("Token en frontend:", token);
+
           if (!token) {
             console.warn("No se encontró token de usuario");
             return;
           }
 
-          const res = await fetch(`${API_URL}/api/users/me/surveys/history`, {
+          const res = await fetch(`${API_URL}/users/me/surveys/history`, {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          const raw: SurveyHistoryOut[] = await res.json();
+          const raw = await res.json();
+          console.log("Respuesta cruda del backend:", raw);
 
-          if (isActive) {
-            console.log("Historial recibido:", raw);
-            setSurveys(raw);
+          if (!res.ok) {
+            console.warn("Error HTTP:", res.status, raw);
+            if (isActive) setSurveys([]);
+            return;
+          }
+
+          if (Array.isArray(raw)) {
+            if (isActive) {
+              console.log("Historial recibido:", raw);
+              setSurveys(raw);
+            }
+          } else {
+            console.warn("Respuesta inesperada (no es array):", raw);
+            if (isActive) setSurveys([]);
           }
         } catch (err) {
           console.error("Error cargando historial:", err);
@@ -41,7 +55,9 @@ export default function SurveyHistoryList() {
       }
 
       loadHistory();
-      return () => { isActive = false; };
+      return () => {
+        isActive = false;
+      };
     }, [])
   );
 

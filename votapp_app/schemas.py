@@ -323,7 +323,6 @@ class SurveyHistoryOut(BaseModel):
     id: int
     titulo: str   # 👈 usar mismo nombre que SurveyOut
     description: Optional[str] = None
-    tipo: Optional[str] = None
     completed_at: Optional[datetime] = None
     imagenes: List[str] = Field(default_factory=list)  # 👈 en vez de media_urls
     preguntas: List[PreguntaOut] = Field(default_factory=list)  # 👈 en vez de questions
