@@ -302,11 +302,9 @@ def upload_avatar(
         "alias": perfil.alias
     }
 
-
 # -----------------------------
 # Endpoint Historial de Encuestas
 # -----------------------------
-
 
 @router.get("/me/surveys/history", response_model=list[schemas.SurveyHistoryOut])
 def get_user_survey_history(
@@ -355,21 +353,19 @@ def get_user_survey_history(
                 ],
             })
 
+        # Bloque corregido
         result.append({
             "id": survey.id,
             "titulo": survey.title,  # 👈 usar 'titulo'
             "description": survey.description,
-            "tipo": survey.tipo,
-            "completed_at": p.fecha_participacion,
+            # "tipo": survey.tipo,  # ❌ eliminado porque no existe en la tabla
+            "completed_at": p.fecha_participacion.isoformat() if p.fecha_participacion else None,
             "imagenes": media_urls,  # 👈 usar 'imagenes'
             "preguntas": preguntas,  # 👈 usar 'preguntas'
         })
 
-
-
     print("Result construido:", result)
     return result
-
 
 
 
