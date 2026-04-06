@@ -533,6 +533,8 @@ def vote(
     db: Session = Depends(database.get_db),
     usuario: models.Usuario = Depends(get_current_user_only)
 ):
+    print(f"➡️ Entrando a /vote con survey_id={survey_id}, usuario_id={usuario.id}")
+
     survey = db.query(models.Survey).filter(models.Survey.id == survey_id).first()
     if not survey:
         raise HTTPException(status_code=404, detail="Encuesta no encontrada")
@@ -574,25 +576,45 @@ def vote(
         )
         db.add(nueva_participacion)
 
-    # Mantener billetera intacta
-    if usuario.billetera and survey.recompensa_dinero:
-        wallet = db.query(models.Wallet).filter_by(id=usuario.billetera.id).first()
-        wallet.balance = (wallet.balance or 0) + survey.recompensa_dinero
-        movimiento = models.MovimientoWallet(
-            wallet_id=wallet.id,
-            tipo="ingreso",
-            monto=survey.recompensa_dinero
-        )
-        db.add(movimiento)
+    transaccion = None
+    movimiento = None
+    wallet = None
 
+    # Flujo patrocinado
     if survey.patrocinada:
         transaccion = models.SponsorTransaction(
             survey_id=survey.id,
             usuario_id=usuario.id,
             monto_dinero=survey.recompensa_dinero or 0,
             puntos=survey.recompensa_puntos or 0,
+            timestamp=datetime.utcnow()
         )
         db.add(transaccion)
+        db.flush()  # 👈 asegura que transaccion.id existe
+        print("Transacción creada con ID:", transaccion.id)
+
+        # Garantizar billetera
+        if not usuario.billetera:
+            nueva_wallet = models.Wallet(usuario_id=usuario.id, balance=0)
+            db.add(nueva_wallet)
+            db.flush()
+            db.refresh(nueva_wallet)
+            usuario.billetera = nueva_wallet
+
+        wallet = usuario.billetera
+        wallet.balance = (wallet.balance or 0) + (survey.recompensa_dinero or 0)
+
+        movimiento = models.MovimientoWallet(
+            wallet_id=wallet.id,
+            tipo="ingreso",
+            monto=survey.recompensa_dinero or 0,
+            fecha=datetime.utcnow(),
+            sponsor_transaction_id=transaccion.id
+        )
+        print("Wallet ID:", wallet.id if wallet else None)
+        print("SponsorTransaction ID:", transaccion.id if transaccion else None)
+        print("Movimiento sponsor_transaction_id:", movimiento.sponsor_transaction_id if movimiento else None)
+        db.add(movimiento)
 
     # Ajustar presupuesto
     survey.presupuesto_total = survey.presupuesto_total or 0
@@ -601,7 +623,7 @@ def vote(
     if survey.presupuesto_total < 0:
         survey.presupuesto_total = 0
 
-    # Bloque de perfil SIEMPRE se ejecuta
+    # Actualizar perfil
     perfil = db.query(models.PerfilPublico).filter_by(usuario_id=usuario.id).first()
     if perfil:
         hoy = datetime.utcnow().date()
@@ -617,39 +639,40 @@ def vote(
 
         verificar_logros(db, usuario.id, perfil)
 
-    db.commit()
-    db.refresh(perfil)
-
     try:
-        db.expire_all()
-        usuario = db.query(models.Usuario).filter_by(id=usuario.id).first()
-        balance = usuario.billetera.balance if usuario.billetera else None
-    except IntegrityError:
+        db.commit()
+    except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Ya existe un voto registrado para esta pregunta")
+        print("❌ Error de integridad:", str(e))
+        if "unique_vote_per_question" in str(e):
+            raise HTTPException(status_code=400, detail="Ya votaste en esta pregunta")
+        elif "wallets_usuario_id_key" in str(e):
+            raise HTTPException(status_code=400, detail="El usuario ya tiene una billetera")
+        elif "sponsor_transaction_id" in str(e):
+            raise HTTPException(status_code=500, detail="Movimiento de billetera sin transacción válida")
+        else:
+            raise HTTPException(status_code=400, detail="Error de integridad en la base de datos")
     except Exception as e:
         db.rollback()
-        print(f"Error inesperado en /vote (survey_id={survey_id}, usuario_id={usuario.id}): {e}")
-        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+        import traceback
+        print("❌ Error inesperado:", str(e))
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Error interno en el servidor")
+
+    if perfil:
+        db.refresh(perfil)
+
+    balance = usuario.billetera.balance if usuario.billetera else None
 
     return {
         "message": "Votos y participación registrados correctamente",
         "survey_id": survey.id,
         "presupuesto_restante": survey.presupuesto_total,
-        "usuario_puntos": perfil.puntos,
+        "usuario_puntos": perfil.puntos if perfil else 0,
         "usuario_balance": balance,
-        "usuario_nivel": perfil.nivel,
-        "usuario_racha": perfil.racha_dias
+        "usuario_nivel": perfil.nivel if perfil else 0,
+        "usuario_racha": perfil.racha_dias if perfil else 0
     }
-
-
-
-
-
-
-
-
-
 
 
 

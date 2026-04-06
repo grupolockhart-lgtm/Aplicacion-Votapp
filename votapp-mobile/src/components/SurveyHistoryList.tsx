@@ -30,7 +30,6 @@ export default function SurveyHistoryList() {
           });
 
           const raw = await res.json();
-          console.log("Respuesta cruda del backend:", raw);
 
           if (!res.ok) {
             console.warn("Error HTTP:", res.status, raw);
@@ -40,7 +39,6 @@ export default function SurveyHistoryList() {
 
           if (Array.isArray(raw)) {
             if (isActive) {
-              console.log("Historial recibido:", raw);
               setSurveys(raw);
             }
           } else {

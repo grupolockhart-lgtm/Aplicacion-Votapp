@@ -50,8 +50,6 @@ export default function VoteScreen({ route, navigation }: Props) {
           ? `${API_URL}/surveys/${surveyId}/my-vote`
           : `${API_URL}/surveys/simple/${surveyId}/my-vote`;
 
-
-
       try {
         const res = await fetch(endpoint, {
           headers: { Authorization: `Bearer ${token}` },
@@ -104,26 +102,26 @@ export default function VoteScreen({ route, navigation }: Props) {
       surveyType === "normal"
         ? {
             answers: Object.entries(answers).map(([qId, optId]) => ({
-              question_id: Number(qId),   // ✅ normales
+              question_id: Number(qId),   // normales
               option_id: Number(optId),
             })),
           }
         : {
             answers: Object.entries(answers).map(([qId, optId]) => ({
-              pregunta_id: Number(qId),   // ✅ simples
+              pregunta_id: Number(qId),   // simples
               opcion_id: Number(optId),
             })),
           };
-
-
-
-
 
     const endpoint =
       surveyType === "normal"
         ? `${API_URL}/surveys/${surveyId}/vote`
         : `${API_URL}/surveys/simple/${surveyId}/vote`;
 
+    // 🔎 Logs de depuración
+    console.log("SurveyType:", surveyType);
+    console.log("Payload enviado:", JSON.stringify(payload, null, 2));
+    console.log("Endpoint:", endpoint);
 
     try {
       setLoading(true);
@@ -159,8 +157,6 @@ export default function VoteScreen({ route, navigation }: Props) {
         throw new Error(message);
       }
 
-
-
       Alert.alert("¡Respuestas enviadas!", "Tus votos han sido registrados correctamente.");
       await refreshProfile();
       await refreshSurveys();
@@ -181,7 +177,6 @@ export default function VoteScreen({ route, navigation }: Props) {
       if (err instanceof Error) {
         message = err.message;
       } else if (typeof err === "object") {
-        // Si el backend devuelve { detail: "...", ... }
         message = err.detail || err.message || JSON.stringify(err);
       } else {
         message = String(err);
@@ -191,8 +186,6 @@ export default function VoteScreen({ route, navigation }: Props) {
     } finally {
       setLoading(false);
     }
-
-
   };
 
   return (

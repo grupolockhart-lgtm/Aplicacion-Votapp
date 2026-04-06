@@ -240,12 +240,12 @@ class PreguntaOut(BaseModel):
 
 class SurveyOut(BaseModel):
     id: int
-    titulo: str
-    description: Optional[str] = None
+    titulo: str = Field(alias="title")
+    descripcion: Optional[str] = Field(alias="description", default=None)
     fecha_expiracion: Optional[datetime] = None
     fecha_creacion: Optional[datetime] = None
     segundos_restantes: Optional[int] = None
-    preguntas: List[PreguntaOut]
+    preguntas: List[PreguntaOut] = Field(alias="questions")
     imagenes: List[str] = Field(default_factory=list)
     videos: List[str] = Field(default_factory=list)
     media_url: Optional[str] = None
@@ -275,6 +275,7 @@ class SurveyOut(BaseModel):
 
     class Config:
         from_attributes = True
+        allow_population_by_field_name = True
 
 
 

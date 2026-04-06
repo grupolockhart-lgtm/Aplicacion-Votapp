@@ -5,14 +5,23 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from votapp_app.database import Base
 
-
-
 from sqlalchemy import Date
 from sqlalchemy.sql import func
 
 from .database import Base
 
 import enum
+
+
+# -----------------------------
+# Utilidades / Enum
+# -----------------------------
+
+class VisibilidadResultados(enum.Enum):
+    publica = "publica"
+    privada = "privada"
+
+
 
 # -----------------------------
 # Usuarios
@@ -81,31 +90,6 @@ class Wallet(Base):
     movimientos = relationship("MovimientoWallet", back_populates="wallet")
 
 
-
-
-
-# -----------------------------
-# Movimientos de billetera
-# -----------------------------
-class MovimientoWallet(Base):
-    __tablename__ = "wallet_movements"
-
-    id = Column(Integer, primary_key=True, index=True)
-    wallet_id = Column(Integer, ForeignKey("wallets.id"))
-    sponsor_transaction_id = Column(Integer, ForeignKey("sponsor_transactions.id"))
-    tipo = Column(String)  # ingreso / retiro
-    monto = Column(Integer)
-    fecha = Column(DateTime, default=datetime.utcnow)
-
-    wallet = relationship("Wallet", back_populates="movimientos")
-    sponsor_transaction = relationship("SponsorTransaction", back_populates="movimientos")
-
-
-
-
-
-
-
 # -----------------------------
 # Perfil público
 # -----------------------------
@@ -126,15 +110,10 @@ class PerfilPublico(Base):
     usuario = relationship("Usuario", back_populates="perfil_publico")
 
 
+
 # -----------------------------
 # Encuestas
 # -----------------------------
-
-
-
-class VisibilidadResultados(enum.Enum):
-    publica = "publica"
-    privada = "privada"
 
 class Survey(Base):
     __tablename__ = "surveys"
@@ -221,6 +200,47 @@ class Vote(Base):
         UniqueConstraint("usuario_id", "question_id", name="unique_vote_per_question"),
     )
 
+
+
+# -----------------------------
+# Transacciones de patrocinio
+# -----------------------------
+class SponsorTransaction(Base):
+    __tablename__ = "sponsor_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    monto_dinero = Column(Integer, nullable=False, default=0)
+    puntos = Column(Integer, nullable=False, default=0)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relación inversa con Survey
+    survey = relationship("Survey", back_populates="sponsor_transactions")
+
+    # Relación inversa con movimientos
+    movimientos = relationship("MovimientoWallet", back_populates="sponsor_transaction")
+
+
+
+# -----------------------------
+# Movimientos de billetera
+# -----------------------------
+class MovimientoWallet(Base):
+    __tablename__ = "wallet_movements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    wallet_id = Column(Integer, ForeignKey("wallets.id"), nullable=False)
+    sponsor_transaction_id = Column(Integer, ForeignKey("sponsor_transactions.id"), nullable=False)  # 👈 obligatorio
+    tipo = Column(String, nullable=False)  # ingreso / retiro
+    monto = Column(Integer, nullable=False)
+    fecha = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    wallet = relationship("Wallet", back_populates="movimientos")
+    sponsor_transaction = relationship("SponsorTransaction", back_populates="movimientos")
+
+
+
 # -----------------------------
 # Gamificación
 # -----------------------------
@@ -242,23 +262,6 @@ class UsuarioLogro(Base):
     usuario = relationship("Usuario", back_populates="logros")
     logro = relationship("Logro")
 
-# -----------------------------
-# Transacciones de patrocinio
-# -----------------------------
-class SponsorTransaction(Base):
-    __tablename__ = "sponsor_transactions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    monto_dinero = Column(Integer, default=0)   # dinero real patrocinado
-    puntos = Column(Integer, default=0)         # puntos otorgados
-    timestamp = Column(DateTime, default=datetime.utcnow)
-
-    # Relaciones
-    survey = relationship("Survey", back_populates="sponsor_transactions")
-    usuario = relationship("Usuario")
-    movimientos = relationship("MovimientoWallet", back_populates="sponsor_transaction")
 
 
 # -----------------------------
@@ -276,6 +279,7 @@ class Comment(Base):
     # Relaciones
     survey = relationship("Survey", back_populates="comments")
     user = relationship("Usuario", back_populates="comments")
+
 
 
 # -----------------------------
