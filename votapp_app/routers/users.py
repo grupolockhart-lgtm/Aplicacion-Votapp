@@ -320,7 +320,7 @@ def get_user_survey_history(
             .joinedload(models.Survey.questions)
             .joinedload(models.Question.options),
             joinedload(models.Participacion.survey)
-            .joinedload(models.Survey.sponsor_transactions)  # incluir patrocinio
+            .joinedload(models.Survey.sponsor_transactions)
         )
         .all()
     )
@@ -351,44 +351,41 @@ def get_user_survey_history(
         if survey.media_url and not media_urls:
             media_urls = [survey.media_url]
 
-        # Patrocinio
-        sponsors = []
-        if survey.sponsor_transactions:
-            for s in survey.sponsor_transactions:
-                sponsors.append({
-                    "id": s.id,
-                    "sponsor_id": s.sponsor_id,
-                    "monto": s.amount,
-                })
-            print(f"[DEBUG] Survey {survey.id} tiene {len(sponsors)} transacciones de patrocinio")
-
+        # Preguntas y opciones (usando alias correctos)
         preguntas = [
-            {
-                "id": q.id,
-                "texto": q.text,
-                "opciones": [{"id": o.id, "texto": o.text} for o in q.options],
-            }
+            schemas.PreguntaOut(
+                id=q.id,
+                text=q.text,  # 👈 nombre definitivo en BD
+                options=[schemas.OpcionOut(id=o.id, text=o.text) for o in q.options]
+            )
             for q in survey.questions
         ]
 
-        result.append({
-            "id": survey.id,
-            "titulo": survey.title,
-            "description": survey.description,
-            "completed_at": p.fecha_participacion.isoformat() if p.fecha_participacion else None,
-            "imagenes": media_urls,
-            "preguntas": preguntas,
-            "patrocinada": survey.patrocinada,
-            "patrocinador": survey.patrocinador,
-            "recompensa_puntos": survey.recompensa_puntos,
-            "recompensa_dinero": survey.recompensa_dinero,
-            "presupuesto_total": survey.presupuesto_total,
-            "patrocinadores": sponsors,
-        })
+        # Patrocinio
+        sponsors = [
+            {"id": s.id, "sponsor_id": s.sponsor_id, "monto": s.amount}
+            for s in survey.sponsor_transactions
+        ] if survey.sponsor_transactions else []
+
+        result.append(
+            schemas.SurveyHistoryOut(
+                id=survey.id,
+                titulo=survey.title,          # 👈 alias en schema
+                description=survey.description,
+                completed_at=p.fecha_participacion,
+                imagenes=media_urls,
+                preguntas=preguntas,
+                patrocinada=survey.patrocinada,
+                patrocinador=survey.patrocinador,
+                recompensa_puntos=survey.recompensa_puntos,
+                recompensa_dinero=survey.recompensa_dinero,
+                presupuesto_total=survey.presupuesto_total,
+                patrocinadores=sponsors,
+            )
+        )
 
     print("Result construido:", result)
     return result
-
 
 
 
