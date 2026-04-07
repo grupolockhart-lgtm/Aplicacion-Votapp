@@ -502,7 +502,6 @@ def get_all_surveys(db: Session = Depends(database.get_db)):
     return result
 
 
-
 # -------------------
 # Votar en encuesta
 # -------------------
@@ -563,23 +562,22 @@ def vote(
         sponsor_id = db.query(models.Survey.usuario_id).filter(models.Survey.id == survey_id).scalar()
         sponsor = db.query(models.Usuario).filter(models.Usuario.id == sponsor_id).first()
 
-        # Validar que el sponsor exista y tenga rol correcto
         if not sponsor or sponsor.rol != "sponsor":
             raise HTTPException(status_code=400, detail="Sponsor inválido para encuesta patrocinada")
 
         transaccion = models.SponsorTransaction(
             survey_id=survey.id,
-            usuario_id=sponsor.id,       # sponsor correcto
-            beneficiario_id=usuario.id,  # votante
+            usuario_id=sponsor.id,
+            beneficiario_id=usuario.id,
             monto_dinero=survey.recompensa_dinero or 0,
             puntos=survey.recompensa_puntos or 0,
             timestamp=datetime.utcnow()
         )
         db.add(transaccion)
-        db.flush()  # asegura que transaccion.id existe
+        db.flush()
         print("Transacción creada con ID:", transaccion.id)
 
-        # Garantizar billetera del votante
+        # Garantizar billeteras
         if not usuario.billetera:
             nueva_wallet = models.Wallet(usuario_id=usuario.id, balance=0)
             db.add(nueva_wallet)
@@ -587,7 +585,6 @@ def vote(
             db.refresh(nueva_wallet)
             usuario.billetera = nueva_wallet
 
-        # Garantizar billetera del sponsor
         if not sponsor.billetera:
             nueva_wallet_sponsor = models.Wallet(usuario_id=sponsor.id, balance=0)
             db.add(nueva_wallet_sponsor)
@@ -595,11 +592,9 @@ def vote(
             db.refresh(nueva_wallet_sponsor)
             sponsor.billetera = nueva_wallet_sponsor
 
-        # Refrescar objetos para asegurar relaciones cargadas
         db.refresh(usuario)
         db.refresh(sponsor)
 
-        # Validar billeteras explícitamente
         if not usuario.billetera or not sponsor.billetera:
             raise HTTPException(status_code=500, detail="Error al cargar billeteras")
 
@@ -653,6 +648,11 @@ def vote(
 
     try:
         db.commit()
+        # 🔄 Refrescar balances después del commit
+        if usuario.billetera:
+            db.refresh(usuario.billetera)
+        if sponsor and sponsor.billetera:
+            db.refresh(sponsor.billetera)
     except Exception as e:
         db.rollback()
         import traceback
