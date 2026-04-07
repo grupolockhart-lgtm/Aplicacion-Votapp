@@ -521,137 +521,154 @@ def vote(
     if survey.patrocinada and (survey.presupuesto_total or 0) <= 0:
         raise HTTPException(status_code=400, detail="Presupuesto agotado para esta encuesta patrocinada")
 
-    # Registrar votos
-    for answer in vote.answers:
-        option = db.query(models.Option).filter(models.Option.id == answer.option_id).first()
-        if not option or option.question_id != answer.question_id:
-            raise HTTPException(status_code=400, detail="Opción inválida")
-
-        if db.query(models.Vote).filter(
-            models.Vote.usuario_id == usuario.id,
-            models.Vote.question_id == answer.question_id
-        ).first():
-            raise HTTPException(status_code=400, detail=f"Ya votaste en la pregunta {answer.question_id}")
-
-        db_vote = models.Vote(
-            survey_id=survey_id,
-            question_id=answer.question_id,
-            option_id=answer.option_id,
-            usuario_id=usuario.id
-        )
-        db.add(db_vote)
-
-    # Registrar participación si no existe
-    participacion_existente = db.query(models.Participacion).filter(
-        models.Participacion.usuario_id == usuario.id,
-        models.Participacion.survey_id == survey_id
-    ).first()
-
-    if not participacion_existente:
-        nueva_participacion = models.Participacion(
-            usuario_id=usuario.id,
-            survey_id=survey_id,
-            fecha_participacion=datetime.utcnow()
-        )
-        db.add(nueva_participacion)
-
+    # Inicializar variables para evitar NameError
+    sponsor = None
+    perfil = None
     transaccion = None
 
-    # Flujo patrocinado
-    if survey.patrocinada:
-        sponsor_id = db.query(models.Survey.usuario_id).filter(models.Survey.id == survey_id).scalar()
-        sponsor = db.query(models.Usuario).filter(models.Usuario.id == sponsor_id).first()
 
-        if not sponsor or sponsor.rol != "sponsor":
-            raise HTTPException(status_code=400, detail="Sponsor inválido para encuesta patrocinada")
+    # -------------------
+    # Bloque 1: Votos + Participación
+    # -------------------
+    if True:   # cambia a False para desactivar
+        # Registrar votos
+        for answer in vote.answers:
+            option = db.query(models.Option).filter(models.Option.id == answer.option_id).first()
+            if not option or option.question_id != answer.question_id:
+                raise HTTPException(status_code=400, detail="Opción inválida")
 
-        transaccion = models.SponsorTransaction(
-            survey_id=survey.id,
-            usuario_id=sponsor.id,
-            beneficiario_id=usuario.id,
-            monto_dinero=survey.recompensa_dinero or 0,
-            puntos=survey.recompensa_puntos or 0,
-            timestamp=datetime.utcnow()
-        )
-        db.add(transaccion)
-        db.flush()
-        print("Transacción creada con ID:", transaccion.id)
+            if db.query(models.Vote).filter(
+                models.Vote.usuario_id == usuario.id,
+                models.Vote.question_id == answer.question_id
+            ).first():
+                raise HTTPException(status_code=400, detail=f"Ya votaste en la pregunta {answer.question_id}")
 
-        # Garantizar billeteras
-        if not usuario.billetera:
-            nueva_wallet = models.Wallet(usuario_id=usuario.id, balance=0)
-            db.add(nueva_wallet)
+            db_vote = models.Vote(
+                survey_id=survey_id,
+                question_id=answer.question_id,
+                option_id=answer.option_id,
+                usuario_id=usuario.id
+            )
+            db.add(db_vote)
+
+        # Registrar participación si no existe
+        participacion_existente = db.query(models.Participacion).filter(
+            models.Participacion.usuario_id == usuario.id,
+            models.Participacion.survey_id == survey_id
+        ).first()
+
+        if not participacion_existente:
+            nueva_participacion = models.Participacion(
+                usuario_id=usuario.id,
+                survey_id=survey_id,
+                fecha_participacion=datetime.utcnow()
+            )
+            db.add(nueva_participacion)
+
+    # -------------------
+    # Bloque 2: Patrocinio + Presupuesto
+    # -------------------
+    if False:   # cambia a False para desactivar
+        transaccion = None
+        if survey.patrocinada:
+            sponsor_id = db.query(models.Survey.usuario_id).filter(models.Survey.id == survey_id).scalar()
+            sponsor = db.query(models.Usuario).filter(models.Usuario.id == sponsor_id).first()
+
+            if not sponsor or sponsor.rol != "sponsor":
+                raise HTTPException(status_code=400, detail="Sponsor inválido para encuesta patrocinada")
+
+            transaccion = models.SponsorTransaction(
+                survey_id=survey.id,
+                usuario_id=sponsor.id,
+                beneficiario_id=usuario.id,
+                monto_dinero=survey.recompensa_dinero or 0,
+                puntos=survey.recompensa_puntos or 0,
+                timestamp=datetime.utcnow()
+            )
+            db.add(transaccion)
             db.flush()
-            db.refresh(nueva_wallet)
-            usuario.billetera = nueva_wallet
+            print("Transacción creada con ID:", transaccion.id)
 
-        if not sponsor.billetera:
-            nueva_wallet_sponsor = models.Wallet(usuario_id=sponsor.id, balance=0)
-            db.add(nueva_wallet_sponsor)
-            db.flush()
-            db.refresh(nueva_wallet_sponsor)
-            sponsor.billetera = nueva_wallet_sponsor
+            # Garantizar billeteras
+            if not usuario.billetera:
+                nueva_wallet = models.Wallet(usuario_id=usuario.id, balance=0)
+                db.add(nueva_wallet)
+                db.flush()
+                db.refresh(nueva_wallet)
+                usuario.billetera = nueva_wallet
 
-        db.refresh(usuario)
-        db.refresh(sponsor)
+            if not sponsor.billetera:
+                nueva_wallet_sponsor = models.Wallet(usuario_id=sponsor.id, balance=0)
+                db.add(nueva_wallet_sponsor)
+                db.flush()
+                db.refresh(nueva_wallet_sponsor)
+                sponsor.billetera = nueva_wallet_sponsor
 
-        if not usuario.billetera or not sponsor.billetera:
-            raise HTTPException(status_code=500, detail="Error al cargar billeteras")
+            db.refresh(usuario)
+            db.refresh(sponsor)
 
-        # Crédito al votante
-        wallet_votante = usuario.billetera
-        wallet_votante.balance = (wallet_votante.balance or 0) + (survey.recompensa_dinero or 0)
-        movimiento_ingreso = models.MovimientoWallet(
-            wallet_id=wallet_votante.id,
-            tipo="ingreso",
-            monto=survey.recompensa_dinero or 0,
-            fecha=datetime.utcnow(),
-            sponsor_transaction_id=transaccion.id
-        )
-        db.add(movimiento_ingreso)
+            if not usuario.billetera or not sponsor.billetera:
+                raise HTTPException(status_code=500, detail="Error al cargar billeteras")
 
-        # Débito al sponsor
-        wallet_sponsor = sponsor.billetera
-        wallet_sponsor.balance = (wallet_sponsor.balance or 0) - (survey.recompensa_dinero or 0)
-        movimiento_egreso = models.MovimientoWallet(
-            wallet_id=wallet_sponsor.id,
-            tipo="egreso",
-            monto=survey.recompensa_dinero or 0,
-            fecha=datetime.utcnow(),
-            sponsor_transaction_id=transaccion.id
-        )
-        db.add(movimiento_egreso)
+            # Crédito al votante
+            wallet_votante = usuario.billetera
+            wallet_votante.balance = (wallet_votante.balance or 0) + (survey.recompensa_dinero or 0)
+            movimiento_ingreso = models.MovimientoWallet(
+                wallet_id=wallet_votante.id,
+                tipo="ingreso",
+                monto=survey.recompensa_dinero or 0,
+                fecha=datetime.utcnow(),
+                sponsor_transaction_id=transaccion.id
+            )
+            db.add(movimiento_ingreso)
 
-    # Ajustar presupuesto
-    survey.presupuesto_total = survey.presupuesto_total or 0
-    recompensa_dinero = survey.recompensa_dinero or 0
-    survey.presupuesto_total -= recompensa_dinero
-    if survey.presupuesto_total < 0:
-        survey.presupuesto_total = 0
+            # Débito al sponsor
+            wallet_sponsor = sponsor.billetera
+            wallet_sponsor.balance = (wallet_sponsor.balance or 0) - (survey.recompensa_dinero or 0)
+            movimiento_egreso = models.MovimientoWallet(
+                wallet_id=wallet_sponsor.id,
+                tipo="egreso",
+                monto=survey.recompensa_dinero or 0,
+                fecha=datetime.utcnow(),
+                sponsor_transaction_id=transaccion.id
+            )
+            db.add(movimiento_egreso)
 
-    # Actualizar perfil
-    perfil = db.query(models.PerfilPublico).filter_by(usuario_id=usuario.id).first()
-    if perfil:
-        hoy = datetime.utcnow().date()
-        ultima = perfil.ultima_participacion or None
-        if ultima == hoy - timedelta(days=1):
-            perfil.racha_dias += 1
-        elif ultima != hoy:
-            perfil.racha_dias = 1
-        perfil.ultima_participacion = hoy
+        # Ajustar presupuesto
+        survey.presupuesto_total = survey.presupuesto_total or 0
+        recompensa_dinero = survey.recompensa_dinero or 0
+        survey.presupuesto_total -= recompensa_dinero
+        if survey.presupuesto_total < 0:
+            survey.presupuesto_total = 0
 
-        puntos_recompensa = survey.recompensa_puntos or 0
-        perfil.puntos = (perfil.puntos or 0) + puntos_recompensa
-        perfil.nivel = 1 + (perfil.puntos // 100)
+    # -------------------
+    # Bloque 3: Perfil + Logros
+    # -------------------
+    if False:   # cambia a False para desactivar
+        perfil = db.query(models.PerfilPublico).filter_by(usuario_id=usuario.id).first()
+        if perfil:
+            hoy = datetime.utcnow().date()
+            ultima = perfil.ultima_participacion.date() if perfil.ultima_participacion else None
+            if ultima == hoy - timedelta(days=1):
+                perfil.racha_dias += 1
+            elif ultima != hoy:
+                perfil.racha_dias = 1
+            perfil.ultima_participacion = hoy
 
-        verificar_logros(db, usuario.id, perfil)
+            puntos_recompensa = survey.recompensa_puntos or 0
+            perfil.puntos = (perfil.puntos or 0) + puntos_recompensa
+            perfil.nivel = 1 + (perfil.puntos // 100)
 
+            verificar_logros(db, usuario.id, perfil)
+
+    # -------------------
+    # Commit y respuesta
+    # -------------------
     try:
         db.commit()
-        # 🔄 Refrescar balances después del commit
         if usuario.billetera:
             db.refresh(usuario.billetera)
-        if sponsor and sponsor.billetera:
+        if 'sponsor' in locals() and sponsor and sponsor.billetera:
             db.refresh(sponsor.billetera)
     except Exception as e:
         db.rollback()
@@ -660,7 +677,7 @@ def vote(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Error interno en el servidor")
 
-    if perfil:
+    if 'perfil' in locals() and perfil:
         db.refresh(perfil)
 
     balance = usuario.billetera.balance if usuario.billetera else None
@@ -669,10 +686,10 @@ def vote(
         "message": "Votos y participación registrados correctamente",
         "survey_id": survey.id,
         "presupuesto_restante": survey.presupuesto_total,
-        "usuario_puntos": perfil.puntos if perfil else 0,
+        "usuario_puntos": perfil.puntos if 'perfil' in locals() and perfil else 0,
         "usuario_balance": balance,
-        "usuario_nivel": perfil.nivel if perfil else 0,
-        "usuario_racha": perfil.racha_dias if perfil else 0
+        "usuario_nivel": perfil.nivel if 'perfil' in locals() and perfil else 0,
+        "usuario_racha": perfil.racha_dias if 'perfil' in locals() and perfil else 0
     }
 
 # -------------------
