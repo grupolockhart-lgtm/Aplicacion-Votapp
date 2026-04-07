@@ -537,19 +537,26 @@ def vote(
             if not option or option.question_id != answer.question_id:
                 raise HTTPException(status_code=400, detail="Opción inválida")
 
-            if db.query(models.Vote).filter(
+            # Ajustar filtro para coincidir con la constraint única (usuario_id, question_id)
+            voto_existente = db.query(models.Vote).filter(
                 models.Vote.usuario_id == usuario.id,
                 models.Vote.question_id == answer.question_id
-            ).first():
+            ).first()
+
+            if voto_existente:
                 raise HTTPException(status_code=400, detail=f"Ya votaste en la pregunta {answer.question_id}")
 
             db_vote = models.Vote(
                 survey_id=survey_id,
                 question_id=answer.question_id,
                 option_id=answer.option_id,
-                usuario_id=usuario.id
+                usuario_id=usuario.id,
+                creado_en=datetime.utcnow()   # campo obligatorio en la tabla
             )
             db.add(db_vote)
+
+            # 🔎 Debug: ver datos del voto preparado
+            print("➡️ Voto preparado:", db_vote.__dict__)
 
         # Registrar participación si no existe
         participacion_existente = db.query(models.Participacion).filter(
@@ -561,9 +568,14 @@ def vote(
             nueva_participacion = models.Participacion(
                 usuario_id=usuario.id,
                 survey_id=survey_id,
-                fecha_participacion=datetime.utcnow()
+                fecha_participacion=datetime.utcnow(),
+                creado_en=datetime.utcnow()   # recomendado si tu modelo lo requiere
             )
             db.add(nueva_participacion)
+
+            # 🔎 Debug: ver datos de la participación preparada
+            print("➡️ Participación preparada:", nueva_participacion.__dict__)
+
 
     # -------------------
     # Bloque 2: Patrocinio + Presupuesto
