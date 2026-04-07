@@ -219,22 +219,26 @@ class SurveyCreate(BaseModel):
 
 class OpcionOut(BaseModel):
     id: Optional[int] = None
-    texto: str
+    texto: str = Field(alias="text")
     votos: Optional[int] = None
     porcentaje: Optional[float] = None
 
     class Config:
         from_attributes = True
+        allow_population_by_field_name = True
 
 
 class PreguntaOut(BaseModel):
     id: Optional[int] = None
-    texto: str
-    opciones: List[OpcionOut]
+    texto: str = Field(alias="text")
+    opciones: List[OpcionOut] = Field(alias="options")
     total_votos: Optional[int] = None
 
     class Config:
         from_attributes = True
+        allow_population_by_field_name = True
+
+
 
 
 

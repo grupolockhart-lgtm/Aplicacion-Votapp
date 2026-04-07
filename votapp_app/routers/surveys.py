@@ -23,15 +23,6 @@ from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyWalletOut
 
 
 
-
-
-
-
-
-
-
-
-
 router = APIRouter(prefix="/surveys", tags=["surveys"])
 
 # Zona horaria
@@ -66,8 +57,6 @@ def get_surveys(db: Session = Depends(database.get_db)):
 
 
 
-
-
 # -------------------
 # Crear encuesta
 # -------------------
@@ -77,6 +66,13 @@ def create_survey(
     db: Session = Depends(database.get_db),
     usuario: models.Usuario = Depends(get_current_user)
 ):
+
+    # Validación: solo sponsors pueden crear encuestas patrocinadas
+    if survey.patrocinada and usuario.rol != "sponsor":
+        raise HTTPException(
+            status_code=403,
+            detail="Solo usuarios con rol sponsor pueden crear encuestas patrocinadas"
+        )
 
     # Validación: si es patrocinada, debe tener recompensa_dinero > 0
     if survey.patrocinada and (not survey.recompensa_dinero or survey.recompensa_dinero <= 0):
@@ -89,6 +85,7 @@ def create_survey(
         # Log del payload recibido
         print("Payload recibido:", survey.dict())
 
+        # Construcción del objeto Survey
         db_survey = models.Survey(
             title=survey.title,
             description=survey.description,
@@ -108,11 +105,13 @@ def create_survey(
             recompensa_dinero=survey.recompensa_dinero,
             presupuesto_total=survey.presupuesto_total,
             visibilidad_resultados=models.VisibilidadResultados(survey.visibilidad_resultados),
+            usuario_id=usuario.id   # 👈 asignamos el sponsor autenticado
         )
 
         db.add(db_survey)
         db.flush()
 
+        # Inserción de preguntas y opciones
         for q in survey.questions:
             db_question = models.Question(text=q.text, survey_id=db_survey.id)
             db.add(db_question)
@@ -124,34 +123,17 @@ def create_survey(
         db.commit()
         db.refresh(db_survey)
 
+        # 👇 Ajustes antes de devolver
+        db_survey.media_urls = json.loads(db_survey.media_urls or "[]")
+        db_survey.visibilidad_resultados = db_survey.visibilidad_resultados.value
+
+
         # Log de lo que realmente quedó en la DB
-        print("Persistido en DB:", db_survey.recompensa_puntos, db_survey.recompensa_dinero, db_survey.presupuesto_total)
+        print("Persistido en DB:", db_survey.id, db_survey.usuario_id,
+              db_survey.recompensa_puntos, db_survey.recompensa_dinero, db_survey.presupuesto_total)
 
-        # salida basada en lo que quedó en DB
-        survey_out = schemas.SurveyOut(
-            id=db_survey.id,
-            title=db_survey.title,
-            description=db_survey.description,
-            fecha_expiracion=db_survey.fecha_expiracion,
-            questions=db_survey.questions,
-            media_url=db_survey.media_url,
-            media_urls=json.loads(db_survey.media_urls) if db_survey.media_urls else [],
-            sexo=db_survey.sexo,
-            ciudad=db_survey.ciudad,
-            ocupacion=db_survey.ocupacion,
-            nivel_educativo=db_survey.nivel_educativo,
-            religion=db_survey.religion,
-            nacionalidad=db_survey.nacionalidad,
-            estado_civil=db_survey.estado_civil,
-            patrocinada=db_survey.patrocinada,
-            patrocinador=db_survey.patrocinador,
-            recompensa_puntos=db_survey.recompensa_puntos,   # 👈 ahora viene de DB
-            recompensa_dinero=db_survey.recompensa_dinero,
-            presupuesto_total=db_survey.presupuesto_total,
-            visibilidad_resultados=db_survey.visibilidad_resultados.value,
-        )
-
-        return survey_out
+        # ✅ devolvemos directamente el objeto ORM
+        return db_survey
 
     except Exception as e:
         db.rollback()
@@ -517,10 +499,8 @@ def get_all_surveys(db: Session = Depends(database.get_db)):
             "presupuesto_total": s.presupuesto_total,
         })
 
-
-
-
     return result
+
 
 
 # -------------------
@@ -577,23 +557,29 @@ def vote(
         db.add(nueva_participacion)
 
     transaccion = None
-    movimiento = None
-    wallet = None
 
     # Flujo patrocinado
     if survey.patrocinada:
+        sponsor_id = db.query(models.Survey.usuario_id).filter(models.Survey.id == survey_id).scalar()
+        sponsor = db.query(models.Usuario).filter(models.Usuario.id == sponsor_id).first()
+
+        # Validar que el sponsor exista y tenga rol correcto
+        if not sponsor or sponsor.rol != "sponsor":
+            raise HTTPException(status_code=400, detail="Sponsor inválido para encuesta patrocinada")
+
         transaccion = models.SponsorTransaction(
             survey_id=survey.id,
-            usuario_id=usuario.id,
+            usuario_id=sponsor.id,       # sponsor correcto
+            beneficiario_id=usuario.id,  # votante
             monto_dinero=survey.recompensa_dinero or 0,
             puntos=survey.recompensa_puntos or 0,
             timestamp=datetime.utcnow()
         )
         db.add(transaccion)
-        db.flush()  # 👈 asegura que transaccion.id existe
+        db.flush()  # asegura que transaccion.id existe
         print("Transacción creada con ID:", transaccion.id)
 
-        # Garantizar billetera
+        # Garantizar billetera del votante
         if not usuario.billetera:
             nueva_wallet = models.Wallet(usuario_id=usuario.id, balance=0)
             db.add(nueva_wallet)
@@ -601,20 +587,38 @@ def vote(
             db.refresh(nueva_wallet)
             usuario.billetera = nueva_wallet
 
-        wallet = usuario.billetera
-        wallet.balance = (wallet.balance or 0) + (survey.recompensa_dinero or 0)
+        # Garantizar billetera del sponsor
+        if not sponsor.billetera:
+            nueva_wallet_sponsor = models.Wallet(usuario_id=sponsor.id, balance=0)
+            db.add(nueva_wallet_sponsor)
+            db.flush()
+            db.refresh(nueva_wallet_sponsor)
+            sponsor.billetera = nueva_wallet_sponsor
 
-        movimiento = models.MovimientoWallet(
-            wallet_id=wallet.id,
+        # Crédito al votante
+        wallet_votante = usuario.billetera
+        wallet_votante.balance = (wallet_votante.balance or 0) + (survey.recompensa_dinero or 0)
+        movimiento_ingreso = models.MovimientoWallet(
+            wallet_id=wallet_votante.id,
             tipo="ingreso",
             monto=survey.recompensa_dinero or 0,
             fecha=datetime.utcnow(),
             sponsor_transaction_id=transaccion.id
         )
-        print("Wallet ID:", wallet.id if wallet else None)
-        print("SponsorTransaction ID:", transaccion.id if transaccion else None)
-        print("Movimiento sponsor_transaction_id:", movimiento.sponsor_transaction_id if movimiento else None)
-        db.add(movimiento)
+        db.add(movimiento_ingreso)
+
+        # Débito al sponsor
+        sponsor.billetera.balance = (sponsor.billetera.balance or 0) - (survey.recompensa_dinero or 0)
+        movimiento_egreso = models.MovimientoWallet(
+            wallet_id=sponsor.billetera.id,
+            tipo="egreso",
+            monto=survey.recompensa_dinero or 0,
+            fecha=datetime.utcnow(),
+            sponsor_transaction_id=transaccion.id
+        )
+        db.add(movimiento_egreso)
+
+
 
     # Ajustar presupuesto
     survey.presupuesto_total = survey.presupuesto_total or 0
@@ -641,17 +645,6 @@ def vote(
 
     try:
         db.commit()
-    except IntegrityError as e:
-        db.rollback()
-        print("❌ Error de integridad:", str(e))
-        if "unique_vote_per_question" in str(e):
-            raise HTTPException(status_code=400, detail="Ya votaste en esta pregunta")
-        elif "wallets_usuario_id_key" in str(e):
-            raise HTTPException(status_code=400, detail="El usuario ya tiene una billetera")
-        elif "sponsor_transaction_id" in str(e):
-            raise HTTPException(status_code=500, detail="Movimiento de billetera sin transacción válida")
-        else:
-            raise HTTPException(status_code=400, detail="Error de integridad en la base de datos")
     except Exception as e:
         db.rollback()
         import traceback
@@ -673,7 +666,6 @@ def vote(
         "usuario_nivel": perfil.nivel if perfil else 0,
         "usuario_racha": perfil.racha_dias if perfil else 0
     }
-
 
 
 
@@ -902,7 +894,8 @@ def get_wallet_history(
                 patrocinado=True,
                 survey=SurveyWalletOut(   # 👈 usar schema corregido
                     title=m.title,
-                    media_urls=m.media_urls
+                    media_urls=json.loads(m.media_urls or "[]")  # 👈 deserializar aquí
+
                 )
             )
             for m in movimientos

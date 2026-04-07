@@ -36,8 +36,8 @@ class Usuario(Base):
     contraseña_hash = Column(String, nullable=False)
 
     # Datos personales
-    cedula = Column(String, unique=True, index=True, nullable=True)   # 👈 nuevo campo
-    telefono_movil = Column(String, nullable=True)                   # 👈 nuevo campo
+    cedula = Column(String, unique=True, index=True, nullable=True)
+    telefono_movil = Column(String, nullable=True)
 
     # Información demográfica
     edad = Column(Integer, nullable=True)
@@ -45,7 +45,7 @@ class Usuario(Base):
     fecha_nacimiento = Column(DateTime, nullable=True)
     nacionalidad = Column(String, nullable=True)
     ciudad = Column(String, nullable=True)
-    estado_civil = Column(String, nullable=True)                     # 👈 nuevo campo
+    estado_civil = Column(String, nullable=True)
 
     # Formación / ocupación
     nivel_educativo = Column(String, nullable=True)
@@ -70,10 +70,10 @@ class Usuario(Base):
     billetera = relationship("Wallet", back_populates="usuario", uselist=False)
     logros = relationship("UsuarioLogro", back_populates="usuario")
     comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
-
-     # 👇 relación faltante
     participaciones = relationship("Participacion", back_populates="user", cascade="all, delete-orphan")
 
+    # 👇 relación con encuestas
+    surveys = relationship("Survey", back_populates="usuario", cascade="all, delete-orphan")
 
 # -----------------------------
 # Wallet
@@ -124,11 +124,12 @@ class Survey(Base):
     fecha_expiracion = Column(DateTime, nullable=True)
     fecha_creacion = Column(DateTime, server_default=func.now(), nullable=False)
 
+    # Relación con el usuario creador (sponsor)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    usuario = relationship("Usuario", back_populates="surveys")
+
     # Relación única con transacciones patrocinadas
     sponsor_transactions = relationship("SponsorTransaction", back_populates="survey")
-
-
-
 
     # Filtros de segmentación
     sexo = Column(Text, nullable=True)
@@ -159,6 +160,8 @@ class Survey(Base):
     comments = relationship("Comment", back_populates="survey", cascade="all, delete-orphan")
     participaciones = relationship("Participacion", back_populates="survey", cascade="all, delete-orphan")
     active = Column(Boolean, default=True)
+
+
 
 
 class Question(Base):
