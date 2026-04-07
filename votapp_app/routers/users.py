@@ -316,10 +316,7 @@ def get_survey_history(
     participaciones = db.query(models.Participacion).filter(
         models.Participacion.usuario_id == current_user.id
     ).options(
-        joinedload(models.Participacion.survey)
-        .joinedload(models.Survey.questions)
-        .joinedload(models.Question.options),
-        joinedload(models.Participacion.survey).joinedload(models.Survey.imagenes)  # 👈 carga relación imágenes si existe
+        joinedload(models.Participacion.survey).joinedload(models.Survey.questions).joinedload(models.Question.options)
     ).all()
 
     print(f"[DEBUG] Participaciones encontradas: {len(participaciones)}")
@@ -334,7 +331,6 @@ def get_survey_history(
 
         print(f"[DEBUG] Survey ID={survey.id}, title={survey.title}, description={survey.description}")
 
-        # --- Preguntas ---
         preguntas = []
         if survey.questions:
             print(f"[DEBUG] Survey {survey.id} tiene {len(survey.questions)} preguntas")
@@ -345,24 +341,12 @@ def get_survey_history(
         else:
             print(f"[DEBUG] Survey {survey.id} no tiene preguntas, parseando JSON options")
             try:
-                opciones_json = json.loads(survey.options) if survey.options else []
+                opciones_json = json.loads(survey.options)
                 print(f"[DEBUG] Opciones JSON: {opciones_json}")
                 opciones = [schemas.OpcionOut(id=i, text=opt) for i, opt in enumerate(opciones_json, start=1)]
                 preguntas.append(schemas.PreguntaOut(id=0, text=survey.title, options=opciones))
             except Exception as e:
                 print(f"[ERROR] Fallo parseando opciones JSON: {e}")
-
-        # --- Imágenes ---
-        imagenes = []
-        try:
-            if hasattr(survey, "imagenes") and survey.imagenes:
-                imagenes = [img.url for img in survey.imagenes]
-                print(f"[DEBUG] Survey {survey.id} tiene {len(imagenes)} imágenes (relación)")
-            elif hasattr(survey, "media_urls") and survey.media_urls:
-                imagenes = json.loads(survey.media_urls)
-                print(f"[DEBUG] Survey {survey.id} tiene imágenes desde media_urls: {imagenes}")
-        except Exception as e:
-            print(f"[ERROR] Fallo obteniendo imágenes de survey {survey.id}: {e}")
 
         result.append(
             schemas.SurveyHistoryOut(
@@ -370,7 +354,7 @@ def get_survey_history(
                 titulo=survey.title or "",
                 description=survey.description or "",
                 completed_at=p.fecha_participacion,
-                imagenes=imagenes,
+                imagenes=[img.url for img in survey.imagenes] if survey.imagenes else [],
                 preguntas=preguntas,
             )
         )
