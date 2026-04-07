@@ -326,14 +326,25 @@ class SurveyUpdate(BaseModel):
 
 class SurveyHistoryOut(BaseModel):
     id: int
-    titulo: str   # 👈 mismo nombre que SurveyOut
+    titulo: str
     description: Optional[str] = None
     completed_at: Optional[datetime] = None
-    imagenes: List[str] = Field(default_factory=list)   # 👈 en vez de media_urls
-    preguntas: List[PreguntaOut] = Field(default_factory=list)  # 👈 en vez de questions
+    imagenes: List[str] = Field(default_factory=list)
+    preguntas: List[PreguntaOut] = Field(default_factory=list)
+
+    # 👇 Campos de patrocinio
+    patrocinada: bool = False
+    patrocinador: Optional[str] = None
+    recompensa_puntos: int = 0
+    recompensa_dinero: int = 0
+    presupuesto_total: int = 0
+
+    # 👇 Transacciones de patrocinio
+    patrocinadores: List[dict] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
+
 
 
 

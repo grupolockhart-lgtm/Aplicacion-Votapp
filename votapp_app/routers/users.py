@@ -318,7 +318,9 @@ def get_user_survey_history(
         .options(
             joinedload(models.Participacion.survey)
             .joinedload(models.Survey.questions)
-            .joinedload(models.Question.options)
+            .joinedload(models.Question.options),
+            joinedload(models.Participacion.survey)
+            .joinedload(models.Survey.sponsor_transactions)  # incluir patrocinio
         )
         .all()
     )
@@ -326,7 +328,6 @@ def get_user_survey_history(
     print("Usuario actual:", current_user.id, type(current_user.id))
     print("Participaciones encontradas:", [p.id for p in participaciones])
 
-    # 👇 Bloque clave: si no hay participaciones, devolvemos lista vacía
     if not participaciones:
         return []
 
@@ -340,9 +341,26 @@ def get_user_survey_history(
         print(f"➡️ Survey {survey.id}: {survey.title}")
         print("Preguntas encontradas:", [q.text for q in survey.questions])
 
-        media_urls = safe_json_list(survey.media_urls) or []
+        # Multimedia
+        media_urls = []
+        if survey.media_urls:
+            try:
+                media_urls = json.loads(survey.media_urls)
+            except Exception as e:
+                print(f"[WARN] Error parseando media_urls: {e}")
         if survey.media_url and not media_urls:
             media_urls = [survey.media_url]
+
+        # Patrocinio
+        sponsors = []
+        if survey.sponsor_transactions:
+            for s in survey.sponsor_transactions:
+                sponsors.append({
+                    "id": s.id,
+                    "sponsor_id": s.sponsor_id,
+                    "monto": s.amount,
+                })
+            print(f"[DEBUG] Survey {survey.id} tiene {len(sponsors)} transacciones de patrocinio")
 
         preguntas = [
             {
@@ -360,6 +378,12 @@ def get_user_survey_history(
             "completed_at": p.fecha_participacion.isoformat() if p.fecha_participacion else None,
             "imagenes": media_urls,
             "preguntas": preguntas,
+            "patrocinada": survey.patrocinada,
+            "patrocinador": survey.patrocinador,
+            "recompensa_puntos": survey.recompensa_puntos,
+            "recompensa_dinero": survey.recompensa_dinero,
+            "presupuesto_total": survey.presupuesto_total,
+            "patrocinadores": sponsors,
         })
 
     print("Result construido:", result)
