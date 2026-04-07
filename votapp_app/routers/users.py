@@ -316,7 +316,9 @@ def get_survey_history(
     participaciones = db.query(models.Participacion).filter(
         models.Participacion.usuario_id == current_user.id
     ).options(
-        joinedload(models.Participacion.survey).joinedload(models.Survey.questions).joinedload(models.Question.options)
+        joinedload(models.Participacion.survey)
+        .joinedload(models.Survey.questions)
+        .joinedload(models.Question.options)
     ).all()
 
     print(f"[DEBUG] Participaciones encontradas: {len(participaciones)}")
@@ -339,14 +341,8 @@ def get_survey_history(
                 opciones = [schemas.OpcionOut(id=o.id, text=o.text) for o in q.options]
                 preguntas.append(schemas.PreguntaOut(id=q.id, text=q.text, options=opciones))
         else:
-            print(f"[DEBUG] Survey {survey.id} no tiene preguntas, parseando JSON options")
-            try:
-                opciones_json = json.loads(survey.options)
-                print(f"[DEBUG] Opciones JSON: {opciones_json}")
-                opciones = [schemas.OpcionOut(id=i, text=opt) for i, opt in enumerate(opciones_json, start=1)]
-                preguntas.append(schemas.PreguntaOut(id=0, text=survey.title, options=opciones))
-            except Exception as e:
-                print(f"[ERROR] Fallo parseando opciones JSON: {e}")
+            print(f"[DEBUG] Survey {survey.id} no tiene preguntas")
+            preguntas = []
 
         result.append(
             schemas.SurveyHistoryOut(
