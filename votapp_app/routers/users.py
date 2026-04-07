@@ -312,6 +312,9 @@ def get_user_survey_history(
     db: Session = Depends(database.get_db),
     current_user: models.Usuario = Depends(get_current_user),
 ):
+    print("=== INICIO ENDPOINT HISTORIAL ===")
+    print("Usuario actual:", current_user.id, type(current_user.id))
+
     participaciones = (
         db.query(models.Participacion)
         .filter(models.Participacion.usuario_id == int(current_user.id))
@@ -325,69 +328,81 @@ def get_user_survey_history(
         .all()
     )
 
-    print("Usuario actual:", current_user.id, type(current_user.id))
     print("Participaciones encontradas:", [p.id for p in participaciones])
 
     if not participaciones:
+        print("⚠️ No se encontraron participaciones para este usuario")
         return []
 
     result = []
     for p in participaciones:
+        print("📌 Participación ID:", p.id,
+              "usuario_id:", p.usuario_id,
+              "survey_id:", p.survey_id,
+              "fecha:", p.fecha_participacion)
+
         survey = p.survey
         if not survey:
             print(f"⚠️ Participación {p.id} no tiene survey asociado")
             continue
 
         print(f"➡️ Survey {survey.id}: {survey.title}")
-        print("Preguntas encontradas:", [q.text for q in survey.questions])
+        print("   Descripción:", survey.description)
+        print("   Patrocinada:", survey.patrocinada, "Patrocinador:", survey.patrocinador)
+        print("   Recompensa puntos:", survey.recompensa_puntos,
+              "dinero:", survey.recompensa_dinero,
+              "presupuesto:", survey.presupuesto_total)
 
         # Multimedia
         media_urls = []
         if survey.media_urls:
             try:
                 media_urls = json.loads(survey.media_urls)
+                print("   Media URLs (JSON):", media_urls)
             except Exception as e:
                 print(f"[WARN] Error parseando media_urls: {e}")
         if survey.media_url and not media_urls:
             media_urls = [survey.media_url]
+            print("   Media URL única:", survey.media_url)
 
-        # Preguntas y opciones (usando alias correctos)
-        preguntas = [
-            schemas.PreguntaOut(
-                id=q.id,
-                text=q.text,  # 👈 nombre definitivo en BD
-                options=[schemas.OpcionOut(id=o.id, text=o.text) for o in q.options]
-            )
-            for q in survey.questions
-        ]
+        # Preguntas y opciones
+        preguntas = []
+        for q in survey.questions:
+            print(f"      Pregunta {q.id}: {q.text}")
+            opciones = []
+            for o in q.options:
+                print(f"         Opción {o.id}: {o.text}")
+                opciones.append(schemas.OpcionOut(id=o.id, text=o.text))
+            preguntas.append(schemas.PreguntaOut(id=q.id, text=q.text, options=opciones))
 
-        # Patrocinio
-        sponsors = [
-            {"id": s.id, "sponsor_id": s.sponsor_id, "monto": s.amount}
-            for s in survey.sponsor_transactions
-        ] if survey.sponsor_transactions else []
+        # Patrocinadores
+        sponsors = []
+        if survey.sponsor_transactions:
+            for s in survey.sponsor_transactions:
+                print(f"   SponsorTransaction {s.id}: sponsor_id={s.sponsor_id}, amount={s.amount}")
+                sponsors.append({"id": s.id, "sponsor_id": s.sponsor_id, "monto": s.amount})
 
-        result.append(
-            schemas.SurveyHistoryOut(
-                id=survey.id,
-                titulo=survey.title,          # 👈 alias en schema
-                description=survey.description,
-                completed_at=p.fecha_participacion,
-                imagenes=media_urls,
-                preguntas=preguntas,
-                patrocinada=survey.patrocinada,
-                patrocinador=survey.patrocinador,
-                recompensa_puntos=survey.recompensa_puntos,
-                recompensa_dinero=survey.recompensa_dinero,
-                presupuesto_total=survey.presupuesto_total,
-                patrocinadores=sponsors,
-            )
+        # Construcción del objeto final
+        obj = schemas.SurveyHistoryOut(
+            id=survey.id,
+            titulo=survey.title,
+            description=survey.description,
+            completed_at=p.fecha_participacion,
+            imagenes=media_urls,
+            preguntas=preguntas,
+            patrocinada=survey.patrocinada,
+            patrocinador=survey.patrocinador,
+            recompensa_puntos=survey.recompensa_puntos,
+            recompensa_dinero=survey.recompensa_dinero,
+            presupuesto_total=survey.presupuesto_total,
+            patrocinadores=sponsors,
         )
+        print("   ✅ Objeto construido:", obj.dict())
+        result.append(obj)
 
-    print("Result construido:", result)
+    print("=== RESULT FINAL ===")
+    print(result)
     return result
-
-
 
 
 

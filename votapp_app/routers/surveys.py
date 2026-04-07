@@ -595,6 +595,14 @@ def vote(
             db.refresh(nueva_wallet_sponsor)
             sponsor.billetera = nueva_wallet_sponsor
 
+        # Refrescar objetos para asegurar relaciones cargadas
+        db.refresh(usuario)
+        db.refresh(sponsor)
+
+        # Validar billeteras explícitamente
+        if not usuario.billetera or not sponsor.billetera:
+            raise HTTPException(status_code=500, detail="Error al cargar billeteras")
+
         # Crédito al votante
         wallet_votante = usuario.billetera
         wallet_votante.balance = (wallet_votante.balance or 0) + (survey.recompensa_dinero or 0)
@@ -608,17 +616,16 @@ def vote(
         db.add(movimiento_ingreso)
 
         # Débito al sponsor
-        sponsor.billetera.balance = (sponsor.billetera.balance or 0) - (survey.recompensa_dinero or 0)
+        wallet_sponsor = sponsor.billetera
+        wallet_sponsor.balance = (wallet_sponsor.balance or 0) - (survey.recompensa_dinero or 0)
         movimiento_egreso = models.MovimientoWallet(
-            wallet_id=sponsor.billetera.id,
+            wallet_id=wallet_sponsor.id,
             tipo="egreso",
             monto=survey.recompensa_dinero or 0,
             fecha=datetime.utcnow(),
             sponsor_transaction_id=transaccion.id
         )
         db.add(movimiento_egreso)
-
-
 
     # Ajustar presupuesto
     survey.presupuesto_total = survey.presupuesto_total or 0
@@ -631,9 +638,10 @@ def vote(
     perfil = db.query(models.PerfilPublico).filter_by(usuario_id=usuario.id).first()
     if perfil:
         hoy = datetime.utcnow().date()
-        if perfil.ultima_participacion == hoy - timedelta(days=1):
+        ultima = perfil.ultima_participacion or None
+        if ultima == hoy - timedelta(days=1):
             perfil.racha_dias += 1
-        elif perfil.ultima_participacion != hoy:
+        elif ultima != hoy:
             perfil.racha_dias = 1
         perfil.ultima_participacion = hoy
 
@@ -666,8 +674,6 @@ def vote(
         "usuario_nivel": perfil.nivel if perfil else 0,
         "usuario_racha": perfil.racha_dias if perfil else 0
     }
-
-
 
 # -------------------
 # Resultados de encuesta
