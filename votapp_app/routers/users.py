@@ -306,57 +306,65 @@ def upload_avatar(
 # -----------------------------
 # Endpoint Historial de Encuestas
 # -----------------------------
+
 @router.get("/me/surveys/history", response_model=list[schemas.SurveyHistoryOut])
-def get_survey_history(
+def get_user_survey_history(
+    db: Session = Depends(database.get_db),
     current_user: models.Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
-    print(f"[DEBUG] Usuario actual: {current_user.id}")
+    participaciones = (
+        db.query(models.Participacion)
+        .filter(models.Participacion.usuario_id == int(current_user.id))
+        .options(
+            joinedload(models.Participacion.survey)
+            .joinedload(models.Survey.questions)
+            .joinedload(models.Question.options)
+        )
+        .all()
+    )
 
-    participaciones = db.query(models.Participacion).filter(
-        models.Participacion.usuario_id == current_user.id
-    ).options(
-        joinedload(models.Participacion.survey)
-        .joinedload(models.Survey.questions)
-        .joinedload(models.Question.options)
-    ).all()
+    print("Usuario actual:", current_user.id, type(current_user.id))
+    print("Participaciones encontradas:", [p.id for p in participaciones])
 
-    print(f"[DEBUG] Participaciones encontradas: {len(participaciones)}")
+    # 👇 Bloque clave: si no hay participaciones, devolvemos lista vacía
+    if not participaciones:
+        return []
 
     result = []
     for p in participaciones:
-        print(f"[DEBUG] Procesando participacion ID={p.id}, survey_id={p.survey_id}")
         survey = p.survey
         if not survey:
-            print(f"[WARN] Participacion {p.id} sin survey asociado")
+            print(f"⚠️ Participación {p.id} no tiene survey asociado")
             continue
 
-        print(f"[DEBUG] Survey ID={survey.id}, title={survey.title}, description={survey.description}")
+        print(f"➡️ Survey {survey.id}: {survey.title}")
+        print("Preguntas encontradas:", [q.text for q in survey.questions])
 
-        preguntas = []
-        if survey.questions:
-            print(f"[DEBUG] Survey {survey.id} tiene {len(survey.questions)} preguntas")
-            for q in survey.questions:
-                print(f"[DEBUG] Pregunta ID={q.id}, text={q.text}, opciones={len(q.options)}")
-                opciones = [schemas.OpcionOut(id=o.id, text=o.text) for o in q.options]
-                preguntas.append(schemas.PreguntaOut(id=q.id, text=q.text, options=opciones))
-        else:
-            print(f"[DEBUG] Survey {survey.id} no tiene preguntas")
-            preguntas = []
+        media_urls = safe_json_list(survey.media_urls) or []
+        if survey.media_url and not media_urls:
+            media_urls = [survey.media_url]
 
-        result.append(
-            schemas.SurveyHistoryOut(
-                id=survey.id,
-                titulo=survey.title or "",
-                description=survey.description or "",
-                completed_at=p.fecha_participacion,
-                imagenes=[img.url for img in survey.imagenes] if survey.imagenes else [],
-                preguntas=preguntas,
-            )
-        )
+        preguntas = [
+            {
+                "id": q.id,
+                "texto": q.text,
+                "opciones": [{"id": o.id, "texto": o.text} for o in q.options],
+            }
+            for q in survey.questions
+        ]
 
-    print(f"[DEBUG] Total encuestas en historial: {len(result)}")
+        result.append({
+            "id": survey.id,
+            "titulo": survey.title,
+            "description": survey.description,
+            "completed_at": p.fecha_participacion.isoformat() if p.fecha_participacion else None,
+            "imagenes": media_urls,
+            "preguntas": preguntas,
+        })
+
+    print("Result construido:", result)
     return result
+
 
 
 
