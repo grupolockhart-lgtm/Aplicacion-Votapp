@@ -25,6 +25,9 @@ class Survey(Base):
 
     # Relación con votos
     votes = relationship("Vote", back_populates="survey")
+    questions = relationship("Question", back_populates="survey", cascade="all, delete-orphan")
+    participaciones = relationship("Participacion", back_populates="survey", cascade="all, delete-orphan")
+
 
 # Modelo de la tabla Vote
 class Vote(Base):
