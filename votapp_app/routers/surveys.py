@@ -20,6 +20,7 @@ from ..database import get_db
 from .logros import verificar_logros
 from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyWalletOut
 
+import logging
 
 
 
@@ -522,7 +523,7 @@ def vote(
     sponsor = None
     perfil = None
     transaccion = None
-    import logging
+    
 
     # -------------------
     # Bloque 1: Votos + Participación
