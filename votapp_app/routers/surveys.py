@@ -590,7 +590,7 @@ def vote(
     # -------------------
     # Bloque 2: Patrocinio + Presupuesto
     # -------------------
-    if False:   # cambia a False para desactivar
+    if True:   # cambia a False para desactivar
         transaccion = None
         if survey.patrocinada:
             sponsor_id = db.query(models.Survey.usuario_id).filter(models.Survey.id == survey_id).scalar()
