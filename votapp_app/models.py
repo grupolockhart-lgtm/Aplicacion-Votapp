@@ -236,13 +236,24 @@ class MovimientoWallet(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     wallet_id = Column(Integer, ForeignKey("wallets.id"), nullable=False)
-    sponsor_transaction_id = Column(Integer, ForeignKey("sponsor_transactions.id"), nullable=False)  # 👈 obligatorio
+    sponsor_transaction_id = Column(Integer, ForeignKey("sponsor_transactions.id"), nullable=False)
     tipo = Column(String, nullable=False)  # ingreso / retiro
     monto = Column(Integer, nullable=False)
     fecha = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     wallet = relationship("Wallet", back_populates="movimientos")
     sponsor_transaction = relationship("SponsorTransaction", back_populates="movimientos")
+
+    # 👇 propiedades derivadas para Pydantic
+    @property
+    def patrocinado(self) -> bool:
+        # True si el movimiento está ligado a una transacción de sponsor
+        return self.sponsor_transaction_id is not None
+
+    @property
+    def survey(self):
+        # Devuelve la encuesta asociada a la transacción de sponsor
+        return self.sponsor_transaction.survey if self.sponsor_transaction else None
 
 
 

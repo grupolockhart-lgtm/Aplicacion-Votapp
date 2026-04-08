@@ -129,6 +129,7 @@ class Usuario(Base):
 
     # Relaciones
     comments = relationship("Comment", back_populates="user", foreign_keys="Comment.usuario_id")
+    billetera = relationship("Wallet", back_populates="usuario", uselist=False)
 
 
 class Comment(Base):
