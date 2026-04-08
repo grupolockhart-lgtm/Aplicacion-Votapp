@@ -295,9 +295,11 @@ class Participacion(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
     fecha_participacion = Column(DateTime, default=datetime.utcnow)
+    creado_en = Column(DateTime, default=datetime.utcnow)  # <-- nuevo campo
 
     # Relaciones
     survey = relationship("Survey", back_populates="participaciones")
     user = relationship("Usuario", back_populates="participaciones")
+
 
 

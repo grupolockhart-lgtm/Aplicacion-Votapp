@@ -500,8 +500,6 @@ def get_all_surveys(db: Session = Depends(database.get_db)):
         })
 
     return result
-
-
 # -------------------
 # Votar en encuesta
 # -------------------
@@ -512,7 +510,7 @@ def vote(
     db: Session = Depends(database.get_db),
     usuario: models.Usuario = Depends(get_current_user_only)
 ):
-    print(f"➡️ Entrando a /vote con survey_id={survey_id}, usuario_id={usuario.id}")
+    logging.info(f"➡️ Entrando a /vote con survey_id={survey_id}, usuario_id={usuario.id}")
 
     survey = db.query(models.Survey).filter(models.Survey.id == survey_id).first()
     if not survey:
@@ -521,60 +519,71 @@ def vote(
     if survey.patrocinada and (survey.presupuesto_total or 0) <= 0:
         raise HTTPException(status_code=400, detail="Presupuesto agotado para esta encuesta patrocinada")
 
-    # Inicializar variables para evitar NameError
     sponsor = None
     perfil = None
     transaccion = None
-
+    import logging
 
     # -------------------
     # Bloque 1: Votos + Participación
     # -------------------
     if True:   # cambia a False para desactivar
-        # Registrar votos
-        for answer in vote.answers:
-            option = db.query(models.Option).filter(models.Option.id == answer.option_id).first()
-            if not option or option.question_id != answer.question_id:
-                raise HTTPException(status_code=400, detail="Opción inválida")
+        try:
+            # Registrar votos
+            for answer in vote.answers:
+                logging.info(f"➡️ Procesando answer: question_id={answer.question_id}, option_id={answer.option_id}")
+                option = db.query(models.Option).filter(models.Option.id == answer.option_id).first()
+                if not option or option.question_id != answer.question_id:
+                    logging.error("❌ Opción inválida detectada")
+                    raise HTTPException(status_code=400, detail="Opción inválida")
 
-            # Ajustar filtro para coincidir con la constraint única (usuario_id, question_id)
-            voto_existente = db.query(models.Vote).filter(
-                models.Vote.usuario_id == usuario.id,
-                models.Vote.question_id == answer.question_id
+                voto_existente = db.query(models.Vote).filter(
+                    models.Vote.usuario_id == usuario.id,
+                    models.Vote.question_id == answer.question_id
+                ).first()
+
+                if voto_existente:
+                    logging.warning(f"❌ Ya existe voto previo en question_id={answer.question_id}")
+                    raise HTTPException(status_code=400, detail=f"Ya votaste en la pregunta {answer.question_id}")
+
+                db_vote = models.Vote(
+                    survey_id=survey_id,
+                    question_id=answer.question_id,
+                    option_id=answer.option_id,
+                    usuario_id=usuario.id,
+                    creado_en=datetime.utcnow()
+                )
+                db.add(db_vote)
+                logging.debug("➡️ Voto preparado: %s", db_vote.__dict__)
+
+            # Registrar participación si no existe
+            participacion_existente = db.query(models.Participacion).filter(
+                models.Participacion.usuario_id == usuario.id,
+                models.Participacion.survey_id == survey_id
             ).first()
 
-            if voto_existente:
-                raise HTTPException(status_code=400, detail=f"Ya votaste en la pregunta {answer.question_id}")
+            if not participacion_existente:
+                nueva_participacion = models.Participacion(
+                    usuario_id=usuario.id,
+                    survey_id=survey_id,
+                    fecha_participacion=datetime.utcnow(),
+                    creado_en=datetime.utcnow()
+                )
+                db.add(nueva_participacion)
+                logging.debug("➡️ Participación preparada: %s", nueva_participacion.__dict__)
+            else:
+                logging.info("ℹ️ Participación ya existente, no se crea nueva")
 
-            db_vote = models.Vote(
-                survey_id=survey_id,
-                question_id=answer.question_id,
-                option_id=answer.option_id,
-                usuario_id=usuario.id,
-                creado_en=datetime.utcnow()   # campo obligatorio en la tabla
-            )
-            db.add(db_vote)
+            # Intentar commit
+            logging.info("➡️ Intentando commit de votos y participación...")
+            db.commit()
+            logging.info("✅ Commit ejecutado correctamente")
 
-            # 🔎 Debug: ver datos del voto preparado
-            print("➡️ Voto preparado:", db_vote.__dict__)
+        except Exception as e:
+            db.rollback()
+            logging.exception("❌ Error en Bloque 1 durante commit")
+            raise HTTPException(status_code=500, detail="Error interno en Bloque 1")
 
-        # Registrar participación si no existe
-        participacion_existente = db.query(models.Participacion).filter(
-            models.Participacion.usuario_id == usuario.id,
-            models.Participacion.survey_id == survey_id
-        ).first()
-
-        if not participacion_existente:
-            nueva_participacion = models.Participacion(
-                usuario_id=usuario.id,
-                survey_id=survey_id,
-                fecha_participacion=datetime.utcnow(),
-                creado_en=datetime.utcnow()   # recomendado si tu modelo lo requiere
-            )
-            db.add(nueva_participacion)
-
-            # 🔎 Debug: ver datos de la participación preparada
-            print("➡️ Participación preparada:", nueva_participacion.__dict__)
 
 
     # -------------------
