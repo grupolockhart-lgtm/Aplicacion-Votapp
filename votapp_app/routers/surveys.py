@@ -675,11 +675,13 @@ def vote(
         perfil = db.query(models.PerfilPublico).filter_by(usuario_id=usuario.id).first()
         if perfil:
             hoy = datetime.utcnow().date()
-            ultima = perfil.ultima_participacion.date() if perfil.ultima_participacion else None
+            ultima = perfil.ultima_participacion if perfil.ultima_participacion else None
+
             if ultima == hoy - timedelta(days=1):
                 perfil.racha_dias += 1
             elif ultima != hoy:
                 perfil.racha_dias = 1
+
             perfil.ultima_participacion = hoy
 
             puntos_recompensa = survey.recompensa_puntos or 0
