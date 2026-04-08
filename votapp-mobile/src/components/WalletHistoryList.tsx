@@ -1,9 +1,10 @@
 // src/components/WalletHistoryList.tsx
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
 import SimpleSurveyGrid from "./SimpleSurveyGrid";
+import { useFocusEffect } from "@react-navigation/native";
 
 type Movimiento = {
   id: number;
@@ -11,8 +12,8 @@ type Movimiento = {
   fecha: string;
   patrocinado: boolean;
   survey: {
-    title: string;          // 👈 usar campo real
-    media_urls: string[];   // 👈 usar campo real
+    title: string;
+    media_urls: string[] | string; // puede venir como array o string JSON
   };
 };
 
@@ -28,46 +29,62 @@ export default function WalletHistoryList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchMovements = async () => {
-      try {
-        const token = await AsyncStorage.getItem("userToken");
-        const res = await fetch(`${API_URL}/users/me/wallet/history`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
 
-        if (res.ok) {
+      const fetchMovements = async () => {
+        try {
+          const token = await AsyncStorage.getItem("userToken");
+          if (!token) {
+            console.warn("[WARN] No se encontró token de usuario");
+            return;
+          }
+
+          const res = await fetch(`${API_URL}/users/me/wallet/history`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
           const data: WalletResponse = await res.json();
-          setMovements(data.movimientos); // 👈 tomamos solo los movimientos
-        } else if (res.status === 404) {
-          setMovements([]);
-        } else {
-          setError("No se pudo cargar el historial de billetera.");
-        }
-      } catch (err) {
-        console.log("Error obteniendo historial de billetera:", err);
-        setError("No se pudo cargar el historial de billetera.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMovements();
-  }, []);
+          console.log("[DEBUG] Movimientos recibidos:", data.movimientos);
 
-  if (loading) return <Text style={styles.text}>Cargando movimientos...</Text>;
+          if (res.ok && isActive) {
+            setMovements(data.movimientos);
+          } else if (res.status === 404 && isActive) {
+            setMovements([]);
+          } else {
+            setError("No se pudo cargar el historial de billetera.");
+          }
+        } catch (err) {
+          console.error("[ERROR] Error obteniendo historial de billetera:", err);
+          setError("No se pudo cargar el historial de billetera.");
+        } finally {
+          if (isActive) setLoading(false);
+        }
+      };
+
+      fetchMovements();
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
+
+  if (loading) return <ActivityIndicator size="large" color="#2563EB" />;
   if (error) return <Text style={styles.text}>{error}</Text>;
   if (movements.length === 0)
     return <Text style={styles.text}>No hay movimientos en tu billetera.</Text>;
 
   return (
     <View>
-      {/* 👇 Grid con encuestas patrocinadas */}
       <SimpleSurveyGrid
         data={movements.map((m) => ({
           id: m.id,
-          titulo: m.survey.title,          // 👈 usar title
+          titulo: m.survey.title,
           preguntas: [],
-          imagenes: m.survey.media_urls,   // 👈 usar media_urls
+          imagenes: Array.isArray(m.survey.media_urls)
+            ? m.survey.media_urls
+            : JSON.parse(m.survey.media_urls), // 👈 asegura que sea array
           ingreso: m.monto,
           fecha: m.fecha,
         }))}
