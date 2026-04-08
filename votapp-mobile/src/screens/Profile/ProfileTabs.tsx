@@ -21,9 +21,9 @@ export default function ProfileTabs({ profile }: any) {
         tabBarStyle: { backgroundColor: "#F3F4F6", height: 50 },
       }}
     >
-      {/* Encuestas */}
+      {/* Encuestas propias/participadas */}
       <Tab.Screen
-        name="Encuestas"
+        name="MisEncuestas"
         options={{ title: "Mis Encuestas" }}
       >
         {() => (
@@ -31,23 +31,23 @@ export default function ProfileTabs({ profile }: any) {
         )}
       </Tab.Screen>
 
-      {/* Historial de encuestas */}
-      <Tab.Screen
-        name="HistorialEncuestas"
-        options={{ title: "Historial" }}
-      >
-        {() => (
-          <SurveyHistoryList />   // 👈 historial general de encuestas
-        )}
-      </Tab.Screen>
-
       {/* Historial de encuestas patrocinadas */}
       <Tab.Screen
-        name="HistorialPatrocinadas"
-        options={{ title: "Patrocinadas" }}   // 👈 nuevo título más claro
+        name="PatrocinadasCompletadas"
+        options={{ title: "Patrocinadas Completadas" }}
       >
         {() => (
           <WalletHistoryList />   // 👈 listado de encuestas patrocinadas realizadas
+        )}
+      </Tab.Screen>
+
+      {/* Historial general de encuestas completadas */}
+      <Tab.Screen
+        name="GeneralCompletadas"
+        options={{ title: "General Completadas" }}
+      >
+        {() => (
+          <SurveyHistoryList />   // 👈 historial general de encuestas completadas
         )}
       </Tab.Screen>
     </Tab.Navigator>
