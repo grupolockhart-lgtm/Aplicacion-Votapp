@@ -5,7 +5,6 @@ import { createMaterialTopTabNavigator } from "@react-navigation/material-top-ta
 
 // Importa tus componentes de cada sección
 import SimpleSurveyGrid from "../../components/SimpleSurveyGrid";
-import BilleteraTab from "./BilleteraTab";
 import SurveyHistoryList from "../../components/SurveyHistoryList";
 import WalletHistoryList from "../../components/WalletHistoryList";
 
@@ -25,15 +24,12 @@ export default function ProfileTabs({ profile }: any) {
       {/* Encuestas */}
       <Tab.Screen
         name="Encuestas"
-        options={{ title: "Mis Encuestas" }}   // 👈 título actualizado
+        options={{ title: "Mis Encuestas" }}
       >
         {() => (
-          <SimpleSurveyGrid />   // 👈 sin ScrollView alrededor
+          <SimpleSurveyGrid />   // 👈 listado de encuestas propias/participadas
         )}
       </Tab.Screen>
-
-      {/* Billetera */}
-      <Tab.Screen name="Billetera" component={BilleteraTab} />
 
       {/* Historial de encuestas */}
       <Tab.Screen
@@ -41,17 +37,17 @@ export default function ProfileTabs({ profile }: any) {
         options={{ title: "Historial" }}
       >
         {() => (
-          <SurveyHistoryList />   // 👈 sin ScrollView
+          <SurveyHistoryList />   // 👈 historial general de encuestas
         )}
       </Tab.Screen>
 
-      {/* Movimientos de billetera */}
+      {/* Historial de encuestas patrocinadas */}
       <Tab.Screen
-        name="HistorialBilletera"
-        options={{ title: "Movimientos" }}
+        name="HistorialPatrocinadas"
+        options={{ title: "Patrocinadas" }}   // 👈 nuevo título más claro
       >
         {() => (
-          <WalletHistoryList />   // 👈 sin ScrollView
+          <WalletHistoryList />   // 👈 listado de encuestas patrocinadas realizadas
         )}
       </Tab.Screen>
     </Tab.Navigator>
