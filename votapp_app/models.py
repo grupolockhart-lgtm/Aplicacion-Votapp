@@ -213,17 +213,19 @@ class SponsorTransaction(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)  # sponsor
+    sponsor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)       # 👈 antes usuario_id
     beneficiario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)  # votante
     monto_dinero = Column(Integer, nullable=False, default=0)
     puntos = Column(Integer, nullable=False, default=0)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    # Relación inversa con Survey
+    # Relaciones
     survey = relationship("Survey", back_populates="sponsor_transactions")
-
-    # Relación inversa con movimientos
     movimientos = relationship("MovimientoWallet", back_populates="sponsor_transaction")
+
+    sponsor = relationship("Usuario", foreign_keys=[sponsor_id])          # 👈 relación clara al sponsor
+    beneficiario = relationship("Usuario", foreign_keys=[beneficiario_id]) # 👈 relación clara al votante
+
 
 
 

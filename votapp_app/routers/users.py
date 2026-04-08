@@ -302,7 +302,6 @@ def upload_avatar(
         "alias": perfil.alias
     }
 
-
 # -----------------------------
 # Endpoint Historial de Encuestas
 # -----------------------------
@@ -379,8 +378,15 @@ def get_user_survey_history(
         sponsors = []
         if survey.sponsor_transactions:
             for s in survey.sponsor_transactions:
-                print(f"   SponsorTransaction {s.id}: sponsor_id={s.sponsor_id}, amount={s.amount}")
-                sponsors.append({"id": s.id, "sponsor_id": s.sponsor_id, "monto": s.amount})
+                print(f"   SponsorTransaction {s.id}: sponsor_id={s.sponsor_id}, monto_dinero={s.monto_dinero}, puntos={s.puntos}")
+                sponsors.append(
+                    schemas.SponsorTransactionOut(
+                        id=s.id,
+                        sponsor_id=s.sponsor_id,
+                        monto_dinero=s.monto_dinero,
+                        puntos=s.puntos
+                    )
+                )
 
         # Construcción del objeto final
         obj = schemas.SurveyHistoryOut(
@@ -403,8 +409,6 @@ def get_user_survey_history(
     print("=== RESULT FINAL ===")
     print(result)
     return result
-
-
 
 
 

@@ -243,6 +243,7 @@ class PreguntaOut(BaseModel):
 
 
 
+
 class SurveyOut(BaseModel):
     id: int
     titulo: str = Field(alias="title")
@@ -325,6 +326,16 @@ class SurveyUpdate(BaseModel):
 
 
 
+class SponsorTransactionOut(BaseModel):
+    id: int
+    sponsor_id: int
+    monto_dinero: int
+    puntos: int
+
+    class Config:
+        from_attributes = True
+
+
 class SurveyHistoryOut(BaseModel):
     id: int
     titulo: str
@@ -341,7 +352,7 @@ class SurveyHistoryOut(BaseModel):
     presupuesto_total: int = 0
 
     # 👇 Transacciones de patrocinio
-    patrocinadores: List[dict] = Field(default_factory=list)
+    patrocinadores: List[SponsorTransactionOut] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
