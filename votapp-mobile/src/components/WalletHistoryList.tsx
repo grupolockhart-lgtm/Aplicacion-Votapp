@@ -46,6 +46,7 @@ export default function WalletHistoryList() {
           });
 
           const data: WalletResponse = await res.json();
+          console.log("[DEBUG] Respuesta completa:", data);
           console.log("[DEBUG] Movimientos recibidos:", data.movimientos);
 
           if (res.ok && isActive) {
@@ -75,20 +76,23 @@ export default function WalletHistoryList() {
   if (movements.length === 0)
     return <Text style={styles.text}>No hay movimientos en tu billetera.</Text>;
 
+  const gridData = movements.map((m) => ({
+    id: m.id,
+    titulo: m.survey.title, // 👈 usa 'titulo' porque SimpleSurveyGrid lo espera
+    preguntas: [],          // no hay preguntas en movimientos
+    imagenes: Array.isArray(m.survey.media_urls)
+      ? m.survey.media_urls
+      : JSON.parse(m.survey.media_urls), // 👈 usa 'imagenes'
+    created_at: m.fecha,    // 👈 opcional, para ordenamiento
+    tipo: "normal",         // 👈 puedes marcarlo como normal/patrocinado
+    description: "",        // 👈 opcional
+  }));
+
+  console.log("[DEBUG] Data para grid:", gridData);
+
   return (
     <View>
-      <SimpleSurveyGrid
-        data={movements.map((m) => ({
-          id: m.id,
-          titulo: m.survey.title,
-          preguntas: [],
-          imagenes: Array.isArray(m.survey.media_urls)
-            ? m.survey.media_urls
-            : JSON.parse(m.survey.media_urls), // 👈 asegura que sea array
-          ingreso: m.monto,
-          fecha: m.fecha,
-        }))}
-      />
+      <SimpleSurveyGrid data={gridData} />
     </View>
   );
 }
