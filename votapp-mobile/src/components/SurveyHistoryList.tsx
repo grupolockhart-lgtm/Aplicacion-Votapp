@@ -1,91 +1,126 @@
-// src/components/SurveyHistoryList.tsx
+// src/components/WalletHistoryList.tsx
 import React, { useState } from "react";
-import { View, ActivityIndicator, Text } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
-import SimpleSurveyGrid from "../components/SimpleSurveyGrid";
+import SimpleSurveyGrid from "./SimpleSurveyGrid";
 import { useFocusEffect } from "@react-navigation/native";
 import { SurveyHistoryOut } from "../Types/survey";
 
-export default function SurveyHistoryList() {
-  const [surveys, setSurveys] = useState<SurveyHistoryOut[]>([]);
+type Movimiento = {
+  id: number;              // id del movimiento
+  monto: number;
+  fecha: string;
+  patrocinado: boolean;
+  survey?: {
+    id?: number;
+    title?: string;
+    description?: string;
+    tipo?: string;
+    questions?: any[];
+    media_url?: string;
+    media_urls?: string[] | string;
+  };
+};
+
+type WalletResponse = {
+  id: number;
+  balance: number;
+  actualizado_en: string;
+  movimientos: Movimiento[];
+};
+
+export default function WalletHistoryList() {
+  const [movements, setMovements] = useState<Movimiento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useFocusEffect(
     React.useCallback(() => {
       let isActive = true;
 
-      async function loadHistory() {
-        console.log("[DEBUG] Entrando a loadHistory()");
-
+      const fetchMovements = async () => {
         try {
           const token = await AsyncStorage.getItem("userToken");
-          console.log("[DEBUG] Token en frontend:", token);
-
           if (!token) {
             console.warn("[WARN] No se encontró token de usuario");
             return;
           }
 
-          console.log("[DEBUG] Llamando API:", `${API_URL}/users/me/surveys/history`);
-
-          const res = await fetch(`${API_URL}/users/me/surveys/history`, {
+          const res = await fetch(`${API_URL}/surveys/users/me/wallet/history`, {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          console.log("[DEBUG] Status HTTP:", res.status);
+          const data: WalletResponse = await res.json();
+          console.log("[DEBUG] Respuesta completa:", data);
 
-          const raw = await res.json();
-          console.log("[DEBUG] Respuesta cruda del backend:", raw);
-
-          if (!res.ok) {
-            console.warn("[WARN] Error HTTP:", res.status, raw);
-            if (isActive) setSurveys([]);
-            return;
-          }
-
-          if (Array.isArray(raw)) {
-            console.log("[DEBUG] Historial recibido, cantidad:", raw.length);
-            raw.forEach((item, idx) => {
-              console.log(`[DEBUG] Encuesta[${idx}]:`, item);
-            });
-            if (isActive) {
-              setSurveys(raw);
-            }
+          if (res.ok && isActive) {
+            setMovements(data.movimientos || []);
+          } else if (res.status === 404 && isActive) {
+            setMovements([]);
           } else {
-            console.warn("[WARN] Respuesta inesperada (no es array):", raw);
-            if (isActive) setSurveys([]);
+            setError("No se pudo cargar el historial de billetera.");
           }
         } catch (err) {
-          console.error("[ERROR] Error cargando historial:", err);
+          console.error("[ERROR] Error obteniendo historial de billetera:", err);
+          setError("No se pudo cargar el historial de billetera.");
         } finally {
-          console.log("[DEBUG] Finalizando loadHistory()");
           if (isActive) setLoading(false);
         }
-      }
+      };
 
-      loadHistory();
+      fetchMovements();
       return () => {
-        console.log("[DEBUG] Cleanup: isActive = false");
         isActive = false;
       };
     }, [])
   );
 
-  if (loading) {
-    console.log("[DEBUG] Renderizando ActivityIndicator (loading)");
-    return <ActivityIndicator size="large" color="#2563EB" />;
-  }
+  if (loading) return <ActivityIndicator size="large" color="#2563EB" />;
+  if (error) return <Text style={styles.text}>{error}</Text>;
+  if (movements.length === 0)
+    return <Text style={styles.text}>No hay movimientos en tu billetera.</Text>;
 
-  if (!loading && surveys.length === 0) {
-    console.log("[DEBUG] Renderizando mensaje: No hay encuestas en tu historial");
-    return (
-      <View style={{ alignItems: "center", marginTop: 10 }}>
-        <Text style={{ color: "#6B7280" }}>No hay encuestas en tu historial</Text>
-      </View>
-    );
-  }
+  // 🔄 Transformamos movimientos en SurveyHistoryOut con tipo "normal"
+  const gridData: SurveyHistoryOut[] = movements.map((m) => {
+    let imagenes: string[] = [];
+    try {
+      imagenes = Array.isArray(m.survey?.media_urls)
+        ? (m.survey?.media_urls as string[])
+        : m.survey?.media_urls
+        ? JSON.parse(m.survey.media_urls as string)
+        : [];
+    } catch (e) {
+      console.warn("[WARN] media_urls inválido:", m.survey?.media_urls);
+    }
 
-  console.log("[DEBUG] Renderizando SimpleSurveyGrid con", surveys.length, "encuestas");
-  return <SimpleSurveyGrid data={surveys} />;
+    return {
+      id: m.survey?.id ?? m.id,
+      titulo: m.survey?.title ?? "Encuesta sin título",
+      preguntas: m.survey?.questions ?? [],        // 👈 ahora incluimos preguntas
+      imagenes,
+      created_at: m.fecha,
+      tipo: "normal",                              // 👈 patrocinadas siempre normales
+      description: m.survey?.description ?? "",
+      media_url: m.survey?.media_url ?? null,      // 👈 añadimos media_url
+      media_urls: imagenes,                        // 👈 añadimos media_urls
+    };
+  });
+
+  console.log("[DEBUG] Data para grid:", gridData);
+
+  return (
+    <View>
+      <SimpleSurveyGrid data={gridData} />
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  text: {
+    fontSize: 14,
+    color: "#111827",
+    textAlign: "center",
+    marginVertical: 10,
+  },
+});

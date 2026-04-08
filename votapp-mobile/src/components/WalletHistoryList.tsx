@@ -15,6 +15,10 @@ type Movimiento = {
   survey?: {
     id?: number;
     title?: string;
+    description?: string;
+    tipo?: string;
+    questions?: any[];
+    media_url?: string;
     media_urls?: string[] | string;
   };
 };
@@ -77,7 +81,7 @@ export default function WalletHistoryList() {
   if (movements.length === 0)
     return <Text style={styles.text}>No hay movimientos en tu billetera.</Text>;
 
-  // 🔄 Unificación: transformamos movimientos en SurveyHistoryOut
+  // 🔄 Transformamos movimientos en SurveyHistoryOut con tipo "normal"
   const gridData: SurveyHistoryOut[] = movements.map((m) => {
     let imagenes: string[] = [];
     try {
@@ -93,11 +97,13 @@ export default function WalletHistoryList() {
     return {
       id: m.survey?.id ?? m.id,
       titulo: m.survey?.title ?? "Encuesta sin título",
-      preguntas: [],
+      preguntas: m.survey?.questions ?? [],        // 👈 ahora incluimos preguntas
       imagenes,
       created_at: m.fecha,
-      tipo: m.patrocinado ? "patrocinada" : "normal",
-      description: "",
+      tipo: m.survey?.tipo ?? "normal",            // 👈 patrocinadas siempre normales
+      description: m.survey?.description ?? "",
+      media_url: m.survey?.media_url ?? null,      // 👈 añadimos media_url
+      media_urls: imagenes,                        // 👈 añadimos media_urls
     };
   });
 
