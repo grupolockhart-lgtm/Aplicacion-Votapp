@@ -5,16 +5,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
 import SimpleSurveyGrid from "./SimpleSurveyGrid";
 import { useFocusEffect } from "@react-navigation/native";
+import { SurveyHistoryOut } from "../Types/survey";
 
 type Movimiento = {
   id: number;              // id del movimiento
   monto: number;
   fecha: string;
   patrocinado: boolean;
-  survey: {
-    id: number;            // 👈 id de la encuesta
-    title: string;
-    media_urls: string[] | string; // puede venir como array o string JSON
+  survey?: {
+    id?: number;
+    title?: string;
+    media_urls?: string[] | string;
   };
 };
 
@@ -48,10 +49,9 @@ export default function WalletHistoryList() {
 
           const data: WalletResponse = await res.json();
           console.log("[DEBUG] Respuesta completa:", data);
-          console.log("[DEBUG] Movimientos recibidos:", data.movimientos);
 
           if (res.ok && isActive) {
-            setMovements(data.movimientos);
+            setMovements(data.movimientos || []);
           } else if (res.status === 404 && isActive) {
             setMovements([]);
           } else {
@@ -77,17 +77,29 @@ export default function WalletHistoryList() {
   if (movements.length === 0)
     return <Text style={styles.text}>No hay movimientos en tu billetera.</Text>;
 
-  const gridData = movements.map((m) => ({
-    id: m.survey.id,        // 👈 ahora usamos el id de la encuesta
-    titulo: m.survey.title,
-    preguntas: [],          // no hay preguntas en movimientos
-    imagenes: Array.isArray(m.survey.media_urls)
-      ? m.survey.media_urls
-      : JSON.parse(m.survey.media_urls),
-    created_at: m.fecha,
-    tipo: "patrocinada",    // 👈 marcamos como patrocinada
-    description: "",
-  }));
+  // 🔄 Unificación: transformamos movimientos en SurveyHistoryOut
+  const gridData: SurveyHistoryOut[] = movements.map((m) => {
+    let imagenes: string[] = [];
+    try {
+      imagenes = Array.isArray(m.survey?.media_urls)
+        ? (m.survey?.media_urls as string[])
+        : m.survey?.media_urls
+        ? JSON.parse(m.survey.media_urls as string)
+        : [];
+    } catch (e) {
+      console.warn("[WARN] media_urls inválido:", m.survey?.media_urls);
+    }
+
+    return {
+      id: m.survey?.id ?? m.id,
+      titulo: m.survey?.title ?? "Encuesta sin título",
+      preguntas: [],
+      imagenes,
+      created_at: m.fecha,
+      tipo: m.patrocinado ? "patrocinada" : "normal",
+      description: "",
+    };
+  });
 
   console.log("[DEBUG] Data para grid:", gridData);
 
