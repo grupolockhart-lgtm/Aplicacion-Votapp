@@ -41,9 +41,10 @@ export default function WalletHistoryList() {
             return;
           }
 
-          const res = await fetch(`${API_URL}/users/me/wallet/history`, {
+          const res = await fetch(`${API_URL}/surveys/users/me/wallet/history`, {
             headers: { Authorization: `Bearer ${token}` },
           });
+
 
           const data: WalletResponse = await res.json();
           console.log("[DEBUG] Respuesta completa:", data);
