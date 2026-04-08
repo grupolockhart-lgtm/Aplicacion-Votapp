@@ -7,11 +7,12 @@ import SimpleSurveyGrid from "./SimpleSurveyGrid";
 import { useFocusEffect } from "@react-navigation/native";
 
 type Movimiento = {
-  id: number;
+  id: number;              // id del movimiento
   monto: number;
   fecha: string;
   patrocinado: boolean;
   survey: {
+    id: number;            // 👈 id de la encuesta
     title: string;
     media_urls: string[] | string; // puede venir como array o string JSON
   };
@@ -45,7 +46,6 @@ export default function WalletHistoryList() {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-
           const data: WalletResponse = await res.json();
           console.log("[DEBUG] Respuesta completa:", data);
           console.log("[DEBUG] Movimientos recibidos:", data.movimientos);
@@ -78,15 +78,15 @@ export default function WalletHistoryList() {
     return <Text style={styles.text}>No hay movimientos en tu billetera.</Text>;
 
   const gridData = movements.map((m) => ({
-    id: m.id,
-    titulo: m.survey.title, // 👈 usa 'titulo' porque SimpleSurveyGrid lo espera
+    id: m.survey.id,        // 👈 ahora usamos el id de la encuesta
+    titulo: m.survey.title,
     preguntas: [],          // no hay preguntas en movimientos
     imagenes: Array.isArray(m.survey.media_urls)
       ? m.survey.media_urls
-      : JSON.parse(m.survey.media_urls), // 👈 usa 'imagenes'
-    created_at: m.fecha,    // 👈 opcional, para ordenamiento
-    tipo: "normal",         // 👈 puedes marcarlo como normal/patrocinado
-    description: "",        // 👈 opcional
+      : JSON.parse(m.survey.media_urls),
+    created_at: m.fecha,
+    tipo: "patrocinada",    // 👈 marcamos como patrocinada
+    description: "",
   }));
 
   console.log("[DEBUG] Data para grid:", gridData);
