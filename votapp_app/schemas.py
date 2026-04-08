@@ -443,7 +443,7 @@ class UsuarioLogroOut(BaseModel):
 # -------------------
 
 class SurveyWalletOut(BaseModel):
-    title: str   # 👈 usar el campo real de la tabla
+    title: str
     media_urls: Optional[List[str]] = None
 
     @field_validator("media_urls", mode="before")
@@ -459,14 +459,12 @@ class SurveyWalletOut(BaseModel):
         from_attributes = True
 
 
-
-
 class MovimientoWalletOut(BaseModel):
     id: int
     monto: int
     fecha: datetime
     patrocinado: bool
-    survey: Optional[SurveyWalletOut]   # 👈 aquí se usa el esquema simplificado
+    survey: Optional[SurveyWalletOut]
 
     class Config:
         from_attributes = True
@@ -480,6 +478,8 @@ class WalletOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
 
 
 

@@ -926,14 +926,13 @@ def get_wallet_history(
     if not wallet:
         raise HTTPException(status_code=404, detail="Billetera no encontrada")
 
-    # Traer movimientos enlazados a sponsor_transactions y surveys
     movimientos = (
         db.query(
             models.MovimientoWallet.id.label("id"),
             models.MovimientoWallet.monto.label("monto"),
             models.MovimientoWallet.fecha.label("fecha"),
-            models.Survey.title.label("title"),          # 👈 usar campo real
-            models.Survey.media_urls.label("media_urls") # 👈 usar campo real
+            models.Survey.title.label("title"),
+            models.Survey.media_urls.label("media_urls")
         )
         .join(models.SponsorTransaction, models.SponsorTransaction.id == models.MovimientoWallet.sponsor_transaction_id)
         .join(models.Survey, models.Survey.id == models.SponsorTransaction.survey_id)
@@ -951,10 +950,9 @@ def get_wallet_history(
                 monto=m.monto,
                 fecha=m.fecha,
                 patrocinado=True,
-                survey=SurveyWalletOut(   # 👈 usar schema corregido
+                survey=SurveyWalletOut(
                     title=m.title,
-                    media_urls=json.loads(m.media_urls or "[]")  # 👈 deserializar aquí
-
+                    media_urls=m.media_urls
                 )
             )
             for m in movimientos
