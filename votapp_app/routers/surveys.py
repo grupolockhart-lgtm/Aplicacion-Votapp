@@ -671,7 +671,7 @@ def vote(
     # -------------------
     # Bloque 3: Perfil + Logros
     # -------------------
-    if False:   # cambia a False para desactivar
+    if True:   # cambia a False para desactivar
         perfil = db.query(models.PerfilPublico).filter_by(usuario_id=usuario.id).first()
         if perfil:
             hoy = datetime.utcnow().date()
