@@ -501,6 +501,8 @@ def get_all_surveys(db: Session = Depends(database.get_db)):
         })
 
     return result
+
+
 # -------------------
 # Votar en encuesta
 # -------------------
@@ -601,7 +603,7 @@ def vote(
 
             transaccion = models.SponsorTransaction(
                 survey_id=survey.id,
-                usuario_id=sponsor.id,
+                sponsor_id=sponsor.id,
                 beneficiario_id=usuario.id,
                 monto_dinero=survey.recompensa_dinero or 0,
                 puntos=survey.recompensa_puntos or 0,
