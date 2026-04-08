@@ -590,7 +590,7 @@ def vote(
     # -------------------
     # Bloque 2: Patrocinio + Presupuesto
     # -------------------
-    if True:   # cambia a False para desactivar
+    if True:   # activado
         transaccion = None
         if survey.patrocinada:
             sponsor_id = db.query(models.Survey.usuario_id).filter(models.Survey.id == survey_id).scalar()
@@ -626,8 +626,9 @@ def vote(
                 db.refresh(nueva_wallet_sponsor)
                 sponsor.billetera = nueva_wallet_sponsor
 
-            db.refresh(usuario)
-            db.refresh(sponsor)
+            # Merge para asegurar persistencia en la sesión
+            usuario = db.merge(usuario)
+            sponsor = db.merge(sponsor)
 
             if not usuario.billetera or not sponsor.billetera:
                 raise HTTPException(status_code=500, detail="Error al cargar billeteras")
@@ -663,6 +664,8 @@ def vote(
         if survey.presupuesto_total < 0:
             survey.presupuesto_total = 0
 
+
+
     # -------------------
     # Bloque 3: Perfil + Logros
     # -------------------
@@ -688,10 +691,14 @@ def vote(
     # -------------------
     try:
         db.commit()
+        usuario = db.merge(usuario)
         if usuario.billetera:
             db.refresh(usuario.billetera)
-        if 'sponsor' in locals() and sponsor and sponsor.billetera:
-            db.refresh(sponsor.billetera)
+
+        if 'sponsor' in locals() and sponsor:
+            sponsor = db.merge(sponsor)
+            if sponsor.billetera:
+                db.refresh(sponsor.billetera)
     except Exception as e:
         db.rollback()
         import traceback
@@ -700,6 +707,7 @@ def vote(
         raise HTTPException(status_code=500, detail="Error interno en el servidor")
 
     if 'perfil' in locals() and perfil:
+        perfil = db.merge(perfil)
         db.refresh(perfil)
 
     balance = usuario.billetera.balance if usuario.billetera else None
@@ -713,6 +721,8 @@ def vote(
         "usuario_nivel": perfil.nivel if 'perfil' in locals() and perfil else 0,
         "usuario_racha": perfil.racha_dias if 'perfil' in locals() and perfil else 0
     }
+
+
 
 # -------------------
 # Resultados de encuesta
