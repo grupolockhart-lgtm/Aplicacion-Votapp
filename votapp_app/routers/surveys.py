@@ -914,6 +914,7 @@ def historial_encuestas(
     return {"usuario_id": usuario.id, "historial": resultado}
 
 
+
 # -----------------------------
 # Historial de billetera (movimientos reales con encuestas patrocinadas)
 # -----------------------------
@@ -931,7 +932,11 @@ def get_wallet_history(
             models.MovimientoWallet.id.label("id"),
             models.MovimientoWallet.monto.label("monto"),
             models.MovimientoWallet.fecha.label("fecha"),
+            models.Survey.id.label("survey_id"),          # 👈 incluir el id de la encuesta
             models.Survey.title.label("title"),
+            models.Survey.description.label("description"),
+            models.Survey.questions.label("questions"),
+            models.Survey.media_url.label("media_url"),
             models.Survey.media_urls.label("media_urls")
         )
         .join(models.SponsorTransaction, models.SponsorTransaction.id == models.MovimientoWallet.sponsor_transaction_id)
@@ -951,13 +956,18 @@ def get_wallet_history(
                 fecha=m.fecha,
                 patrocinado=True,
                 survey=SurveyWalletOut(
+                    id=m.survey_id,                       # 👈 ahora sí mandas el id
                     title=m.title,
+                    description=m.description,
+                    questions=m.questions,
+                    media_url=m.media_url,
                     media_urls=m.media_urls
                 )
             )
             for m in movimientos
         ]
     )
+
 
 
 

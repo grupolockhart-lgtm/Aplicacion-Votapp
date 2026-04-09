@@ -443,7 +443,11 @@ class UsuarioLogroOut(BaseModel):
 # -------------------
 
 class SurveyWalletOut(BaseModel):
+    id: int                                 # 👈 ahora incluye el id de la encuesta
     title: str
+    description: Optional[str] = None
+    questions: Optional[List[dict]] = None
+    media_url: Optional[str] = None
     media_urls: Optional[List[str]] = None
 
     @field_validator("media_urls", mode="before")
@@ -459,15 +463,19 @@ class SurveyWalletOut(BaseModel):
         from_attributes = True
 
 
+
+
 class MovimientoWalletOut(BaseModel):
     id: int
     monto: int
     fecha: datetime
     patrocinado: bool
-    survey: Optional[SurveyWalletOut]
+    survey: Optional[SurveyWalletOut]        # 👈 objeto encuesta completo con id
 
     class Config:
         from_attributes = True
+
+
 
 
 class WalletOut(BaseModel):
@@ -478,6 +486,8 @@ class WalletOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
 
 
 

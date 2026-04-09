@@ -8,7 +8,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { SurveyHistoryOut } from "../Types/survey";
 
 type Movimiento = {
-  id: number;              // id del movimiento
+  id: number;
   monto: number;
   fecha: string;
   patrocinado: boolean;
@@ -81,7 +81,7 @@ export default function WalletHistoryList() {
   if (movements.length === 0)
     return <Text style={styles.text}>No hay movimientos en tu billetera.</Text>;
 
-  // 🔄 Transformamos movimientos en SurveyHistoryOut con tipo "normal"
+  // 🔄 Transformamos movimientos en SurveyHistoryOut con nombres en español
   const gridData: SurveyHistoryOut[] = movements.map((m) => {
     let imagenes: string[] = [];
     try {
@@ -95,15 +95,15 @@ export default function WalletHistoryList() {
     }
 
     return {
-      id: m.survey?.id ?? m.id,
-      titulo: m.survey?.title ?? "Encuesta sin título",
-      preguntas: m.survey?.questions ?? [],        // 👈 ahora incluimos preguntas
-      imagenes,
+      id: m.survey?.id ?? 0,                              // 👈 solo el id de la encuesta
+      titulo: m.survey?.title ?? "Encuesta sin título",   // 👈 español
+      preguntas: m.survey?.questions ?? [],               // 👈 español
+      imagenes,                                           // 👈 español
       created_at: m.fecha,
-      tipo: "normal",                              // 👈 patrocinadas siempre normales
+      tipo: "normal",                                     // patrocinadas siempre normales
       description: m.survey?.description ?? "",
-      media_url: m.survey?.media_url ?? null,      // 👈 añadimos media_url
-      media_urls: imagenes,                        // 👈 añadimos media_urls
+      media_url: m.survey?.media_url ?? null,
+      media_urls: imagenes,
     };
   });
 
