@@ -445,11 +445,12 @@ class UsuarioLogroOut(BaseModel):
 class QuestionOut(BaseModel):
     id: int
     text: str
-    tipo: str
+    tipo: Optional[str] = None   # 👈 ahora opcional
     opciones: Optional[List[str]] = None
 
     class Config:
-        from_attributes = True   # 👈 permite mapear objetos ORM directamente
+        from_attributes = True
+
 
 
 
