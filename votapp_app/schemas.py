@@ -442,11 +442,22 @@ class UsuarioLogroOut(BaseModel):
 # Billetera
 # -------------------
 
+class QuestionOut(BaseModel):
+    id: int
+    text: str
+    tipo: str
+    opciones: Optional[List[str]] = None
+
+    class Config:
+        from_attributes = True   # 👈 permite mapear objetos ORM directamente
+
+
+
 class SurveyWalletOut(BaseModel):
-    id: int                                 # 👈 ahora incluye el id de la encuesta
+    id: int
     title: str
     description: Optional[str] = None
-    questions: Optional[List[dict]] = None
+    questions: Optional[List[QuestionOut]] = None   # 👈 ahora espera objetos QuestionOut
     media_url: Optional[str] = None
     media_urls: Optional[List[str]] = None
 
@@ -461,6 +472,8 @@ class SurveyWalletOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
 
 
 
