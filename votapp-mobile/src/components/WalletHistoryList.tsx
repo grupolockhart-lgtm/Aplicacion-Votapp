@@ -100,7 +100,7 @@ export default function WalletHistoryList() {
       preguntas: m.survey?.questions ?? [],        // 👈 ahora incluimos preguntas
       imagenes,
       created_at: m.fecha,
-      tipo: m.survey?.tipo ?? "normal",            // 👈 patrocinadas siempre normales
+      tipo: "normal",                              // 👈 patrocinadas siempre normales
       description: m.survey?.description ?? "",
       media_url: m.survey?.media_url ?? null,      // 👈 añadimos media_url
       media_urls: imagenes,                        // 👈 añadimos media_urls
