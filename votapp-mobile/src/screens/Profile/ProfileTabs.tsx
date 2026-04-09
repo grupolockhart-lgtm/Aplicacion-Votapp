@@ -2,8 +2,8 @@
 
 import React from "react";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-// Importa tus componentes de cada sección
 import SimpleSurveyGrid from "../../components/SimpleSurveyGrid";
 import SurveyHistoryList from "../../components/SurveyHistoryList";
 import WalletHistoryList from "../../components/WalletHistoryList";
@@ -14,41 +14,49 @@ export default function ProfileTabs({ profile }: any) {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: "#2563EB", // azul activo
-        tabBarInactiveTintColor: "#555",  // gris inactivo
+        tabBarActiveTintColor: "#2563EB",
+        tabBarInactiveTintColor: "#555",
         tabBarIndicatorStyle: { backgroundColor: "#2563EB", height: 3 },
-        tabBarLabelStyle: { fontWeight: "600", fontSize: 14 },
-        tabBarStyle: { backgroundColor: "#F3F4F6", height: 50 },
+        tabBarLabelStyle: { fontWeight: "600", fontSize: 12, marginTop: -4 }, // 👈 acerca texto al icono
+        tabBarIconStyle: { marginBottom: -2 }, // 👈 acerca icono al texto
+        tabBarStyle: { backgroundColor: "#F3F4F6", height: 60 },
+        tabBarShowIcon: true,
       }}
     >
-      {/* Encuestas propias/participadas */}
       <Tab.Screen
         name="MisEncuestas"
-        options={{ title: "Mis Encuestas" }}
+        options={{
+          title: "Mis Encuestas",
+          tabBarIcon: ({ color }: { color: string }) => (
+            <MaterialCommunityIcons name="account-check-outline" color={color} size={20} />
+          ),
+        }}
       >
-        {() => (
-          <SimpleSurveyGrid />   // 👈 listado de encuestas propias/participadas
-        )}
+        {() => <SimpleSurveyGrid />}
       </Tab.Screen>
 
-      {/* Historial de encuestas patrocinadas */}
       <Tab.Screen
-        name="PatrocinadasCompletadas"
-        options={{ title: "Patrocinadas Completadas" }}
+        name="Patrocinadas"
+        options={{
+          title: "Patrocinadas",
+          tabBarIcon: ({ color }: { color: string }) => (
+            <MaterialCommunityIcons name="hand-coin-outline" color={color} size={20} />
+          ),
+        }}
       >
-        {() => (
-          <WalletHistoryList />   // 👈 listado de encuestas patrocinadas realizadas
-        )}
+        {() => <WalletHistoryList />}
       </Tab.Screen>
 
-      {/* Historial general de encuestas completadas */}
       <Tab.Screen
-        name="GeneralCompletadas"
-        options={{ title: "General Completadas" }}
+        name="Generales"
+        options={{
+          title: "Generales",
+          tabBarIcon: ({ color }: { color: string }) => (
+            <MaterialCommunityIcons name="clipboard-check-outline" color={color} size={20} />
+          ),
+        }}
       >
-        {() => (
-          <SurveyHistoryList />   // 👈 historial general de encuestas completadas
-        )}
+        {() => <SurveyHistoryList />}
       </Tab.Screen>
     </Tab.Navigator>
   );

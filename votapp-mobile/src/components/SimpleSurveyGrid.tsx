@@ -32,8 +32,9 @@ interface Survey {
   preguntas?: Pregunta[];
   imagenes: string[];
   created_at?: string;
-  tipo?: string;          // 👈 ahora soporta "simple" o "normal"
+  tipo?: string;          // "simple" o "normal"
   description?: string;
+  reward?: number;        // 👈 nuevo campo para mostrar recompensa
 }
 
 type Props = {
@@ -86,8 +87,9 @@ export default function SimpleSurveyGrid({ data }: Props) {
               })),
               imagenes: s.imagenes ?? s.media_urls ?? [],
               created_at: s.created_at ?? s.date ?? null,
-              tipo: s.tipo ?? "simple",          // 👈 normalizamos tipo
+              tipo: s.tipo ?? "simple",
               description: s.description ?? "",
+              reward: s.reward ?? null,   // 👈 normalizamos reward si viene del backend
             }))
           : [];
 
@@ -138,7 +140,7 @@ export default function SimpleSurveyGrid({ data }: Props) {
             onPress={() =>
               navigation.navigate("ResultsScreen", {
                 surveyId: item.id,
-                surveyType: item.tipo ?? "normal", // 👈 ahora dinámico
+                surveyType: item.tipo ?? "normal",
                 title: item.titulo,
                 description: item.description ?? "",
                 questions: item.preguntas,
@@ -150,6 +152,11 @@ export default function SimpleSurveyGrid({ data }: Props) {
           >
             <Image source={{ uri: firstImage }} style={styles.image} resizeMode="cover" />
             <Text style={styles.title} numberOfLines={2}>{item.titulo}</Text>
+
+            {/* 👇 Mostrar recompensa si existe */}
+            {item.reward !== undefined && item.reward !== null && (
+              <Text style={styles.reward}>💰 {item.reward} puntos</Text>
+            )}
           </TouchableOpacity>
         );
       }}
@@ -178,6 +185,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontWeight: "600",
+    textAlign: "center",
+  },
+  reward: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#16A34A",   // verde para resaltar
+    marginTop: 2,
     textAlign: "center",
   },
 });

@@ -1,22 +1,11 @@
 // src/components/BilleteraCard.tsx
 import React from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
-
-type Movimiento = {
-  id: number;
-  monto: number;
-  fecha: string;
-  patrocinado: boolean;
-  survey: {
-    title: string;          // 👈 usar campo real
-    media_urls: string[];   // 👈 usar campo real
-  };
-};
+import { View, Text, StyleSheet } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 type Wallet = {
   balance: number;
   actualizado_en: string;
-  movimientos: Movimiento[];
 };
 
 type Props = {
@@ -24,61 +13,65 @@ type Props = {
 };
 
 export default function BilleteraCard({ wallet }: Props) {
+  if (!wallet) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.text}>Sin billetera registrada</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.card}>
-      {wallet ? (
-        <>
-          <Text style={styles.text}>Balance: ${wallet.balance}</Text>
-          <Text style={styles.text}>
-            Última actualización:{" "}
-            {new Date(wallet.actualizado_en).toLocaleString()}
-          </Text>
+      {/* Encabezado con balance al lado */}
+      <View style={styles.header}>
+        <MaterialCommunityIcons name="wallet-outline" size={18} color="#2563EB" />
+        <Text style={styles.title}>Billetera</Text>
+        <Text style={styles.balance}>${wallet.balance.toFixed(2)}</Text>
+      </View>
 
-          {wallet.movimientos && wallet.movimientos.length > 0 ? (
-            <View style={{ marginTop: 10 }}>
-              <Text style={styles.subtitle}>Últimos movimientos</Text>
-
-              {wallet.movimientos.slice(0, 3).map((m) => (
-                <View key={m.id} style={styles.movementCard}>
-                  {m.survey?.media_urls?.[0] && (
-                    <Image
-                      source={{ uri: m.survey.media_urls[0] }}
-                      style={styles.image}
-                    />
-                  )}
-                  <Text style={styles.text}>{m.survey.title}</Text>
-                  <Text style={styles.text}>Monto: ${m.monto}</Text>
-                  <Text style={styles.text}>
-                    Fecha: {new Date(m.fecha).toLocaleDateString()}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.text}>No hay movimientos registrados</Text>
-          )}
-        </>
-      ) : (
-        <Text style={styles.text}>Sin billetera registrada</Text>
-      )}
+      {/* Última actualización */}
+      <Text style={styles.updated}>
+        Actualizado: {new Date(wallet.actualizado_en).toLocaleDateString()}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
     backgroundColor: "#fff",
-    borderRadius: 8,
-    marginBottom: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 0,       // 👈 esquinas cuadradas
+    marginBottom: 2,
+    alignSelf: "stretch",  // 👈 ocupa todo el ancho disponible
   },
-  text: { fontSize: 14, marginBottom: 4 },
-  subtitle: { fontSize: 16, fontWeight: "600", marginBottom: 6 },
-  movementCard: {
-    backgroundColor: "#f9f9f9",
-    padding: 8,
-    borderRadius: 6,
-    marginBottom: 10,
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
-  image: { width: "100%", height: 100, borderRadius: 6, marginBottom: 6 },
+  title: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginLeft: 6,
+    color: "#2563EB",
+  },
+  balance: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#16A34A",
+    marginLeft: "auto",
+  },
+  updated: {
+    fontSize: 11,
+    color: "#555",
+  },
+  text: {
+    fontSize: 12,
+    color: "#555",
+  },
 });
+

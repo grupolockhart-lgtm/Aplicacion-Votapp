@@ -116,34 +116,43 @@ export default function GamificacionCard({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 6,
+    paddingVertical: 6,   // 👈 menos padding vertical
+    paddingHorizontal: 8,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 2,      // 👈 menos margen inferior
+    marginTop: 2,         // 👈 menos margen superior
   },
   item: {
-    fontSize: 16,
+    fontSize: 15,         // 👈 más pequeño
     fontWeight: "600",
     color: "#111827",
-    marginHorizontal: 8,
+    marginHorizontal: 4,
+    lineHeight: 16,       // 👈 controla altura de línea, menos aire
   },
-  text: { fontSize: 14, marginBottom: 4, color: "#111827" },
+  text: {
+    fontSize: 15,
+    marginBottom: 2,
+    color: "#111827",
+    lineHeight: 14,
+  },
   header: {
-    fontSize: 16,
-    marginTop: 8,
-    marginBottom: 4,
+    fontSize: 15,
+    marginTop: 4,
+    marginBottom: 2,
     fontWeight: "bold",
     color: "#1f2937",
-    marginRight: 8,
+    marginRight: 6,
+    lineHeight: 15,
   },
   logrosWrapper: {
     flexDirection: "row",
     justifyContent: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
   logrosContainer: {
     flexDirection: "row",
@@ -151,10 +160,11 @@ const styles = StyleSheet.create({
   },
   logroItem: {
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 6,       // 👈 menos separación
   },
   icon: {
-    fontSize: 16,
+    fontSize: 13,         // 👈 más pequeño
+    lineHeight: 15,
   },
   modalOverlay: {
     flex: 1,
@@ -164,21 +174,21 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 20,
+    borderRadius: 6,
+    padding: 16,
     width: "80%",
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "bold",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   modalDescription: {
-    fontSize: 14,
-    marginBottom: 16,
+    fontSize: 12,
+    marginBottom: 12,
   },
   closeButton: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#2563EB",
     fontWeight: "600",
     textAlign: "center",

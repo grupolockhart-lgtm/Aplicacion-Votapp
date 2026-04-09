@@ -27,6 +27,7 @@ import GamificacionCard from "../components/GamificacionCard";
 import ProfileTabs from "./Profile/ProfileTabs";
 import PrivateProfileCard from "../components/PrivateProfileCard";
 import { API_URL } from "../config/api";
+import BilleteraCard from "../components/BilleteraCard";
 
 
 export default function ProfileScreen() {
@@ -147,10 +148,18 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
+      {/* Gamificación */}
       <View style={styles.gamificacionRow}>
         <GamificacionCard refreshTrigger={refreshGamificacion} />
       </View>
 
+      {/* 🚀 Bloque de billetera */}
+      <View style={styles.walletRow}>
+        <BilleteraCard wallet={profile.wallet} />
+      </View>
+
+
+      {/* Tabs de encuestas */}
       <ProfileTabs profile={profile} refreshGamificacion={refreshGamificacion} />
     </View>
   );
@@ -172,7 +181,7 @@ const styles = StyleSheet.create({
   gamificacionRow: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 10,
+    paddingVertical: 4,
     backgroundColor: "#fff",
   },
   modalOverlay: {
@@ -217,5 +226,10 @@ const styles = StyleSheet.create({
     color: "#2563EB",
     fontWeight: "600",
     marginTop: 12,
+  },
+    walletRow: {
+    paddingHorizontal: 0,
+    paddingVertical: 2,
+    backgroundColor: "#F3F4F6",
   },
 });

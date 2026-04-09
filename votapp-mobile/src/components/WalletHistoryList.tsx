@@ -104,6 +104,7 @@ export default function WalletHistoryList() {
       description: m.survey?.description ?? "",
       media_url: m.survey?.media_url ?? null,
       media_urls: imagenes,
+      reward: m.monto,   // 👈 aquí pasas el valor ganado
     };
   });
 
