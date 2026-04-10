@@ -155,7 +155,7 @@ export default function SimpleSurveyGrid({ data }: Props) {
 
             {/* 👇 Mostrar recompensa si existe */}
             {item.reward !== undefined && item.reward !== null && (
-              <Text style={styles.reward}>💰 {item.reward} puntos</Text>
+              <Text style={styles.reward}>💵 ${item.reward}</Text>
             )}
           </TouchableOpacity>
         );

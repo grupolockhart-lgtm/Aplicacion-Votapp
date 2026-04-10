@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from mangum import Mangum
+from votapp_app.controllers import friendsController   # 👈 importa tu controlador
+from votapp_app.controllers import notificationsController
+
+
 
 # Importa tus módulos
 from .routers import users, surveys, profiles, admin, comments, gamificacion
@@ -100,6 +104,10 @@ app.include_router(comments.router, prefix="/api")
 app.include_router(gamificacion.router, prefix="/api")
 app.include_router(rss.router, prefix="/api")
 app.include_router(surveys_simple.router, prefix="/api")
+app.include_router(friendsController.router, prefix="/api", tags=["friends"])  # 👈 aquí
+app.include_router(notificationsController.router, prefix="/api", tags=["notifications"])
+
+
 
 # -----------------------------
 # Endpoint raíz
