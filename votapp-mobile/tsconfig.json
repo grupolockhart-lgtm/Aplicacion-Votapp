@@ -3,6 +3,7 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "strict": true,
+    "ignoreDeprecations": "6.0",   // 👈 silencia el warning
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"]
@@ -16,18 +17,11 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-  ],
-  "exclude": [
-    "babel.config.js",
-    "metro.config.js"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["babel.config.js", "metro.config.js"],
   "extends": "expo/tsconfig.base"
 }
+
 
 
 
