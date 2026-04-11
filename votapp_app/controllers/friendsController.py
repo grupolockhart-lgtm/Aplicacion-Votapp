@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models_social import Friend, Notification
 from datetime import datetime
+from ..models import Usuario 
 
 router = APIRouter()
 
@@ -108,3 +109,24 @@ def delete_friendship(friendship_id: int, db: Session = Depends(get_db)):
     db.delete(friendship)
     db.commit()
     return {"message": "Amistad eliminada"}
+
+
+# -------------------
+# BUSCAR AMIGOS POR NOMBRE O CORREO
+# -------------------
+@router.get("/friends/search")
+def search_friends(query: str, db: Session = Depends(get_db)):
+    results = (
+        db.query(Usuario)
+        .filter(
+            (Usuario.nombre.ilike(f"%{query}%")) |
+            (Usuario.correo.ilike(f"%{query}%"))
+        )
+        .all()
+    )
+    if not results:
+        return {"message": "No se encontraron usuarios"}
+    return {"results": results}
+
+
+

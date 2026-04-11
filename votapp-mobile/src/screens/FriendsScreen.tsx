@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
+  TextInput,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
@@ -15,8 +16,16 @@ type Friend = {
   status: string;
 };
 
+type Usuario = {
+  id: number;
+  nombre: string;
+  correo: string;
+};
+
 export default function FriendsScreen() {
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Usuario[]>([]);
   const navigation = useNavigation();
 
   const fetchFriends = async () => {
@@ -43,11 +52,23 @@ export default function FriendsScreen() {
     }
   };
 
+  const searchUsers = async () => {
+    try {
+      const res = await fetch(
+        `https://aplicacion-votapp-test.onrender.com/api/friends/search?query=${query}`
+      );
+      const data = await res.json();
+      setSearchResults(data.results || []);
+    } catch (err) {
+      console.error("Error al buscar usuarios:", err);
+    }
+  };
+
   useEffect(() => {
     fetchFriends();
   }, []);
 
-  const renderItem = ({ item }: { item: Friend }) => (
+  const renderFriendItem = ({ item }: { item: Friend }) => (
     <View style={styles.card}>
       <Text style={styles.title}>Usuario {item.friend_id}</Text>
       <Text style={styles.subtitle}>Estado: {item.status}</Text>
@@ -82,12 +103,51 @@ export default function FriendsScreen() {
     </View>
   );
 
+  const renderSearchItem = ({ item }: { item: Usuario }) => (
+    <View style={styles.card}>
+      <Text style={styles.title}>{item.nombre}</Text>
+      <Text style={styles.subtitle}>{item.correo}</Text>
+      <TouchableOpacity
+        style={[styles.button, styles.profile]}
+        onPress={() =>
+          navigation.navigate("FriendProfileScreen", { friendId: item.id })
+        }
+      >
+        <Text style={styles.buttonText}>Enviar solicitud</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
+      {/* Buscador */}
+      <TextInput
+        style={styles.input}
+        placeholder="Buscar por nombre o correo"
+        value={query}
+        onChangeText={setQuery}
+      />
+      <TouchableOpacity style={[styles.button, styles.profile]} onPress={searchUsers}>
+        <Text style={styles.buttonText}>Buscar</Text>
+      </TouchableOpacity>
+
+      {/* Resultados de búsqueda */}
+      {searchResults.length > 0 && (
+        <FlatList
+          data={searchResults}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderSearchItem}
+          ListEmptyComponent={
+            <Text style={styles.empty}>No se encontraron usuarios</Text>
+          }
+        />
+      )}
+
+      {/* Lista de amigos */}
       <FlatList
         data={friends}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
+        renderItem={renderFriendItem}
         ListEmptyComponent={
           <Text style={styles.empty}>No tienes amigos todavía</Text>
         }
@@ -98,6 +158,14 @@ export default function FriendsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
+  input: {
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
   card: {
     backgroundColor: "#fff",
     padding: 16,
@@ -112,6 +180,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,
+    marginTop: 6,
   },
   accept: { backgroundColor: "#4CAF50" },
   reject: { backgroundColor: "#F44336" },
@@ -119,5 +188,3 @@ const styles = StyleSheet.create({
   buttonText: { color: "#fff", fontWeight: "bold" },
   empty: { textAlign: "center", marginTop: 20, color: "#999" },
 });
-
-
