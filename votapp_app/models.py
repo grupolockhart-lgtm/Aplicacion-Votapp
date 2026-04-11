@@ -318,3 +318,23 @@ class Participacion(Base):
 
 
 
+# -----------------------------
+# Modelo de Amigos (Core)
+# -----------------------------
+class FriendCore(Base):
+    __tablename__ = "friends_core"   # <-- nombre distinto
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    friend_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    status = Column(String(20), default="pending")  # pending, accepted, rejected
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("user_id", "friend_id", name="unique_friendship_core"),)
+
+    # Relaciones
+    user = relationship("Usuario", foreign_keys=[user_id])
+    friend = relationship("Usuario", foreign_keys=[friend_id])
+
+

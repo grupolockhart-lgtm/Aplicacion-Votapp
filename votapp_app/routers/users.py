@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Request
+
+# votapp_app/routes/users.py
+
+from fastapi import APIRouter, Query, Depends, HTTPException, File, UploadFile, Request
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
@@ -413,16 +416,6 @@ def get_user_survey_history(
 
 
 
-
-
-
-
-
-
-
-
-
-
 # -----------------------------
 # Listar encuestas simples de un usuario
 # -----------------------------
@@ -443,6 +436,27 @@ def listar_encuestas_simples(
     )
 
     return encuestas
+
+
+
+
+# -------------------
+# ENDPOINT: Buscar usuarios
+# -------------------
+@router.get("/search", response_model=List[UserOut])
+def search_users(query: str = Query(..., min_length=1), db: Session = Depends(get_db)):
+    results = (
+        db.query(Usuario)
+        .filter(
+            (Usuario.username.ilike(f"%{query}%")) |
+            (Usuario.email.ilike(f"%{query}%"))
+        )
+        .all()
+    )
+    return results
+
+
+
 
 
 

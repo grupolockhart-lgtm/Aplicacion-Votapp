@@ -22,6 +22,9 @@ import SurveySimpleCrearScreen from "./src/screens/SurveySimpleCrearScreen";
 import SurveySimplePreviewScreen from "./src/screens/SurveySimplePreviewScreen";
 import FriendsScreen from "./src/screens/FriendsScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
+import FriendProfileScreen from "./src/screens/FriendProfileScreen"; // 👈 importado
+
+
 
 import type { RootStackParamList } from "./src/Types/Navigation";
 
@@ -151,6 +154,11 @@ export default function App() {
               name="SurveySimplePreviewScreen"
               component={SurveySimplePreviewScreen}
               options={{ title: "Previsualización" }}
+            />
+            <Stack.Screen
+              name="FriendProfileScreen"
+              component={FriendProfileScreen}
+              options={{ title: "Perfil de amigo" }}
             />
           </Stack.Navigator>
         </NavigationContainer>

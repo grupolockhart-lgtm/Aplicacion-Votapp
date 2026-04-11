@@ -1,7 +1,13 @@
-
 // src/screens/FriendsScreen.tsx
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 type Friend = {
   id: number;
@@ -11,6 +17,7 @@ type Friend = {
 
 export default function FriendsScreen() {
   const [friends, setFriends] = useState<Friend[]>([]);
+  const navigation = useNavigation();
 
   const fetchFriends = async () => {
     try {
@@ -63,10 +70,11 @@ export default function FriendsScreen() {
       ) : (
         <TouchableOpacity
           style={[styles.button, styles.profile]}
-          onPress={() => {
-            // Aquí podrías navegar a un FriendProfileScreen
-            console.log("Ver perfil de", item.friend_id);
-          }}
+          onPress={() =>
+            navigation.navigate("FriendProfileScreen", {
+              friendId: item.friend_id,
+            })
+          }
         >
           <Text style={styles.buttonText}>Ver perfil</Text>
         </TouchableOpacity>
@@ -111,6 +119,5 @@ const styles = StyleSheet.create({
   buttonText: { color: "#fff", fontWeight: "bold" },
   empty: { textAlign: "center", marginTop: 20, color: "#999" },
 });
-
 
 

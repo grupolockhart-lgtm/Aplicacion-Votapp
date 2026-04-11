@@ -35,8 +35,6 @@ export type RootStackParamList = {
     media_urls?: string[];
   };
 
-
-
   // Comentarios
   SurveyCommentsScreen: { surveyId: number };
 
@@ -58,7 +56,15 @@ export type RootStackParamList = {
   SurveyHistoryScreen: {
     history: { id: number; title: string; completed_at: string }[];
   };
+
+  // Amigos y notificaciones
+  FriendsScreen: undefined;
+  NotificationsScreen: undefined;
+
+  // Perfil de amigo
+  FriendProfileScreen: { friendId: number }; // 👈 agregado
 };
+
 
 
 
