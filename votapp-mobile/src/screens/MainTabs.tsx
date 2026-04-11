@@ -1,3 +1,5 @@
+// src/screens/MainTabs.tsx
+
 import React, { useEffect, useState } from "react";
 import {
   createBottomTabNavigator,
@@ -8,8 +10,10 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import SurveysScreen from "./SurveysScreen";
 import ProfileScreen from "./ProfileScreen";
 import SurveySimpleCrearScreen from "./SurveySimpleCrearScreen";
-import FriendsScreen from "../screens/FriendsScreen";
-import NotificationsScreen from "../screens/NotificationsScreen";
+import FriendsScreen from "./FriendsScreen";
+import NotificationsScreen from "./NotificationsScreen";
+
+
 
 type TabParamList = {
   SurveysScreen: undefined;

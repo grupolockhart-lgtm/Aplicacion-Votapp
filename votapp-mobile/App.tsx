@@ -20,6 +20,8 @@ import SurveyHistory from "./src/screens/SurveyHistory";
 import SurveyHistoryScreen from "./src/screens/SurveyHistoryScreen";
 import SurveySimpleCrearScreen from "./src/screens/SurveySimpleCrearScreen";
 import SurveySimplePreviewScreen from "./src/screens/SurveySimplePreviewScreen";
+import FriendsScreen from "./src/screens/FriendsScreen";
+import NotificationsScreen from "./src/screens/NotificationsScreen";
 
 import type { RootStackParamList } from "./src/Types/Navigation";
 
@@ -39,6 +41,8 @@ function MainTabs() {
             SurveysScreen: "list",
             CrearEncuesta: "add-circle",
             ProfileScreen: "person",
+            FriendsScreen: "people",
+            NotificationsScreen: "notifications",
           };
 
           return (
@@ -61,6 +65,16 @@ function MainTabs() {
         name="CrearEncuesta"
         component={SurveySimpleCrearScreen}
         options={{ title: "Crear" }}
+      />
+      <Tab.Screen
+        name="FriendsScreen"
+        component={FriendsScreen}
+        options={{ title: "Amigos" }}
+      />
+      <Tab.Screen
+        name="NotificationsScreen"
+        component={NotificationsScreen}
+        options={{ title: "Notificaciones" }}
       />
       <Tab.Screen
         name="ProfileScreen"

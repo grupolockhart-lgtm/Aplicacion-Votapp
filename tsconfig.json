@@ -1,10 +1,18 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "baseUrl": "./votapp-mobile/src",
+    "ignoreDeprecations": "6.0",
+    "baseUrl": "./votapp-mobile",        // 👈 define baseUrl
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["src/*"]                   // 👈 alias relativo a baseUrl
     }
-  }
+  },
+  "include": ["votapp-mobile/src"]
 }
+
+
+
+
+
+
 
