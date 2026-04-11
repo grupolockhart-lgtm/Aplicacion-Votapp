@@ -113,7 +113,7 @@ export default function FriendsScreen() {
           navigation.navigate("FriendProfileScreen", { friendId: item.id })
         }
       >
-        <Text style={styles.buttonText}>Enviar solicitud</Text>
+        <Text style={styles.buttonText}>Ver perfil</Text>
       </TouchableOpacity>
     </View>
   );
