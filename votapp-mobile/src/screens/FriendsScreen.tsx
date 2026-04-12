@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  Image,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
@@ -14,12 +15,20 @@ type Friend = {
   id: number;
   friend_id: number;
   status: string;
+  nombre?: string;
+  correo?: string;
+  alias?: string;
+  avatar_url?: string;
+  bio?: string;
 };
 
 type Usuario = {
   id: number;
   nombre: string;
   correo: string;
+  alias?: string;
+  avatar_url?: string;
+  bio?: string;
 };
 
 export default function FriendsScreen() {
@@ -46,7 +55,7 @@ export default function FriendsScreen() {
         `https://aplicacion-votapp-test.onrender.com/api/friends/${friendId}?action=${action}`,
         { method: "PUT" }
       );
-      fetchFriends(); // refresca la lista
+      fetchFriends();
     } catch (err) {
       console.error("Error al actualizar estado:", err);
     }
@@ -70,7 +79,13 @@ export default function FriendsScreen() {
 
   const renderFriendItem = ({ item }: { item: Friend }) => (
     <View style={styles.card}>
-      <Text style={styles.title}>Usuario {item.friend_id}</Text>
+      {item.avatar_url && (
+        <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+      )}
+      <Text style={styles.title}>
+        {item.nombre} {item.alias ? `(${item.alias})` : ""}
+      </Text>
+      <Text style={styles.subtitle}>{item.correo}</Text>
       <Text style={styles.subtitle}>Estado: {item.status}</Text>
 
       {item.status === "pending" ? (
@@ -105,8 +120,14 @@ export default function FriendsScreen() {
 
   const renderSearchItem = ({ item }: { item: Usuario }) => (
     <View style={styles.card}>
-      <Text style={styles.title}>{item.nombre}</Text>
+      {item.avatar_url && (
+        <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+      )}
+      <Text style={styles.title}>
+        {item.nombre} {item.alias ? `(${item.alias})` : ""}
+      </Text>
       <Text style={styles.subtitle}>{item.correo}</Text>
+      {item.bio && <Text style={styles.subtitle}>{item.bio}</Text>}
       <TouchableOpacity
         style={[styles.button, styles.profile]}
         onPress={() =>
@@ -127,7 +148,10 @@ export default function FriendsScreen() {
         value={query}
         onChangeText={setQuery}
       />
-      <TouchableOpacity style={[styles.button, styles.profile]} onPress={searchUsers}>
+      <TouchableOpacity
+        style={[styles.button, styles.profile]}
+        onPress={searchUsers}
+      >
         <Text style={styles.buttonText}>Buscar</Text>
       </TouchableOpacity>
 
@@ -173,8 +197,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     elevation: 2,
   },
-  title: { fontSize: 18, fontWeight: "bold", marginBottom: 4 },
-  subtitle: { fontSize: 14, color: "#666", marginBottom: 8 },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 8,
+    alignSelf: "center",
+  },
+  title: { fontSize: 18, fontWeight: "bold", marginBottom: 4, textAlign: "center" },
+  subtitle: { fontSize: 14, color: "#666", marginBottom: 8, textAlign: "center" },
   row: { flexDirection: "row", justifyContent: "space-between" },
   button: {
     paddingVertical: 8,
@@ -185,6 +216,6 @@ const styles = StyleSheet.create({
   accept: { backgroundColor: "#4CAF50" },
   reject: { backgroundColor: "#F44336" },
   profile: { backgroundColor: "#2196F3" },
-  buttonText: { color: "#fff", fontWeight: "bold" },
+  buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
   empty: { textAlign: "center", marginTop: 20, color: "#999" },
 });

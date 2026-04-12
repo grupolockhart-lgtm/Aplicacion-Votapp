@@ -23,6 +23,9 @@ type User = {
   alias?: string;
   avatar_url?: string;
   bio?: string;
+  nivel?: number;
+  puntos?: number;
+  racha_dias?: number;
 };
 
 export default function FriendProfileScreen({ route }: FriendProfileProps) {
@@ -96,6 +99,13 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         <Text style={styles.info}>Profesión: {user.profesion}</Text>
       )}
       {user.bio && <Text style={styles.info}>Bio: {user.bio}</Text>}
+      {user.nivel && <Text style={styles.info}>Nivel: {user.nivel}</Text>}
+      {user.puntos !== undefined && (
+        <Text style={styles.info}>Puntos: {user.puntos}</Text>
+      )}
+      {user.racha_dias !== undefined && (
+        <Text style={styles.info}>Racha de días: {user.racha_dias}</Text>
+      )}
 
       <TouchableOpacity
         style={[styles.button, styles.request]}
@@ -117,7 +127,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignSelf: "center",
   },
-  title: { fontSize: 22, fontWeight: "bold", marginBottom: 12, textAlign: "center" },
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 12,
+    textAlign: "center",
+  },
   info: { fontSize: 16, marginBottom: 8, textAlign: "center" },
   button: {
     paddingVertical: 10,

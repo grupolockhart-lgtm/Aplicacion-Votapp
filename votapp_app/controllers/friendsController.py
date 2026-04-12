@@ -1,11 +1,11 @@
 # votapp_app/controllers/friendsController.py
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from datetime import datetime
 from ..database import get_db
 from ..models_social import Friend, Notification
-from datetime import datetime
-from ..models import Usuario 
+from ..models import Usuario
 
 router = APIRouter()
 
@@ -14,7 +14,28 @@ router = APIRouter()
 # -------------------
 @router.get("/friends")
 def list_friends(user_id: int, db: Session = Depends(get_db)):
-    return db.query(Friend).filter(Friend.user_id == user_id, Friend.status == "accepted").all()
+    friendships = (
+        db.query(Friend)
+        .options(joinedload(Friend.friend).joinedload(Usuario.perfil_publico))
+        .filter(Friend.user_id == user_id, Friend.status == "accepted")
+        .all()
+    )
+
+    result = []
+    for f in friendships:
+        amigo = f.friend
+        perfil = amigo.perfil_publico
+        result.append({
+            "id": f.id,
+            "friend_id": amigo.id,
+            "status": f.status,
+            "nombre": amigo.nombre,
+            "correo": amigo.correo,
+            "alias": perfil.alias if perfil else None,
+            "avatar_url": perfil.avatar_url if perfil else None,
+            "bio": perfil.bio if perfil else None,
+        })
+    return result
 
 
 # -------------------
@@ -37,7 +58,6 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
     db.commit()
     db.refresh(new_request)
 
-    # Notificación para el destinatario
     notification = Notification(
         user_id=friend_id,
         type="friend_request",
@@ -74,10 +94,9 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
     db.commit()
     db.refresh(friendship)
 
-    # Crear notificación para el solicitante si se acepta
     if action == "accepted":
         notification = Notification(
-            user_id=friendship.user_id,  # el que envió la solicitud
+            user_id=friendship.user_id,
             type="friend_request",
             message=f"Tu solicitud de amistad fue aceptada por usuario {friendship.friend_id}",
             related_id=friendship.id,
@@ -118,15 +137,29 @@ def delete_friendship(friendship_id: int, db: Session = Depends(get_db)):
 def search_friends(query: str, db: Session = Depends(get_db)):
     results = (
         db.query(Usuario)
+        .options(joinedload(Usuario.perfil_publico))
         .filter(
             (Usuario.nombre.ilike(f"%{query}%")) |
             (Usuario.correo.ilike(f"%{query}%"))
         )
         .all()
     )
+
     if not results:
         return {"message": "No se encontraron usuarios"}
-    return {"results": results}
 
+    formatted = []
+    for u in results:
+        perfil = u.perfil_publico
+        formatted.append({
+            "id": u.id,
+            "nombre": u.nombre,
+            "correo": u.correo,
+            "alias": perfil.alias if perfil else None,
+            "avatar_url": perfil.avatar_url if perfil else None,
+            "bio": perfil.bio if perfil else None,
+        })
+
+    return {"results": formatted}
 
 
