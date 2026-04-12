@@ -18,6 +18,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 import requests, os, logging, uuid, shutil
 from dotenv import load_dotenv
+from votapp_app.controllers import usersController
 
 BASE_URL = os.getenv("APP_BASE_URL", "https://aplicacion-votapp-test.onrender.com")
 
@@ -80,6 +81,9 @@ app.mount("/media", StaticFiles(directory="media"), name="media")
 # -----------------------------
 # Routers con prefijo /api
 # -----------------------------
+
+
+app.include_router(usersController.router, prefix="/api", tags=["usuarios"])
 app.include_router(users.router, prefix="/api", tags=["users"])
 app.include_router(friends.router, prefix="/api", tags=["friends"])
 app.include_router(friendsController.router, prefix="/api", tags=["friends"])
@@ -91,6 +95,8 @@ app.include_router(comments.router, prefix="/api")
 app.include_router(gamificacion.router, prefix="/api")
 app.include_router(rss.router, prefix="/api")
 app.include_router(surveys_simple.router, prefix="/api")
+
+
 
 # -----------------------------
 # Endpoint raíz

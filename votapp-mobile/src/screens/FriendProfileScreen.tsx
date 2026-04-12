@@ -37,6 +37,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
     try {
       const res = await fetch(
         `https://aplicacion-votapp-test.onrender.com/api/usuarios/${friendId}`
+
       );
       const data = await res.json();
       console.log("Respuesta backend:", data); // 👈 imprime el JSON recibido
