@@ -39,7 +39,8 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         `https://aplicacion-votapp-test.onrender.com/api/usuarios/${friendId}`
       );
       const data = await res.json();
-      setUser(data);
+      console.log("Respuesta backend:", data); // 👈 imprime el JSON recibido
+      setUser(data); // si ves que el JSON viene como { usuario: {...} }, cambia a setUser(data.usuario)
     } catch (err) {
       console.error("Error al cargar perfil:", err);
     } finally {
