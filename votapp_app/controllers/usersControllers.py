@@ -1,4 +1,4 @@
-# votapp_app/controllers/usersController.py
+# votapp_app/controllers/usersControllers.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
