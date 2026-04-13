@@ -15,7 +15,21 @@ router = APIRouter()
 # -------------------
 @router.get("/notifications")
 def list_notifications(user_id: int, db: Session = Depends(get_db)):
-    return db.query(Notification).filter(Notification.user_id == user_id).all()
+    notifications = db.query(Notification).filter(Notification.user_id == user_id).all()
+    return [
+        {
+            "id": n.id,
+            "user_id": n.user_id,
+            "type": n.type,
+            "message": n.message,
+            "related_id": n.related_id,
+            "status": n.status,
+            "created_at": n.created_at.isoformat() if n.created_at else None,
+        }
+        for n in notifications
+    ]
+
+
 
 
 # -------------------
