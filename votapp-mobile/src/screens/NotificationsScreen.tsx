@@ -93,16 +93,28 @@ export default function NotificationsScreen({ userId = 1 }) {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={{ marginVertical: 8 }}>
-            <Text>{item.message}</Text>
+            {/* Mensaje diferenciado según rol */}
+            {item.type === "friend_request" && item.status === "unread" ? (
+              item.role === "sent" ? (
+                <Text>Has enviado una solicitud de amistad a {item.to_user}, pendiente de respuesta</Text>
+              ) : (
+                <Text>Has recibido una solicitud de amistad de {item.from_user}</Text>
+              )
+            ) : (
+              <Text>{item.message}</Text>
+            )}
+
             {item.from_user && <Text>De: {item.from_user}</Text>}
             {item.to_user && <Text>Para: {item.to_user}</Text>}
             <Text>Estado: {item.status}</Text>
 
+            {/* Botón marcar como leída */}
             {item.status === "unread" && (
               <Button title="Marcar como leída" onPress={() => markAsRead(item.id)} />
             )}
 
-            {item.type === "friend_request" && item.status === "unread" && (
+            {/* Solo el destinatario puede aceptar/rechazar */}
+            {item.type === "friend_request" && item.status === "unread" && item.role === "received" && (
               <View style={{ flexDirection: "row", marginTop: 4 }}>
                 <Button
                   title="Aceptar solicitud"

@@ -10,7 +10,7 @@ router = APIRouter()
 @router.get("/usuarios/{usuario_id}")
 def get_usuario(
     usuario_id: int,
-    current_user_id: int = Query(...),  # se pasa como query param
+    current_user_id: int = Query(...),
     db: Session = Depends(get_db)
 ):
     usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
@@ -19,13 +19,19 @@ def get_usuario(
 
     perfil = usuario.perfil_publico
 
-    # Buscar estado de amistad entre current_user_id y usuario_id
+    # Buscar estado de amistad
     friendship = db.query(Friend).filter(
         ((Friend.user_id == current_user_id) & (Friend.friend_id == usuario_id)) |
         ((Friend.user_id == usuario_id) & (Friend.friend_id == current_user_id))
     ).first()
 
     status = friendship.status if friendship else None
+    role = None
+    if friendship:
+        if current_user_id == friendship.user_id:
+            role = "sent"       # el usuario actual envió la solicitud
+        elif current_user_id == friendship.friend_id:
+            role = "received"   # el usuario actual recibió la solicitud
 
     return {
         "id": usuario.id,
@@ -40,7 +46,9 @@ def get_usuario(
         "nivel": perfil.nivel if perfil else None,
         "puntos": perfil.puntos if perfil else None,
         "racha_dias": perfil.racha_dias if perfil else None,
-        "status": status  # 👈 ahora el frontend sabe si ya son amigos
+        "status": status,
+        "role": role   # 👈 nuevo campo para diferenciar remitente/destinatario
     }
+
 
 
