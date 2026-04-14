@@ -60,6 +60,39 @@ def list_friends(user_id: int, db: Session = Depends(get_db)):
     return result
 
 # -------------------
+# LISTAR SOLICITUDES PENDIENTES
+# -------------------
+@router.get("/friends/pending")
+def list_pending_requests(current_user_id: int, db: Session = Depends(get_db)):
+    requests = (
+        db.query(Friend)
+        .filter(
+            ((Friend.user_id == current_user_id) | (Friend.friend_id == current_user_id)),
+            Friend.status == "pending"
+        )
+        .all()
+    )
+
+    result = []
+    for f in requests:
+        other_id = f.friend_id if f.user_id == current_user_id else f.user_id
+        other = db.query(Usuario).filter(Usuario.id == other_id).first()
+        perfil = getattr(other, "perfil_publico", None)
+
+        result.append({
+            "id": f.id,
+            "status": f.status,
+            "otro_usuario_id": other.id,
+            "nombre": other.nombre,
+            "correo": other.correo,
+            "alias": perfil.alias if perfil else None,
+            "avatar_url": perfil.avatar_url if perfil else None,
+            "bio": perfil.bio if perfil else None,
+            "mensaje": build_friend_notification(f, current_user_id, db)
+        })
+    return result
+
+# -------------------
 # ENVIAR SOLICITUD DE AMISTAD + NOTIFICACIONES
 # -------------------
 @router.post("/friends/request")
@@ -85,7 +118,7 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
     nombre_remitente = remitente.nombre or f"Usuario {remitente.id}"
     nombre_destinatario = destinatario.nombre or f"Usuario {destinatario.id}"
 
-    # Notificación al destinatario (ej: Lia)
+    # Notificación al destinatario
     notif_dest = Notification(
         user_id=friend_id,
         type="friend_request",
@@ -95,7 +128,7 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
         created_at=datetime.utcnow()
     )
 
-    # Notificación al remitente (confirmación)
+    # Notificación al remitente
     notif_rem = Notification(
         user_id=user_id,
         type="friend_request",
@@ -105,7 +138,6 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
         created_at=datetime.utcnow()
     )
 
-    # Guardar ambas notificaciones en la misma transacción
     db.add_all([notif_dest, notif_rem])
     db.commit()
     db.refresh(notif_dest)
@@ -116,7 +148,6 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
         "friendship": new_request,
         "notifications": [notif_dest, notif_rem]
     }
-
 
 # -------------------
 # ACEPTAR / RECHAZAR SOLICITUD + NOTIFICACIÓN AL REMITENTE
@@ -135,15 +166,11 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
     db.commit()
     db.refresh(friendship)
 
-    # Notificación al remitente (el que envió la solicitud)
     remitente_id = friendship.user_id
     destinatario = db.query(Usuario).filter(Usuario.id == friendship.friend_id).first()
     nombre_destinatario = destinatario.nombre or f"Usuario {destinatario.id}"
 
-    if action == "accepted":
-        mensaje = f"Tu solicitud de amistad fue aceptada por {nombre_destinatario}"
-    else:
-        mensaje = f"Tu solicitud de amistad fue rechazada por {nombre_destinatario}"
+    mensaje = f"Tu solicitud de amistad fue {'aceptada' if action == 'accepted' else 'rechazada'} por {nombre_destinatario}"
 
     notif_rem = Notification(
         user_id=remitente_id,
@@ -163,7 +190,6 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
         "friendship": friendship,
         "notification": notif_rem
     }
-
 
 # -------------------
 # ELIMINAR AMISTAD
@@ -213,7 +239,6 @@ def search_friends(query: str = Query(...), current_user_id: int = Query(...), d
         })
 
     return {"results": formatted}
-
 
 
 
