@@ -18,6 +18,10 @@ router = APIRouter()
 def list_friends(user_id: int, db: Session = Depends(get_db)):
     friendships = (
         db.query(Friend)
+        .options(
+            joinedload(Friend.user).joinedload(Usuario.perfil_publico),
+            joinedload(Friend.friend).joinedload(Usuario.perfil_publico),
+        )
         .filter(
             ((Friend.user_id == user_id) | (Friend.friend_id == user_id)),
             Friend.status == "accepted"
@@ -28,26 +32,21 @@ def list_friends(user_id: int, db: Session = Depends(get_db)):
     result = []
     for f in friendships:
         # Determinar quién es el "otro" amigo
-        other_id = f.friend_id if f.user_id == user_id else f.user_id
-        amigo = db.query(Usuario).filter(Usuario.id == other_id).first()
-
-        if not amigo:
-            continue
-
-        # Traer perfil público si existe
-        perfil = db.query(PerfilPublico).filter(PerfilPublico.usuario_id == amigo.id).first()
+        other = f.friend if f.user_id == user_id else f.user
+        perfil = getattr(other, "perfil_publico", None)
 
         result.append({
             "id": f.id,
-            "friend_id": amigo.id,
+            "friend_id": other.id,
             "status": f.status,
-            "nombre": amigo.nombre,
-            "correo": amigo.correo,
+            "nombre": other.nombre,
+            "correo": other.correo,
             "alias": perfil.alias if perfil else None,
             "avatar_url": perfil.avatar_url if perfil else None,
             "bio": perfil.bio if perfil else None,
         })
     return result
+
 
 
 
