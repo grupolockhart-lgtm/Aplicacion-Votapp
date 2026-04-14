@@ -79,10 +79,13 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
     db.commit()
     db.refresh(new_request)
 
-    # Notificación al destinatario
+    # Obtener nombres visibles
     remitente = db.query(Usuario).filter(Usuario.id == user_id).first()
+    destinatario = db.query(Usuario).filter(Usuario.id == friend_id).first()
     nombre_remitente = remitente.nombre or f"Usuario {remitente.id}"
+    nombre_destinatario = destinatario.nombre or f"Usuario {destinatario.id}"
 
+    # Notificación al destinatario (ej: Lia)
     notif_dest = Notification(
         user_id=friend_id,
         type="friend_request",
@@ -91,19 +94,19 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
         status="unread",
         created_at=datetime.utcnow()
     )
-    db.add(notif_dest)
 
-    # Notificación opcional al remitente (confirmación)
+    # Notificación al remitente (confirmación)
     notif_rem = Notification(
         user_id=user_id,
-        type="friend_request_sent",
-        message=f"Has enviado una solicitud de amistad a Usuario {friend_id}",
+        type="friend_request",
+        message=f"Has enviado una solicitud de amistad a {nombre_destinatario}",
         related_id=new_request.id,
         status="unread",
         created_at=datetime.utcnow()
     )
-    db.add(notif_rem)
 
+    # Guardar ambas notificaciones en la misma transacción
+    db.add_all([notif_dest, notif_rem])
     db.commit()
     db.refresh(notif_dest)
     db.refresh(notif_rem)
@@ -113,6 +116,7 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
         "friendship": new_request,
         "notifications": [notif_dest, notif_rem]
     }
+
 
 # -------------------
 # ACEPTAR / RECHAZAR SOLICITUD + NOTIFICACIÓN AL REMITENTE
@@ -133,16 +137,23 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
 
     # Notificación al remitente (el que envió la solicitud)
     remitente_id = friendship.user_id
-    mensaje = build_friend_notification(friendship, remitente_id, db)
+    destinatario = db.query(Usuario).filter(Usuario.id == friendship.friend_id).first()
+    nombre_destinatario = destinatario.nombre or f"Usuario {destinatario.id}"
+
+    if action == "accepted":
+        mensaje = f"Tu solicitud de amistad fue aceptada por {nombre_destinatario}"
+    else:
+        mensaje = f"Tu solicitud de amistad fue rechazada por {nombre_destinatario}"
 
     notif_rem = Notification(
         user_id=remitente_id,
-        type="friendship",
+        type="friend_request",
         message=mensaje,
         related_id=friendship.id,
         status="unread",
         created_at=datetime.utcnow()
     )
+
     db.add(notif_rem)
     db.commit()
     db.refresh(notif_rem)
@@ -152,6 +163,7 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
         "friendship": friendship,
         "notification": notif_rem
     }
+
 
 # -------------------
 # ELIMINAR AMISTAD
