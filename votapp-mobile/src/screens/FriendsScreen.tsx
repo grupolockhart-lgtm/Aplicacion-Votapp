@@ -14,18 +14,22 @@ import { useNavigation } from "@react-navigation/native";
 
 type Friend = {
   id: number;
-  friend_id: number; // este es el ID del otro usuario
+  friend_id: number;
   status: string;
   nombre?: string;
   correo?: string;
   alias?: string;
   avatar_url?: string;
   bio?: string;
+  nivel?: number;
+  puntos?: number;
+  racha_dias?: number;
+  ultima_participacion?: string;
 };
 
 type Usuario = {
   id: number;
-  nombre: string;
+  nombre?: string;
   correo: string;
   alias?: string;
   avatar_url?: string;
@@ -46,6 +50,7 @@ export default function FriendsScreen() {
         `https://aplicacion-votapp-test.onrender.com/api/friends?user_id=${currentUserId}`
       );
       const data = await res.json();
+      console.log("Amigos:", data);
       setFriends(data);
     } catch (err) {
       console.error("Error al cargar amigos:", err);
@@ -72,7 +77,6 @@ export default function FriendsScreen() {
       const data = await res.json();
 
       if (data.detail) {
-        // Si el backend devuelve error 400 por query vacío
         Alert.alert("Error de búsqueda", data.detail);
         setSearchResults([]);
       } else {
@@ -93,9 +97,27 @@ export default function FriendsScreen() {
         <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
       )}
       <Text style={styles.title}>
-        {item.nombre} {item.alias ? `(${item.alias})` : ""}
+        {item.alias ? item.alias : item.nombre}
       </Text>
+      {item.nombre && (
+        <Text style={styles.subtitle}>Nombre: {item.nombre}</Text>
+      )}
       <Text style={styles.subtitle}>{item.correo}</Text>
+      {item.bio && <Text style={styles.subtitle}>{item.bio}</Text>}
+      {item.nivel !== undefined && (
+        <Text style={styles.subtitle}>Nivel: {item.nivel}</Text>
+      )}
+      {item.puntos !== undefined && (
+        <Text style={styles.subtitle}>Puntos: {item.puntos}</Text>
+      )}
+      {item.racha_dias !== undefined && (
+        <Text style={styles.subtitle}>Racha: {item.racha_dias} días</Text>
+      )}
+      {item.ultima_participacion && (
+        <Text style={styles.subtitle}>
+          Última participación: {item.ultima_participacion}
+        </Text>
+      )}
       <Text style={styles.subtitle}>Estado: {item.status}</Text>
 
       {item.status === "pending" ? (
@@ -118,7 +140,7 @@ export default function FriendsScreen() {
           style={[styles.button, styles.profile]}
           onPress={() =>
             navigation.navigate("FriendProfileScreen", {
-              friendId: item.friend_id, // ahora sí es el ID del otro usuario
+              friendId: item.friend_id,
             })
           }
         >
@@ -134,8 +156,11 @@ export default function FriendsScreen() {
         <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
       )}
       <Text style={styles.title}>
-        {item.nombre} {item.alias ? `(${item.alias})` : ""}
+        {item.alias ? item.alias : item.nombre}
       </Text>
+      {item.nombre && (
+        <Text style={styles.subtitle}>Nombre: {item.nombre}</Text>
+      )}
       <Text style={styles.subtitle}>{item.correo}</Text>
       {item.bio && <Text style={styles.subtitle}>{item.bio}</Text>}
       <TouchableOpacity
@@ -154,7 +179,7 @@ export default function FriendsScreen() {
       {/* Buscador */}
       <TextInput
         style={styles.input}
-        placeholder="Buscar por nombre o correo"
+        placeholder="Buscar por alias o correo"
         value={query}
         onChangeText={setQuery}
       />
@@ -214,8 +239,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     alignSelf: "center",
   },
-  title: { fontSize: 18, fontWeight: "bold", marginBottom: 4, textAlign: "center" },
-  subtitle: { fontSize: 14, color: "#666", marginBottom: 8, textAlign: "center" },
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 8,
+    textAlign: "center",
+  },
   row: { flexDirection: "row", justifyContent: "space-between" },
   button: {
     paddingVertical: 8,

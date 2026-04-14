@@ -16,17 +16,15 @@ type FriendProfileProps = {
 type User = {
   id: number;
   nombre: string;
-  apellido?: string;
   correo: string;
-  ciudad?: string;
-  profesion?: string;
   alias?: string;
   avatar_url?: string;
   bio?: string;
   nivel?: number;
   puntos?: number;
   racha_dias?: number;
-  status?: string; // 👈 nuevo campo que indica estado de amistad
+  ultima_participacion?: string;
+  status?: string; // estado de amistad
 };
 
 export default function FriendProfileScreen({ route }: FriendProfileProps) {
@@ -91,15 +89,11 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
       )}
       <Text style={styles.title}>
-        Perfil de {user.nombre} {user.apellido}
+        Perfil de {user.nombre}
       </Text>
       {user.alias && <Text style={styles.info}>Alias: {user.alias}</Text>}
       <Text style={styles.info}>ID: {user.id}</Text>
       <Text style={styles.info}>Correo: {user.correo}</Text>
-      {user.ciudad && <Text style={styles.info}>Ciudad: {user.ciudad}</Text>}
-      {user.profesion && (
-        <Text style={styles.info}>Profesión: {user.profesion}</Text>
-      )}
       {user.bio && <Text style={styles.info}>Bio: {user.bio}</Text>}
       {user.nivel && <Text style={styles.info}>Nivel: {user.nivel}</Text>}
       {user.puntos !== undefined && (
@@ -108,8 +102,13 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
       {user.racha_dias !== undefined && (
         <Text style={styles.info}>Racha de días: {user.racha_dias}</Text>
       )}
+      {user.ultima_participacion && (
+        <Text style={styles.info}>
+          Última participación: {user.ultima_participacion}
+        </Text>
+      )}
 
-      {/* 👇 Mostrar botón solo si NO son amigos todavía */}
+      {/* Mostrar botón solo si NO son amigos todavía */}
       {user.status !== "accepted" && (
         <TouchableOpacity
           style={[styles.button, styles.request]}

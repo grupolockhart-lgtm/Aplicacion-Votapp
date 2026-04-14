@@ -1,15 +1,31 @@
 # votapp_app/controllers/friendsController.py
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from datetime import datetime
 from ..database import get_db
 from ..models_social import Friend, Notification
-from ..models import Usuario, PerfilPublico   # 👈 importa también PerfilPublico
-
-
+from ..models import Usuario, PerfilPublico
 
 router = APIRouter()
+
+# -------------------
+# Helper para notificaciones de amistad
+# -------------------
+def build_friend_notification(f: Friend, current_user_id: int, db: Session):
+    # Determinar quién es el "otro" usuario en la relación
+    other_id = f.friend_id if f.user_id == current_user_id else f.user_id
+    other = db.query(Usuario).filter(Usuario.id == other_id).first()
+
+    # Usar nombre como principal, con fallback al ID si está vacío
+    nombre_visible = other.nombre or f"Usuario {other.id}"
+
+    if f.status == "accepted":
+        return f"Tu solicitud de amistad fue aceptada por {nombre_visible}"
+    elif f.status == "pending":
+        return f"Tienes una solicitud de amistad pendiente de {nombre_visible}"
+    else:
+        return f"Tu solicitud de amistad fue rechazada por {nombre_visible}"
 
 # -------------------
 # LISTAR AMIGOS
@@ -47,13 +63,6 @@ def list_friends(user_id: int, db: Session = Depends(get_db)):
         })
     return result
 
-
-
-
-
-
-
-
 # -------------------
 # ENVIAR SOLICITUD DE AMISTAD + NOTIFICACIÓN
 # -------------------
@@ -74,10 +83,14 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
     db.commit()
     db.refresh(new_request)
 
+    # Notificación al destinatario
+    other = db.query(Usuario).filter(Usuario.id == user_id).first()
+    nombre_visible = other.nombre or f"Usuario {other.id}"
+
     notification = Notification(
         user_id=friend_id,
         type="friend_request",
-        message=f"Has recibido una solicitud de amistad de usuario {user_id}",
+        message=f"Has recibido una solicitud de amistad de {nombre_visible}",
         related_id=new_request.id,
         status="unread",
         created_at=datetime.utcnow()
@@ -91,7 +104,6 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
         "friendship": new_request,
         "notification": notification
     }
-
 
 # -------------------
 # ACEPTAR / RECHAZAR SOLICITUD + ACTUALIZAR NOTIFICACIÓN
@@ -114,12 +126,9 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
     # Buscar la notificación original relacionada
     notification = db.query(Notification).filter(Notification.related_id == friendship.id).first()
     if notification:
-        if action == "accepted":
-            notification.message = f"Tu solicitud de amistad fue aceptada por usuario {friendship.friend_id}"
-            notification.status = "unread"  # mantener como no leída para que el remitente la vea
-        else:
-            notification.message = f"Tu solicitud de amistad fue rechazada por usuario {friendship.friend_id}"
-            notification.status = "unread"
+        mensaje = build_friend_notification(friendship, friendship.user_id, db)
+        notification.message = mensaje
+        notification.status = "unread"
         db.commit()
         db.refresh(notification)
 
@@ -128,11 +137,6 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
         "friendship": friendship,
         "notification": notification if notification else None
     }
-
-
-
-
-
 
 # -------------------
 # ELIMINAR AMISTAD
@@ -147,20 +151,11 @@ def delete_friendship(friendship_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Amistad eliminada"}
 
-
 # -------------------
 # BUSCAR AMIGOS POR NOMBRE O CORREO
 # -------------------
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session, joinedload
-from ..database import get_db
-from ..models import Usuario
-
-router = APIRouter()
-
 @router.get("/friends/search")
 def search_friends(query: str = Query(...), current_user_id: int = Query(...), db: Session = Depends(get_db)):
-    # 👇 Validación: si query está vacío, lanzar error 400
     if not query.strip():
         raise HTTPException(status_code=400, detail="Debes ingresar un término de búsqueda")
 
@@ -170,7 +165,7 @@ def search_friends(query: str = Query(...), current_user_id: int = Query(...), d
         .filter(
             ((Usuario.nombre.ilike(f"%{query}%")) |
              (Usuario.correo.ilike(f"%{query}%"))) &
-            (Usuario.id != current_user_id)   # 👈 excluye al usuario actual
+            (Usuario.id != current_user_id)
         )
         .all()
     )
@@ -191,8 +186,6 @@ def search_friends(query: str = Query(...), current_user_id: int = Query(...), d
         })
 
     return {"results": formatted}
-
-
 
 
 
