@@ -50,16 +50,38 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
   const sendFriendRequest = async () => {
     try {
       await fetch(
-        `https://aplicacion-votapp-test.onrender.com/api/friends/request`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: 1, friend_id: user?.id }),
-        }
+        `https://aplicacion-votapp-test.onrender.com/api/friends/request?user_id=1&friend_id=${user?.id}`,
+        { method: "POST" }
       );
       alert("Solicitud enviada");
     } catch (err) {
       console.error("Error al enviar solicitud:", err);
+    }
+  };
+
+  const acceptFriendRequest = async (friendshipId: number) => {
+    try {
+      await fetch(
+        `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=accepted`,
+        { method: "PUT" }
+      );
+      alert("Solicitud aceptada");
+      fetchUser(); // refrescar estado
+    } catch (err) {
+      console.error("Error al aceptar solicitud:", err);
+    }
+  };
+
+  const rejectFriendRequest = async (friendshipId: number) => {
+    try {
+      await fetch(
+        `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=rejected`,
+        { method: "PUT" }
+      );
+      alert("Solicitud rechazada");
+      fetchUser(); // refrescar estado
+    } catch (err) {
+      console.error("Error al rechazar solicitud:", err);
     }
   };
 
@@ -88,9 +110,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
       {user.avatar_url && (
         <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
       )}
-      <Text style={styles.title}>
-        Perfil de {user.nombre}
-      </Text>
+      <Text style={styles.title}>Perfil de {user.nombre}</Text>
       {user.alias && <Text style={styles.info}>Alias: {user.alias}</Text>}
       <Text style={styles.info}>ID: {user.id}</Text>
       <Text style={styles.info}>Correo: {user.correo}</Text>
@@ -116,6 +136,24 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         >
           <Text style={styles.buttonText}>Enviar solicitud de amistad</Text>
         </TouchableOpacity>
+      )}
+
+      {/* Ejemplo: botones para aceptar/rechazar si la solicitud está pendiente */}
+      {user.status === "pending" && (
+        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: "#2196F3", marginRight: 8 }]}
+            onPress={() => acceptFriendRequest(user.id)}
+          >
+            <Text style={styles.buttonText}>Aceptar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: "#F44336" }]}
+            onPress={() => rejectFriendRequest(user.id)}
+          >
+            <Text style={styles.buttonText}>Rechazar</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
@@ -147,3 +185,4 @@ const styles = StyleSheet.create({
   request: { backgroundColor: "#4CAF50" },
   buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
 });
+
