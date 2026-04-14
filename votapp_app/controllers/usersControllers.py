@@ -2,14 +2,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Usuario, Friend
+from ..models import Usuario
+from ..models_social import Friend  # 👈 importamos Friend desde models_social
 
 router = APIRouter()
 
 @router.get("/usuarios/{usuario_id}")
 def get_usuario(
     usuario_id: int,
-    current_user_id: int = Query(...),  # 👈 se pasa como query param
+    current_user_id: int = Query(...),  # se pasa como query param
     db: Session = Depends(get_db)
 ):
     usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
@@ -41,4 +42,5 @@ def get_usuario(
         "racha_dias": perfil.racha_dias if perfil else None,
         "status": status  # 👈 ahora el frontend sabe si ya son amigos
     }
+
 
