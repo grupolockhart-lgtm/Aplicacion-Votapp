@@ -45,28 +45,39 @@ export default function NotificationsScreen({ userId = 1 }) {
     });
   };
 
-  const acceptFriendRequest = (friendshipId: number) => {
+  const acceptFriendRequest = (friendshipId: number, notificationId: number) => {
     fetch(`https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=accepted`, {
       method: "PUT",
     })
       .then((res) => res.json())
       .then((data) => {
         console.log("Solicitud aceptada:", data);
-        fetchNotifications();
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notificationId
+              ? { ...n, status: "read", message: data.notification?.message || n.message }
+              : n
+          )
+        );
         fetchUnreadCount();
-        // Aquí podrías refrescar también tu lista de amigos aceptados
       })
       .catch(console.error);
   };
 
-  const rejectFriendRequest = (friendshipId: number) => {
+  const rejectFriendRequest = (friendshipId: number, notificationId: number) => {
     fetch(`https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=rejected`, {
       method: "PUT",
     })
       .then((res) => res.json())
       .then((data) => {
         console.log("Solicitud rechazada:", data);
-        fetchNotifications();
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notificationId
+              ? { ...n, status: "read", message: data.notification?.message || n.message }
+              : n
+          )
+        );
         fetchUnreadCount();
       })
       .catch(console.error);
@@ -95,13 +106,13 @@ export default function NotificationsScreen({ userId = 1 }) {
               <View style={{ flexDirection: "row", marginTop: 4 }}>
                 <Button
                   title="Aceptar solicitud"
-                  onPress={() => acceptFriendRequest(item.related_id)}
+                  onPress={() => acceptFriendRequest(item.related_id, item.id)}
                 />
                 <View style={{ width: 8 }} />
                 <Button
                   title="Rechazar solicitud"
                   color="red"
-                  onPress={() => rejectFriendRequest(item.related_id)}
+                  onPress={() => rejectFriendRequest(item.related_id, item.id)}
                 />
               </View>
             )}

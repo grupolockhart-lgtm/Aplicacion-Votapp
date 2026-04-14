@@ -13,7 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 
 type Friend = {
   id: number;
-  friend_id: number;
+  friend_id: number; // este es el ID del otro usuario
   status: string;
   nombre?: string;
   correo?: string;
@@ -49,10 +49,10 @@ export default function FriendsScreen() {
     }
   };
 
-  const updateFriendStatus = async (friendId: number, action: string) => {
+  const updateFriendStatus = async (friendshipId: number, action: string) => {
     try {
       await fetch(
-        `https://aplicacion-votapp-test.onrender.com/api/friends/${friendId}?action=${action}`,
+        `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=${action}`,
         { method: "PUT" }
       );
       fetchFriends();
@@ -108,7 +108,7 @@ export default function FriendsScreen() {
           style={[styles.button, styles.profile]}
           onPress={() =>
             navigation.navigate("FriendProfileScreen", {
-              friendId: item.friend_id,
+              friendId: item.friend_id, // ahora sí es el ID del otro usuario
             })
           }
         >

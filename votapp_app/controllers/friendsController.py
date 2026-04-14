@@ -14,16 +14,25 @@ router = APIRouter()
 # -------------------
 @router.get("/friends")
 def list_friends(user_id: int, db: Session = Depends(get_db)):
+    # Traer tanto los registros donde user_id = usuario
+    # como los que tienen friend_id = usuario
     friendships = (
         db.query(Friend)
-        .options(joinedload(Friend.friend).joinedload(Usuario.perfil_publico))
-        .filter(Friend.user_id == user_id, Friend.status == "accepted")
+        .filter(
+            ((Friend.user_id == user_id) | (Friend.friend_id == user_id)),
+            Friend.status == "accepted"
+        )
         .all()
     )
 
     result = []
     for f in friendships:
-        amigo = f.friend
+        # Determinar quién es el "otro" amigo
+        if f.user_id == user_id:
+            amigo = db.query(Usuario).get(f.friend_id)
+        else:
+            amigo = db.query(Usuario).get(f.user_id)
+
         perfil = amigo.perfil_publico
         result.append({
             "id": f.id,
@@ -36,6 +45,7 @@ def list_friends(user_id: int, db: Session = Depends(get_db)):
             "bio": perfil.bio if perfil else None,
         })
     return result
+
 
 
 # -------------------
@@ -100,7 +110,7 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
     if notification:
         if action == "accepted":
             notification.message = f"Tu solicitud de amistad fue aceptada por usuario {friendship.friend_id}"
-            notification.status = "unread"  # se mantiene como no leída para que el remitente la vea
+            notification.status = "unread"  # mantener como no leída para que el remitente la vea
         else:
             notification.message = f"Tu solicitud de amistad fue rechazada por usuario {friendship.friend_id}"
             notification.status = "unread"
@@ -112,6 +122,8 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
         "friendship": friendship,
         "notification": notification if notification else None
     }
+
+
 
 
 
