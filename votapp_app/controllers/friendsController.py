@@ -1,6 +1,6 @@
 # votapp_app/controllers/friendsController.py
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from datetime import datetime
 from ..database import get_db
@@ -145,14 +145,26 @@ def delete_friendship(friendship_id: int, db: Session = Depends(get_db)):
 # -------------------
 # BUSCAR AMIGOS POR NOMBRE O CORREO
 # -------------------
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session, joinedload
+from ..database import get_db
+from ..models import Usuario
+
+router = APIRouter()
+
 @router.get("/friends/search")
-def search_friends(query: str, db: Session = Depends(get_db)):
+def search_friends(query: str = Query(...), current_user_id: int = Query(...), db: Session = Depends(get_db)):
+    # 👇 Validación: si query está vacío, lanzar error 400
+    if not query.strip():
+        raise HTTPException(status_code=400, detail="Debes ingresar un término de búsqueda")
+
     results = (
         db.query(Usuario)
         .options(joinedload(Usuario.perfil_publico))
         .filter(
-            (Usuario.nombre.ilike(f"%{query}%")) |
-            (Usuario.correo.ilike(f"%{query}%"))
+            ((Usuario.nombre.ilike(f"%{query}%")) |
+             (Usuario.correo.ilike(f"%{query}%"))) &
+            (Usuario.id != current_user_id)   # 👈 excluye al usuario actual
         )
         .all()
     )
@@ -173,5 +185,12 @@ def search_friends(query: str, db: Session = Depends(get_db)):
         })
 
     return {"results": formatted}
+
+
+
+
+
+
+
 
 

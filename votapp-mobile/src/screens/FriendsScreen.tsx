@@ -8,6 +8,7 @@ import {
   StyleSheet,
   TextInput,
   Image,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
@@ -37,10 +38,12 @@ export default function FriendsScreen() {
   const [searchResults, setSearchResults] = useState<Usuario[]>([]);
   const navigation = useNavigation();
 
+  const currentUserId = 1; // 👈 aquí deberías usar el ID del usuario logueado dinámicamente
+
   const fetchFriends = async () => {
     try {
       const res = await fetch(
-        "https://aplicacion-votapp-test.onrender.com/api/friends?user_id=1"
+        `https://aplicacion-votapp-test.onrender.com/api/friends?user_id=${currentUserId}`
       );
       const data = await res.json();
       setFriends(data);
@@ -64,10 +67,17 @@ export default function FriendsScreen() {
   const searchUsers = async () => {
     try {
       const res = await fetch(
-        `https://aplicacion-votapp-test.onrender.com/api/friends/search?query=${query}`
+        `https://aplicacion-votapp-test.onrender.com/api/friends/search?query=${query}&current_user_id=${currentUserId}`
       );
       const data = await res.json();
-      setSearchResults(data.results || []);
+
+      if (data.detail) {
+        // Si el backend devuelve error 400 por query vacío
+        Alert.alert("Error de búsqueda", data.detail);
+        setSearchResults([]);
+      } else {
+        setSearchResults(data.results || []);
+      }
     } catch (err) {
       console.error("Error al buscar usuarios:", err);
     }
