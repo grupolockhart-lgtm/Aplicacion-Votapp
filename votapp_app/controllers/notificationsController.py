@@ -36,7 +36,13 @@ def list_notifications(user_id: int, db: Session = Depends(get_db)):
 # CREAR NOTIFICACIÓN
 # -------------------
 @router.post("/notifications")
-def create_notification(user_id: int, type: str, message: str, related_id: int = None, db: Session = Depends(get_db)):
+def create_notification(
+    user_id: int,
+    type: str,
+    message: str,
+    related_id: int = None,
+    db: Session = Depends(get_db)
+):
     new_notification = Notification(
         user_id=user_id,
         type=type,
@@ -48,7 +54,20 @@ def create_notification(user_id: int, type: str, message: str, related_id: int =
     db.add(new_notification)
     db.commit()
     db.refresh(new_notification)
-    return {"message": "Notificación creada", "notification": new_notification}
+
+    return {
+        "message": "Notificación creada",
+        "notification": {
+            "id": new_notification.id,
+            "user_id": new_notification.user_id,
+            "type": new_notification.type,
+            "message": new_notification.message,
+            "related_id": new_notification.related_id,
+            "status": new_notification.status,
+            "created_at": new_notification.created_at.isoformat() if new_notification.created_at else None,
+        }
+    }
+
 
 
 # -------------------

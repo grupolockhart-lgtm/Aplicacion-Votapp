@@ -78,7 +78,7 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
 
 
 # -------------------
-# ACEPTAR / RECHAZAR SOLICITUD + NOTIFICACIÓN
+# ACEPTAR / RECHAZAR SOLICITUD + ACTUALIZAR NOTIFICACIÓN
 # -------------------
 @router.put("/friends/{friendship_id}")
 def update_friend_request(friendship_id: int, action: str, db: Session = Depends(get_db)):
@@ -89,31 +89,31 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
     if action not in ["accepted", "rejected"]:
         raise HTTPException(status_code=400, detail="Acción inválida")
 
+    # Actualizar estado de la solicitud
     friendship.status = action
     friendship.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(friendship)
 
-    if action == "accepted":
-        notification = Notification(
-            user_id=friendship.user_id,
-            type="friend_request",
-            message=f"Tu solicitud de amistad fue aceptada por usuario {friendship.friend_id}",
-            related_id=friendship.id,
-            status="unread",
-            created_at=datetime.utcnow()
-        )
-        db.add(notification)
+    # Buscar la notificación original relacionada
+    notification = db.query(Notification).filter(Notification.related_id == friendship.id).first()
+    if notification:
+        if action == "accepted":
+            notification.message = f"Tu solicitud de amistad fue aceptada por usuario {friendship.friend_id}"
+            notification.status = "unread"  # se mantiene como no leída para que el remitente la vea
+        else:
+            notification.message = f"Tu solicitud de amistad fue rechazada por usuario {friendship.friend_id}"
+            notification.status = "unread"
         db.commit()
         db.refresh(notification)
 
-        return {
-            "message": "Solicitud aceptada y notificación creada",
-            "friendship": friendship,
-            "notification": notification
-        }
+    return {
+        "message": f"Solicitud {action}",
+        "friendship": friendship,
+        "notification": notification if notification else None
+    }
 
-    return {"message": f"Solicitud {action}", "friendship": friendship}
+
 
 
 # -------------------
