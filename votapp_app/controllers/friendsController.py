@@ -13,11 +13,8 @@ router = APIRouter()
 # Helper para notificaciones de amistad
 # -------------------
 def build_friend_notification(f: Friend, current_user_id: int, db: Session):
-    # Determinar quién es el "otro" usuario en la relación
     other_id = f.friend_id if f.user_id == current_user_id else f.user_id
     other = db.query(Usuario).filter(Usuario.id == other_id).first()
-
-    # Usar nombre como principal, con fallback al ID si está vacío
     nombre_visible = other.nombre or f"Usuario {other.id}"
 
     if f.status == "accepted":
@@ -47,7 +44,6 @@ def list_friends(user_id: int, db: Session = Depends(get_db)):
 
     result = []
     for f in friendships:
-        # Determinar quién es el "otro" amigo
         other = f.friend if f.user_id == user_id else f.user
         perfil = getattr(other, "perfil_publico", None)
 
@@ -64,7 +60,7 @@ def list_friends(user_id: int, db: Session = Depends(get_db)):
     return result
 
 # -------------------
-# ENVIAR SOLICITUD DE AMISTAD + NOTIFICACIÓN
+# ENVIAR SOLICITUD DE AMISTAD + NOTIFICACIONES
 # -------------------
 @router.post("/friends/request")
 def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_db)):
@@ -84,29 +80,42 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
     db.refresh(new_request)
 
     # Notificación al destinatario
-    other = db.query(Usuario).filter(Usuario.id == user_id).first()
-    nombre_visible = other.nombre or f"Usuario {other.id}"
+    remitente = db.query(Usuario).filter(Usuario.id == user_id).first()
+    nombre_remitente = remitente.nombre or f"Usuario {remitente.id}"
 
-    notification = Notification(
+    notif_dest = Notification(
         user_id=friend_id,
         type="friend_request",
-        message=f"Has recibido una solicitud de amistad de {nombre_visible}",
+        message=f"Has recibido una solicitud de amistad de {nombre_remitente}",
         related_id=new_request.id,
         status="unread",
         created_at=datetime.utcnow()
     )
-    db.add(notification)
+    db.add(notif_dest)
+
+    # Notificación opcional al remitente (confirmación)
+    notif_rem = Notification(
+        user_id=user_id,
+        type="friend_request_sent",
+        message=f"Has enviado una solicitud de amistad a Usuario {friend_id}",
+        related_id=new_request.id,
+        status="unread",
+        created_at=datetime.utcnow()
+    )
+    db.add(notif_rem)
+
     db.commit()
-    db.refresh(notification)
+    db.refresh(notif_dest)
+    db.refresh(notif_rem)
 
     return {
-        "message": "Solicitud enviada y notificación creada",
+        "message": "Solicitud enviada y notificaciones creadas",
         "friendship": new_request,
-        "notification": notification
+        "notifications": [notif_dest, notif_rem]
     }
 
 # -------------------
-# ACEPTAR / RECHAZAR SOLICITUD + ACTUALIZAR NOTIFICACIÓN
+# ACEPTAR / RECHAZAR SOLICITUD + NOTIFICACIÓN AL REMITENTE
 # -------------------
 @router.put("/friends/{friendship_id}")
 def update_friend_request(friendship_id: int, action: str, db: Session = Depends(get_db)):
@@ -117,25 +126,31 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
     if action not in ["accepted", "rejected"]:
         raise HTTPException(status_code=400, detail="Acción inválida")
 
-    # Actualizar estado de la solicitud
     friendship.status = action
     friendship.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(friendship)
 
-    # Buscar la notificación original relacionada
-    notification = db.query(Notification).filter(Notification.related_id == friendship.id).first()
-    if notification:
-        mensaje = build_friend_notification(friendship, friendship.user_id, db)
-        notification.message = mensaje
-        notification.status = "unread"
-        db.commit()
-        db.refresh(notification)
+    # Notificación al remitente (el que envió la solicitud)
+    remitente_id = friendship.user_id
+    mensaje = build_friend_notification(friendship, remitente_id, db)
+
+    notif_rem = Notification(
+        user_id=remitente_id,
+        type="friendship",
+        message=mensaje,
+        related_id=friendship.id,
+        status="unread",
+        created_at=datetime.utcnow()
+    )
+    db.add(notif_rem)
+    db.commit()
+    db.refresh(notif_rem)
 
     return {
         "message": f"Solicitud {action}",
         "friendship": friendship,
-        "notification": notification if notification else None
+        "notification": notif_rem
     }
 
 # -------------------
@@ -186,9 +201,6 @@ def search_friends(query: str = Query(...), current_user_id: int = Query(...), d
         })
 
     return {"results": formatted}
-
-
-
 
 
 
