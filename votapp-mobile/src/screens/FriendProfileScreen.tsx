@@ -26,7 +26,7 @@ type User = {
   nivel?: number;
   puntos?: number;
   racha_dias?: number;
-  status?: string; // opcional: si el backend devuelve estado de amistad
+  status?: string; // 👈 nuevo campo que indica estado de amistad
 };
 
 export default function FriendProfileScreen({ route }: FriendProfileProps) {
@@ -37,11 +37,10 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
   const fetchUser = async () => {
     try {
       const res = await fetch(
-        `https://aplicacion-votapp-test.onrender.com/api/usuarios/${friendId}`
+        `https://aplicacion-votapp-test.onrender.com/api/usuarios/${friendId}?current_user_id=1`
       );
       const data = await res.json();
       console.log("Respuesta backend:", data);
-      // Ajusta según la estructura real
       setUser(data.usuario ? data.usuario : data);
     } catch (err) {
       console.error("Error al cargar perfil:", err);
@@ -110,7 +109,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         <Text style={styles.info}>Racha de días: {user.racha_dias}</Text>
       )}
 
-      {/* Mostrar botón solo si no son amigos todavía */}
+      {/* 👇 Mostrar botón solo si NO son amigos todavía */}
       {user.status !== "accepted" && (
         <TouchableOpacity
           style={[styles.button, styles.request]}

@@ -7,7 +7,11 @@ from ..models import Usuario, Friend
 router = APIRouter()
 
 @router.get("/usuarios/{usuario_id}")
-def get_usuario(usuario_id: int, current_user_id: int = Query(...), db: Session = Depends(get_db)):
+def get_usuario(
+    usuario_id: int,
+    current_user_id: int = Query(...),  # 👈 se pasa como query param
+    db: Session = Depends(get_db)
+):
     usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
