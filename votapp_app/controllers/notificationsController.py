@@ -62,7 +62,6 @@ def list_notifications(user_id: int, db: Session = Depends(get_db)):
 
     return result
 
-
 # -------------------
 # CREAR NOTIFICACIÓN
 # -------------------

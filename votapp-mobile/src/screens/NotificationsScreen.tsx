@@ -51,7 +51,6 @@ export default function NotificationsScreen({ userId = 1 }) {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log("Solicitud aceptada:", data);
         setNotifications((prev) =>
           prev.map((n) =>
             n.id === notificationId
@@ -70,7 +69,6 @@ export default function NotificationsScreen({ userId = 1 }) {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log("Solicitud rechazada:", data);
         setNotifications((prev) =>
           prev.map((n) =>
             n.id === notificationId
@@ -96,6 +94,8 @@ export default function NotificationsScreen({ userId = 1 }) {
         renderItem={({ item }) => (
           <View style={{ marginVertical: 8 }}>
             <Text>{item.message}</Text>
+            {item.from_user && <Text>De: {item.from_user}</Text>}
+            {item.to_user && <Text>Para: {item.to_user}</Text>}
             <Text>Estado: {item.status}</Text>
 
             {item.status === "unread" && (
