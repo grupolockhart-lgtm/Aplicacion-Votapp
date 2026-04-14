@@ -1,14 +1,28 @@
-
-
 # votapp_app/controllers/notificationsController.py
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models_social import Notification
+from ..models_social import Notification, Friend
+from ..models import Usuario
 from datetime import datetime
 
 router = APIRouter()
+
+# -------------------
+# Helper para notificaciones de amistad
+# -------------------
+def build_friend_notification(f: Friend, current_user_id: int, db: Session):
+    other_id = f.friend_id if f.user_id == current_user_id else f.user_id
+    other = db.query(Usuario).filter(Usuario.id == other_id).first()
+    nombre_visible = other.nombre or f"Usuario {other.id}"
+
+    if f.status == "accepted":
+        return f"Tu solicitud de amistad fue aceptada por {nombre_visible}"
+    elif f.status == "pending":
+        return f"Tienes una solicitud de amistad pendiente de {nombre_visible}"
+    else:
+        return f"Tu solicitud de amistad fue rechazada por {nombre_visible}"
 
 # -------------------
 # LISTAR NOTIFICACIONES
@@ -16,21 +30,27 @@ router = APIRouter()
 @router.get("/notifications")
 def list_notifications(user_id: int, db: Session = Depends(get_db)):
     notifications = db.query(Notification).filter(Notification.user_id == user_id).all()
-    return [
-        {
+    result = []
+
+    for n in notifications:
+        message = n.message
+        # Si es notificación de amistad, reconstruir mensaje con nombre
+        if n.type in ["friend_request", "friendship"] and n.related_id:
+            friendship = db.query(Friend).filter(Friend.id == n.related_id).first()
+            if friendship:
+                message = build_friend_notification(friendship, user_id, db)
+
+        result.append({
             "id": n.id,
             "user_id": n.user_id,
             "type": n.type,
-            "message": n.message,
+            "message": message,
             "related_id": n.related_id,
             "status": n.status,
             "created_at": n.created_at.isoformat() if n.created_at else None,
-        }
-        for n in notifications
-    ]
+        })
 
-
-
+    return result
 
 # -------------------
 # CREAR NOTIFICACIÓN
@@ -68,8 +88,6 @@ def create_notification(
         }
     }
 
-
-
 # -------------------
 # MARCAR COMO LEÍDA
 # -------------------
@@ -84,7 +102,6 @@ def mark_as_read(notification_id: int, db: Session = Depends(get_db)):
     db.refresh(notification)
     return {"message": "Notificación marcada como leída", "notification": notification}
 
-
 # -------------------
 # ELIMINAR NOTIFICACIÓN
 # -------------------
@@ -98,7 +115,6 @@ def delete_notification(notification_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Notificación eliminada"}
 
-
 # -------------------
 # MARCAR TODAS COMO LEÍDAS
 # -------------------
@@ -110,7 +126,6 @@ def mark_all_as_read(user_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"{len(notifications)} notificaciones marcadas como leídas"}
 
-
 # -------------------
 # ELIMINAR TODAS LAS NOTIFICACIONES DE UN USUARIO
 # -------------------
@@ -119,8 +134,6 @@ def delete_all_notifications(user_id: int, db: Session = Depends(get_db)):
     deleted_count = db.query(Notification).filter(Notification.user_id == user_id).delete()
     db.commit()
     return {"message": f"Se eliminaron {deleted_count} notificaciones del usuario {user_id}"}
-
-
 
 # -------------------
 # CONTAR NOTIFICACIONES NO LEÍDAS
