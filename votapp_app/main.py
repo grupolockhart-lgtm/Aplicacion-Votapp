@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from mangum import Mangum
 from .controllers import friendsController, notificationsController
-from .routers import users, friends
+from .routers import users
 from .routers import surveys, profiles, admin, comments, gamificacion, surveys_simple
 from . import models, models_simple
 from .database import engine, SessionLocal
@@ -89,7 +89,6 @@ app.mount("/media", StaticFiles(directory="media"), name="media")
 
 app.include_router(usersControllers.router, prefix="/api", tags=["usuarios"])
 app.include_router(users.router, prefix="/api", tags=["users"])
-app.include_router(friends.router, prefix="/api", tags=["friends"])
 app.include_router(friendsController.router, prefix="/api", tags=["friends"])
 app.include_router(notificationsController.router, prefix="/api", tags=["notifications"])
 app.include_router(surveys.router, prefix="/api")
