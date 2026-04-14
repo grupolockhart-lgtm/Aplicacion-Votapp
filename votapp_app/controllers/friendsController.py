@@ -1,11 +1,13 @@
 # votapp_app/controllers/friendsController.py
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from datetime import datetime
 from ..database import get_db
 from ..models_social import Friend, Notification
-from ..models import Usuario
+from ..models import Usuario, PerfilPublico   # 👈 importa también PerfilPublico
+
+
 
 router = APIRouter()
 
@@ -14,8 +16,6 @@ router = APIRouter()
 # -------------------
 @router.get("/friends")
 def list_friends(user_id: int, db: Session = Depends(get_db)):
-    # Traer tanto los registros donde user_id = usuario
-    # como los que tienen friend_id = usuario
     friendships = (
         db.query(Friend)
         .filter(
@@ -28,12 +28,15 @@ def list_friends(user_id: int, db: Session = Depends(get_db)):
     result = []
     for f in friendships:
         # Determinar quién es el "otro" amigo
-        if f.user_id == user_id:
-            amigo = db.query(Usuario).get(f.friend_id)
-        else:
-            amigo = db.query(Usuario).get(f.user_id)
+        other_id = f.friend_id if f.user_id == user_id else f.user_id
+        amigo = db.query(Usuario).filter(Usuario.id == other_id).first()
 
-        perfil = amigo.perfil_publico
+        if not amigo:
+            continue
+
+        # Traer perfil público si existe
+        perfil = db.query(PerfilPublico).filter(PerfilPublico.usuario_id == amigo.id).first()
+
         result.append({
             "id": f.id,
             "friend_id": amigo.id,
@@ -45,6 +48,10 @@ def list_friends(user_id: int, db: Session = Depends(get_db)):
             "bio": perfil.bio if perfil else None,
         })
     return result
+
+
+
+
 
 
 
