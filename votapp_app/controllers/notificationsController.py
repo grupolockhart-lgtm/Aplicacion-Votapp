@@ -20,9 +20,15 @@ def build_friend_notification(f: Friend, current_user_id: int, db: Session):
     if f.status == "accepted":
         return f"Tu solicitud de amistad fue aceptada por {nombre_visible}"
     elif f.status == "pending":
-        return f"Tienes una solicitud de amistad pendiente de {nombre_visible}"
+        if current_user_id == f.user_id:
+            # El usuario actual es el remitente
+            return f"Has enviado una solicitud de amistad a {nombre_visible}, pendiente de respuesta"
+        else:
+            # El usuario actual es el destinatario
+            return f"Has recibido una solicitud de amistad de {nombre_visible}"
     else:
         return f"Tu solicitud de amistad fue rechazada por {nombre_visible}"
+
 
 # -------------------
 # LISTAR NOTIFICACIONES
