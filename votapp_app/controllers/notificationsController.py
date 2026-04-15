@@ -39,31 +39,14 @@ def list_notifications(user_id: int, db: Session = Depends(get_db)):
     result = []
 
     for n in notifications:
-        message = n.message
-        from_user = None
-        to_user = None
-
-        # Si es notificación de amistad, reconstruir mensaje con nombre
-        if n.type in ["friend_request", "friendship"] and n.related_id:
-            friendship = db.query(Friend).filter(Friend.id == n.related_id).first()
-            if friendship:
-                message = build_friend_notification(friendship, user_id, db)
-                # Identificar remitente y destinatario
-                remitente = db.query(Usuario).filter(Usuario.id == friendship.user_id).first()
-                destinatario = db.query(Usuario).filter(Usuario.id == friendship.friend_id).first()
-                from_user = remitente.nombre or f"Usuario {remitente.id}"
-                to_user = destinatario.nombre or f"Usuario {destinatario.id}"
-
         result.append({
             "id": n.id,
-            "user_id": n.user_id,   # dueño de la notificación
+            "user_id": n.user_id,
             "type": n.type,
-            "message": message,
+            "message": n.message,   # 👈 usar directamente lo que está en la base
             "related_id": n.related_id,
             "status": n.status,
             "created_at": n.created_at.isoformat() if n.created_at else None,
-            "from_user": from_user,
-            "to_user": to_user,
         })
 
     return result
