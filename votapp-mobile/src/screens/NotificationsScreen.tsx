@@ -75,11 +75,10 @@ export default function NotificationsScreen() {
   const acceptFriendRequest = async (friendshipId: number, notificationId: number) => {
     if (!token) return;
     try {
-      const res = await fetch(
+      await fetch(
         `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=accepted`,
         { method: "PUT", headers: { Authorization: `Bearer ${token}` } }
       );
-      await res.json();
       fetchNotifications();
       fetchUnreadCount();
     } catch (err) {
@@ -90,11 +89,10 @@ export default function NotificationsScreen() {
   const rejectFriendRequest = async (friendshipId: number, notificationId: number) => {
     if (!token) return;
     try {
-      const res = await fetch(
+      await fetch(
         `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=rejected`,
         { method: "PUT", headers: { Authorization: `Bearer ${token}` } }
       );
-      await res.json();
       fetchNotifications();
       fetchUnreadCount();
     } catch (err) {
@@ -134,26 +132,25 @@ export default function NotificationsScreen() {
             <Text>{item.message}</Text>
             <Text>Estado: {item.status}</Text>
 
-            {item.type === "friend_request" &&
-              item.status === "unread" &&
-              item.role === "received" && (
-                <View style={{ flexDirection: "row", marginTop: 4 }}>
-                  <Button
-                    title="Aceptar solicitud"
-                    onPress={() => acceptFriendRequest(item.related_id, item.id)}
-                  />
-                  <View style={{ width: 8 }} />
-                  <Button
-                    title="Rechazar solicitud"
-                    color="red"
-                    onPress={() => rejectFriendRequest(item.related_id, item.id)}
-                  />
-                </View>
-              )}
+            {item.type === "friend_request" && item.status === "unread" && (
+              <View style={{ flexDirection: "row", marginTop: 4 }}>
+                <Button
+                  title="Aceptar solicitud"
+                  onPress={() => acceptFriendRequest(item.related_id, item.id)}
+                />
+                <View style={{ width: 8 }} />
+                <Button
+                  title="Rechazar solicitud"
+                  color="red"
+                  onPress={() => rejectFriendRequest(item.related_id, item.id)}
+                />
+              </View>
+            )}
           </View>
         )}
       />
     </View>
   );
 }
+
 

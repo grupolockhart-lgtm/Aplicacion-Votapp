@@ -166,16 +166,29 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
     if action not in ["accepted", "rejected"]:
         raise HTTPException(status_code=400, detail="Acción inválida")
 
+    # Actualizar estado de la amistad
     friendship.status = action
     friendship.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(friendship)
 
+    # Marcar notificaciones previas como leídas
+    db.query(Notification).filter(
+        Notification.related_id == friendship_id,
+        Notification.type == "friend_request",
+        Notification.status == "unread"
+    ).update({"status": "read"})
+    db.commit()
+
+    # Crear notificación para el remitente
     remitente_id = friendship.user_id
     destinatario = db.query(Usuario).filter(Usuario.id == friendship.friend_id).first()
     nombre_destinatario = destinatario.nombre or f"Usuario {destinatario.id}"
 
-    mensaje = f"Tu solicitud de amistad fue {'aceptada' if action == 'accepted' else 'rechazada'} por {nombre_destinatario}"
+    if action == "accepted":
+        mensaje = f"Tu solicitud de amistad fue aceptada por {nombre_destinatario}"
+    else:
+        mensaje = f"Tu solicitud de amistad fue rechazada por {nombre_destinatario}"
 
     notif_rem = Notification(
         user_id=remitente_id,
@@ -195,6 +208,8 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
         "friendship": friendship,
         "notification": notif_rem
     }
+
+
 
 # -------------------
 # ELIMINAR AMISTAD
