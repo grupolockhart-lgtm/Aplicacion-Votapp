@@ -9,8 +9,10 @@ import {
   TextInput,
   Image,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Friend = {
   id: number;
@@ -37,17 +39,57 @@ type Usuario = {
 };
 
 export default function FriendsScreen() {
+  const [token, setToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Usuario[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
 
-  const currentUserId = 1; // 👈 aquí deberías usar el ID del usuario logueado dinámicamente
+  // Recuperar token y usuario
+  useEffect(() => {
+    const loadTokenAndUser = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem("userToken");
+        console.log("Token recuperado:", storedToken);
+
+        if (!storedToken) {
+          console.error("No hay token guardado");
+          setLoading(false);
+          return;
+        }
+
+        setToken(storedToken);
+
+        const res = await fetch("https://aplicacion-votapp-test.onrender.com/api/users/me", {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        });
+
+        console.log("Status /api/users/me:", res.status);
+
+        if (!res.ok) throw new Error("Token inválido o expirado");
+
+        const data = await res.json();
+        console.log("Usuario obtenido:", data);
+        setUserId(data.user?.id || data.id);
+      } catch (err) {
+        console.error("Error obteniendo usuario:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTokenAndUser();
+  }, []);
 
   const fetchFriends = async () => {
+    if (!userId || !token) return;
     try {
+      console.log("Llamando /api/friends con userId:", userId);
       const res = await fetch(
-        `https://aplicacion-votapp-test.onrender.com/api/friends?user_id=${currentUserId}`
+        `https://aplicacion-votapp-test.onrender.com/api/friends?user_id=${userId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
       console.log("Amigos:", data);
@@ -58,10 +100,11 @@ export default function FriendsScreen() {
   };
 
   const updateFriendStatus = async (friendshipId: number, action: string) => {
+    if (!token) return;
     try {
       await fetch(
         `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=${action}`,
-        { method: "PUT" }
+        { method: "PUT", headers: { Authorization: `Bearer ${token}` } }
       );
       fetchFriends();
     } catch (err) {
@@ -70,9 +113,11 @@ export default function FriendsScreen() {
   };
 
   const searchUsers = async () => {
+    if (!userId || !token) return;
     try {
       const res = await fetch(
-        `https://aplicacion-votapp-test.onrender.com/api/friends/search?query=${query}&current_user_id=${currentUserId}`
+        `https://aplicacion-votapp-test.onrender.com/api/friends/search?query=${query}&current_user_id=${userId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
 
@@ -88,35 +133,40 @@ export default function FriendsScreen() {
   };
 
   useEffect(() => {
-    fetchFriends();
-  }, []);
+    if (userId) {
+      fetchFriends();
+    }
+  }, [userId]);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="blue" />
+        <Text>Cargando usuario...</Text>
+      </View>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Error: no se pudo obtener el usuario</Text>
+      </View>
+    );
+  }
 
   const renderFriendItem = ({ item }: { item: Friend }) => (
     <View style={styles.card}>
-      {item.avatar_url && (
-        <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-      )}
-      <Text style={styles.title}>
-        {item.alias ? item.alias : item.nombre}
-      </Text>
-      {item.nombre && (
-        <Text style={styles.subtitle}>Nombre: {item.nombre}</Text>
-      )}
+      {item.avatar_url && <Image source={{ uri: item.avatar_url }} style={styles.avatar} />}
+      <Text style={styles.title}>{item.alias ? item.alias : item.nombre}</Text>
+      {item.nombre && <Text style={styles.subtitle}>Nombre: {item.nombre}</Text>}
       <Text style={styles.subtitle}>{item.correo}</Text>
       {item.bio && <Text style={styles.subtitle}>{item.bio}</Text>}
-      {item.nivel !== undefined && (
-        <Text style={styles.subtitle}>Nivel: {item.nivel}</Text>
-      )}
-      {item.puntos !== undefined && (
-        <Text style={styles.subtitle}>Puntos: {item.puntos}</Text>
-      )}
-      {item.racha_dias !== undefined && (
-        <Text style={styles.subtitle}>Racha: {item.racha_dias} días</Text>
-      )}
+      {item.nivel !== undefined && <Text style={styles.subtitle}>Nivel: {item.nivel}</Text>}
+      {item.puntos !== undefined && <Text style={styles.subtitle}>Puntos: {item.puntos}</Text>}
+      {item.racha_dias !== undefined && <Text style={styles.subtitle}>Racha: {item.racha_dias} días</Text>}
       {item.ultima_participacion && (
-        <Text style={styles.subtitle}>
-          Última participación: {item.ultima_participacion}
-        </Text>
+        <Text style={styles.subtitle}>Última participación: {item.ultima_participacion}</Text>
       )}
       <Text style={styles.subtitle}>Estado: {item.status}</Text>
 
@@ -139,9 +189,7 @@ export default function FriendsScreen() {
         <TouchableOpacity
           style={[styles.button, styles.profile]}
           onPress={() =>
-            navigation.navigate("FriendProfileScreen", {
-              friendId: item.friend_id,
-            })
+            navigation.navigate("FriendProfileScreen", { friendId: item.friend_id })
           }
         >
           <Text style={styles.buttonText}>Ver perfil</Text>
@@ -152,22 +200,14 @@ export default function FriendsScreen() {
 
   const renderSearchItem = ({ item }: { item: Usuario }) => (
     <View style={styles.card}>
-      {item.avatar_url && (
-        <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-      )}
-      <Text style={styles.title}>
-        {item.alias ? item.alias : item.nombre}
-      </Text>
-      {item.nombre && (
-        <Text style={styles.subtitle}>Nombre: {item.nombre}</Text>
-      )}
+      {item.avatar_url && <Image source={{ uri: item.avatar_url }} style={styles.avatar} />}
+      <Text style={styles.title}>{item.alias ? item.alias : item.nombre}</Text>
+      {item.nombre && <Text style={styles.subtitle}>Nombre: {item.nombre}</Text>}
       <Text style={styles.subtitle}>{item.correo}</Text>
       {item.bio && <Text style={styles.subtitle}>{item.bio}</Text>}
       <TouchableOpacity
         style={[styles.button, styles.profile]}
-        onPress={() =>
-          navigation.navigate("FriendProfileScreen", { friendId: item.id })
-        }
+        onPress={() => navigation.navigate("FriendProfileScreen", { friendId: item.id })}
       >
         <Text style={styles.buttonText}>Ver perfil</Text>
       </TouchableOpacity>
@@ -183,10 +223,7 @@ export default function FriendsScreen() {
         value={query}
         onChangeText={setQuery}
       />
-      <TouchableOpacity
-        style={[styles.button, styles.profile]}
-        onPress={searchUsers}
-      >
+      <TouchableOpacity style={[styles.button, styles.profile]} onPress={searchUsers}>
         <Text style={styles.buttonText}>Buscar</Text>
       </TouchableOpacity>
 
@@ -196,9 +233,7 @@ export default function FriendsScreen() {
           data={searchResults}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderSearchItem}
-          ListEmptyComponent={
-            <Text style={styles.empty}>No se encontraron usuarios</Text>
-          }
+          ListEmptyComponent={<Text style={styles.empty}>No se encontraron usuarios</Text>}
         />
       )}
 
@@ -207,9 +242,7 @@ export default function FriendsScreen() {
         data={friends}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderFriendItem}
-        ListEmptyComponent={
-          <Text style={styles.empty}>No tienes amigos todavía</Text>
-        }
+        ListEmptyComponent={<Text style={styles.empty}>No tienes amigos todavía</Text>}
       />
     </View>
   );
