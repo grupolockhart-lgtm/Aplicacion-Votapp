@@ -72,6 +72,15 @@ export default function NotificationsScreen() {
     }
   }, [userId]);
 
+  const markNotificationAsReadLocally = (notificationId: number) => {
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === notificationId ? { ...n, status: "read" } : n
+      )
+    );
+    setUnreadCount((prev) => Math.max(prev - 1, 0));
+  };
+
   const acceptFriendRequest = async (friendshipId: number, notificationId: number) => {
     if (!token) return;
     try {
@@ -82,6 +91,10 @@ export default function NotificationsScreen() {
       const data = await res.json();
       console.log("Respuesta backend:", data);
 
+      // Actualizar inmediatamente en frontend
+      markNotificationAsReadLocally(notificationId);
+
+      // Luego sincronizar con backend
       await fetchNotifications();
       await fetchUnreadCount();
     } catch (err) {
@@ -96,6 +109,11 @@ export default function NotificationsScreen() {
         `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=rejected`,
         { method: "PUT", headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // Actualizar inmediatamente en frontend
+      markNotificationAsReadLocally(notificationId);
+
+      // Luego sincronizar con backend
       fetchNotifications();
       fetchUnreadCount();
     } catch (err) {
@@ -135,7 +153,9 @@ export default function NotificationsScreen() {
             <Text>{item.message}</Text>
             <Text>Estado: {item.status}</Text>
 
-            {item.type === "friend_request" && item.status === "unread" && (
+            {item.type === "friend_request" &&
+             item.status === "unread" &&
+             item.user_id === userId && ( // solo mostrar botones si el usuario actual es el receptor
               <View style={{ flexDirection: "row", marginTop: 4 }}>
                 <Button
                   title="Aceptar solicitud"
@@ -155,5 +175,6 @@ export default function NotificationsScreen() {
     </View>
   );
 }
+
 
 
