@@ -75,12 +75,15 @@ export default function NotificationsScreen() {
   const acceptFriendRequest = async (friendshipId: number, notificationId: number) => {
     if (!token) return;
     try {
-      await fetch(
+      const res = await fetch(
         `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=accepted`,
         { method: "PUT", headers: { Authorization: `Bearer ${token}` } }
       );
-      fetchNotifications();
-      fetchUnreadCount();
+      const data = await res.json();
+      console.log("Respuesta backend:", data);
+
+      await fetchNotifications();
+      await fetchUnreadCount();
     } catch (err) {
       console.error("Error aceptando solicitud:", err);
     }
