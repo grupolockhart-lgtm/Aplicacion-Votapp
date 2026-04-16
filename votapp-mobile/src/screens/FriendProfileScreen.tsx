@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type FriendProfileProps = {
   route: { params: { friendId: number } };
@@ -24,18 +25,40 @@ type User = {
   puntos?: number;
   racha_dias?: number;
   ultima_participacion?: string;
-  status?: string; // estado de amistad
+  status?: string; // null, pending, accepted, rejected
+  friendship_id?: number;
 };
 
 export default function FriendProfileScreen({ route }: FriendProfileProps) {
   const { friendId } = route.params;
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem("userToken");
+        if (!storedToken) return;
+
+        const res = await fetch("https://aplicacion-votapp-test.onrender.com/api/users/me", {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        });
+        const data = await res.json();
+        setCurrentUserId(data.user?.id || data.id);
+      } catch (err) {
+        console.error("Error obteniendo usuario actual:", err);
+      }
+    };
+
+    loadCurrentUser();
+  }, []);
 
   const fetchUser = async () => {
     try {
       const res = await fetch(
-        `https://aplicacion-votapp-test.onrender.com/api/usuarios/${friendId}?current_user_id=1`
+        `https://aplicacion-votapp-test.onrender.com/api/usuarios/${friendId}?current_user_id=${currentUserId}`
       );
       const data = await res.json();
       console.log("Respuesta backend:", data);
@@ -47,15 +70,31 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
     }
   };
 
+  useEffect(() => {
+    if (currentUserId) {
+      fetchUser();
+    }
+  }, [friendId, currentUserId]);
+
   const sendFriendRequest = async () => {
+    if (!user) return;
+    setSending(true);
     try {
       await fetch(
-        `https://aplicacion-votapp-test.onrender.com/api/friends/request?user_id=1&friend_id=${user?.id}`,
+        `https://aplicacion-votapp-test.onrender.com/api/friends/request?user_id=${currentUserId}&friend_id=${user.id}`,
         { method: "POST" }
       );
       alert("Solicitud enviada");
+
+      // Actualizar inmediatamente en frontend
+      setUser((prev) =>
+        prev ? { ...prev, status: "pending" } : prev
+      );
     } catch (err) {
       console.error("Error al enviar solicitud:", err);
+    } finally {
+      setSending(false);
+      fetchUser(); // sincronizar con backend
     }
   };
 
@@ -66,7 +105,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         { method: "PUT" }
       );
       alert("Solicitud aceptada");
-      fetchUser(); // refrescar estado
+      fetchUser();
     } catch (err) {
       console.error("Error al aceptar solicitud:", err);
     }
@@ -79,15 +118,11 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         { method: "PUT" }
       );
       alert("Solicitud rechazada");
-      fetchUser(); // refrescar estado
+      fetchUser();
     } catch (err) {
       console.error("Error al rechazar solicitud:", err);
     }
   };
-
-  useEffect(() => {
-    fetchUser();
-  }, [friendId]);
 
   if (loading) {
     return (
@@ -128,28 +163,46 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         </Text>
       )}
 
-      {/* Mostrar botón solo si NO son amigos todavía */}
-      {user.status !== "accepted" && (
+      {/* Mostrar botón de enviar si no hay relación o fue rechazada */}
+      {(!user.status || user.status === "rejected") && (
         <TouchableOpacity
           style={[styles.button, styles.request]}
           onPress={sendFriendRequest}
+          disabled={sending}
         >
-          <Text style={styles.buttonText}>Enviar solicitud de amistad</Text>
+          {sending ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>
+              {user.status === "rejected"
+                ? "Reenviar solicitud de amistad"
+                : "Enviar solicitud de amistad"}
+            </Text>
+          )}
         </TouchableOpacity>
       )}
 
-      {/* Ejemplo: botones para aceptar/rechazar si la solicitud está pendiente */}
+      {/* Mostrar texto informativo si está pendiente */}
       {user.status === "pending" && (
-        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+        <View style={{ marginTop: 16, alignItems: "center" }}>
+          <Text style={{ fontSize: 16, fontWeight: "bold", color: "#555" }}>
+            Solicitud en espera
+          </Text>
+        </View>
+      )}
+
+      {/* Mostrar botones de aceptar/rechazar si está pendiente y el usuario actual es receptor */}
+      {user.status === "pending" && user.friendship_id && (
+        <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 12 }}>
           <TouchableOpacity
             style={[styles.button, { backgroundColor: "#2196F3", marginRight: 8 }]}
-            onPress={() => acceptFriendRequest(user.id)}
+            onPress={() => acceptFriendRequest(user.friendship_id!)}
           >
             <Text style={styles.buttonText}>Aceptar</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.button, { backgroundColor: "#F44336" }]}
-            onPress={() => rejectFriendRequest(user.id)}
+            onPress={() => rejectFriendRequest(user.friendship_id!)}
           >
             <Text style={styles.buttonText}>Rechazar</Text>
           </TouchableOpacity>
@@ -181,8 +234,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 6,
     marginTop: 16,
+    alignItems: "center",
   },
   request: { backgroundColor: "#4CAF50" },
   buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
 });
+
 

@@ -9,6 +9,7 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const loadTokenAndUser = async () => {
@@ -69,8 +70,23 @@ export default function NotificationsScreen() {
     if (userId) {
       fetchNotifications();
       fetchUnreadCount();
+
+      // Auto-refresh cada 10 segundos
+      const interval = setInterval(() => {
+        fetchNotifications();
+        fetchUnreadCount();
+      }, 10000);
+
+      return () => clearInterval(interval);
     }
   }, [userId]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchNotifications();
+    await fetchUnreadCount();
+    setRefreshing(false);
+  };
 
   const markNotificationAsReadLocally = (notificationId: number) => {
     setNotifications((prev) =>
@@ -91,10 +107,7 @@ export default function NotificationsScreen() {
       const data = await res.json();
       console.log("Respuesta backend:", data);
 
-      // Actualizar inmediatamente en frontend
       markNotificationAsReadLocally(notificationId);
-
-      // Luego sincronizar con backend
       await fetchNotifications();
       await fetchUnreadCount();
     } catch (err) {
@@ -110,10 +123,7 @@ export default function NotificationsScreen() {
         { method: "PUT", headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Actualizar inmediatamente en frontend
       markNotificationAsReadLocally(notificationId);
-
-      // Luego sincronizar con backend
       fetchNotifications();
       fetchUnreadCount();
     } catch (err) {
@@ -155,7 +165,8 @@ export default function NotificationsScreen() {
 
             {item.type === "friend_request" &&
              item.status === "unread" &&
-             item.user_id === userId && ( // solo mostrar botones si el usuario actual es el receptor
+             item.user_id === userId &&
+             item.message.startsWith("Has recibido") && (
               <View style={{ flexDirection: "row", marginTop: 4 }}>
                 <Button
                   title="Aceptar solicitud"
@@ -171,10 +182,13 @@ export default function NotificationsScreen() {
             )}
           </View>
         )}
+        onRefresh={onRefresh}
+        refreshing={refreshing}
       />
     </View>
   );
 }
+
 
 
 

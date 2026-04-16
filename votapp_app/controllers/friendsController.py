@@ -98,14 +98,62 @@ def list_pending_requests(current_user_id: int, db: Session = Depends(get_db)):
     return result
 
 # -------------------
-# ENVIAR SOLICITUD DE AMISTAD + NOTIFICACIONES
+# ENVIAR SOLICITUD DE AMISTAD + NOTIFICACIONES (modificado)
 # -------------------
 @router.post("/friends/request")
 def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_db)):
     existing = db.query(Friend).filter(Friend.user_id == user_id, Friend.friend_id == friend_id).first()
     if existing:
-        raise HTTPException(status_code=400, detail="La solicitud ya existe")
+        if existing.status == "rejected":
+            # Reutilizar la fila y actualizar a pending
+            existing.status = "pending"
+            existing.updated_at = datetime.utcnow()
+            db.commit()
+            db.refresh(existing)
 
+            # Obtener nombres visibles
+            remitente = db.query(Usuario).filter(Usuario.id == user_id).first()
+            destinatario = db.query(Usuario).filter(Usuario.id == friend_id).first()
+            nombre_remitente = remitente.nombre or f"Usuario {remitente.id}"
+            nombre_destinatario = destinatario.nombre or f"Usuario {destinatario.id}"
+
+            # Notificación al destinatario
+            notif_dest = Notification(
+                user_id=friend_id,
+                type="friend_request",
+                message=f"Has recibido una nueva solicitud de amistad de {nombre_remitente}",
+                related_id=existing.id,
+                status="unread",
+                created_at=datetime.utcnow()
+            )
+
+            # Notificación al remitente
+            notif_rem = Notification(
+                user_id=user_id,
+                type="friend_request",
+                message=f"Has reenviado una solicitud de amistad a {nombre_destinatario}",
+                related_id=existing.id,
+                status="unread",
+                created_at=datetime.utcnow()
+            )
+
+            db.add_all([notif_dest, notif_rem])
+            db.commit()
+            db.refresh(notif_dest)
+            db.refresh(notif_rem)
+
+            return {
+                "message": "Solicitud reenviada y notificaciones creadas",
+                "friendship": existing,
+                "notifications": [notif_dest, notif_rem]
+            }
+
+        elif existing.status == "pending":
+            raise HTTPException(status_code=400, detail="Ya existe una solicitud pendiente")
+        elif existing.status == "accepted":
+            raise HTTPException(status_code=400, detail="Ya son amigos")
+
+    # Si no existe, crear nueva solicitud
     new_request = Friend(
         user_id=user_id,
         friend_id=friend_id,
@@ -153,6 +201,7 @@ def send_friend_request(user_id: int, friend_id: int, db: Session = Depends(get_
         "friendship": new_request,
         "notifications": [notif_dest, notif_rem]
     }
+
 
 # -------------------
 # ACEPTAR / RECHAZAR SOLICITUD + NOTIFICACIÓN AL REMITENTE
