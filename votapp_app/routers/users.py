@@ -1,15 +1,19 @@
 
 # votapp_app/routes/users.py
 
+# -----------------------------
+# Users Routes (usuarios)
+# -----------------------------
+
 from fastapi import APIRouter, Query, Depends, HTTPException, File, UploadFile, Request
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
 from jose import jwt
 from passlib.context import CryptContext
-import os, shutil
+import os
+import shutil
 import json
-
 
 from .. import models, schemas, database
 from ..auth import get_current_user   # ✅ valida el token
@@ -25,8 +29,11 @@ from typing import List
 from votapp_app.utils import safe_json_list
 from sqlalchemy.orm import joinedload
 
+# ✅ Importa tu servicio de Cloudinary
+from services.cloudinary_service import upload_avatar
 
 
+# ✅ Solo una definición de router, con prefijo y tags
 router = APIRouter(prefix="/users", tags=["users"])
 
 
@@ -252,34 +259,20 @@ def get_public_profile(
 # -----------------------------
 # Subir avatar (/upload/avatar)
 # -----------------------------
-AVATAR_DIR = "media/avatars"
+
 
 @router.post("/upload/avatar")
-def upload_avatar(
-    file: UploadFile = File(...),
+def upload_avatar_endpoint(
+    file: UploadFile,
     db: Session = Depends(database.get_db),
-    current_user: models.Usuario = Depends(get_current_user),
-    request: Request = None
+    current_user: models.Usuario = Depends(get_current_user)
 ):
     # Validar tipo de archivo
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Solo se permiten archivos de imagen")
 
-    # Crear directorio si no existe
-    os.makedirs(AVATAR_DIR, exist_ok=True)
-
-    # Nombre único para el archivo
-    filename = f"user_{current_user.id}_{file.filename}"
-    filepath = os.path.join(AVATAR_DIR, filename)
-
-    # Guardar archivo en disco
-    with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    # Construir URL absoluta con detección de base_url
-    base_url = str(request.base_url).rstrip("/")
-    base_url = base_url.replace("127.0.0.1", "10.0.0.178")  # tu IP local
-    url = f"{base_url}/media/avatars/{filename}"
+    # Subir a Cloudinary
+    avatar_url = upload_avatar(file.file)
 
     # Buscar o crear perfil
     perfil = db.query(models.PerfilPublico).filter_by(usuario_id=current_user.id).first()
@@ -296,7 +289,7 @@ def upload_avatar(
         perfil.alias = f"Usuario_{current_user.id}"
 
     # Actualizar avatar
-    perfil.avatar_url = url
+    perfil.avatar_url = avatar_url
     db.commit()
     db.refresh(perfil)
 
