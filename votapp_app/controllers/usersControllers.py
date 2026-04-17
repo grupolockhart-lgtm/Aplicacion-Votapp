@@ -26,12 +26,13 @@ def get_usuario(
     ).first()
 
     status = friendship.status if friendship else None
+    friendship_id = friendship.id if friendship else None   # 👈 nuevo campo
     role = None
     if friendship:
         if current_user_id == friendship.user_id:
-            role = "sent"       # el usuario actual envió la solicitud
+            role = "sent"
         elif current_user_id == friendship.friend_id:
-            role = "received"   # el usuario actual recibió la solicitud
+            role = "received"
 
     return {
         "id": usuario.id,
@@ -47,8 +48,10 @@ def get_usuario(
         "puntos": perfil.puntos if perfil else None,
         "racha_dias": perfil.racha_dias if perfil else None,
         "status": status,
-        "role": role   # 👈 nuevo campo para diferenciar remitente/destinatario
+        "friendship_id": friendship_id,   # 👈 agregado
+        "role": role
     }
+
 
 
 
