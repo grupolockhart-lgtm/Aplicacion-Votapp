@@ -1,10 +1,14 @@
-
-
+// src/screens/Profile/hooks/useAvatar.ts
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../../config/api";
+import { Profile } from "../../../Types/Profile";
 
-export function useAvatar(setAvatarUrl: (url: string) => void, setProfile: any, refreshProfile: () => void) {
+export function useAvatar(
+  setAvatarUrl: (url: string) => void,
+  setProfile: React.Dispatch<React.SetStateAction<Profile | null>>,
+  refreshProfile: () => void
+) {
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
@@ -13,7 +17,7 @@ export function useAvatar(setAvatarUrl: (url: string) => void, setProfile: any, 
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ estable en tu versión
       allowsEditing: true,
       aspect: [1, 1],
       quality: 1,
@@ -36,21 +40,29 @@ export function useAvatar(setAvatarUrl: (url: string) => void, setProfile: any, 
       });
 
       const data = await res.json();
-      setAvatarUrl(data.avatar_url);
 
-      setProfile((prev: any) => ({
-        ...prev,
+      // ✅ Normalizamos la URL y añadimos timestamp para evitar cache
+      const fullUrl = data.avatar_url.startsWith("http")
+        ? data.avatar_url
+        : `${API_URL.replace("/api", "")}${data.avatar_url}`;
+      const finalUrl = `${fullUrl}?t=${Date.now()}`;
+
+      // Actualizamos estado inmediatamente
+      setAvatarUrl(finalUrl);
+      setProfile((prev: Profile | null) => ({
+        ...prev!,
         public_profile: {
-          ...prev.public_profile,
-          avatar_url: data.avatar_url.startsWith("http")
-            ? data.avatar_url
-            : `${API_URL.replace("/api", "")}${data.avatar_url}`,
+          ...prev?.public_profile,
+          avatar_url: finalUrl,
         },
       }));
 
+      // Luego refrescamos desde el backend
       await refreshProfile();
     }
   };
 
   return { pickImage };
 }
+
+

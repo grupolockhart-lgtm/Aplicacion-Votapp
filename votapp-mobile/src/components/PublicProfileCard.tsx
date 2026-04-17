@@ -1,6 +1,6 @@
 // src/components/PublicProfileCard.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
 
 export default function PublicProfileCard({ alias, bio, avatarUrl, onSave, onPickImage }: any) {
@@ -8,6 +8,13 @@ export default function PublicProfileCard({ alias, bio, avatarUrl, onSave, onPic
   const [localAlias, setLocalAlias] = useState(alias || "");
   const [localBio, setLocalBio] = useState(bio || "");
   const [localAvatar, setLocalAvatar] = useState(avatarUrl || "");
+
+  // ✅ sincroniza estado interno cuando cambian las props
+  useEffect(() => {
+    setLocalAlias(alias || "");
+    setLocalBio(bio || "");
+    setLocalAvatar(avatarUrl || "");
+  }, [alias, bio, avatarUrl]);
 
   return (
     <View style={styles.card}>

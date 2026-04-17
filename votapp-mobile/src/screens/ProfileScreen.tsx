@@ -1,4 +1,4 @@
-// src/screens/Profile/ProfileScreen.tsx
+// src/screens/ProfileScreen.tsx
 
 import React, { useState, useRef, useEffect } from "react";
 import {
@@ -28,18 +28,33 @@ import ProfileTabs from "./Profile/ProfileTabs";
 import PrivateProfileCard from "../components/PrivateProfileCard";
 import { API_URL } from "../config/api";
 import BilleteraCard from "../components/BilleteraCard";
-
+import { Profile } from "../Types/Profile"; // 👈 importa tu tipo
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
 
-  const { profile, refreshProfile } = useProfile(navigation);
+  // ✅ ahora obtenemos también setProfile del hook
+  const { profile, refreshProfile, setProfile } = useProfile(navigation);
   const { saveUserData } = useUserData(API_URL, refreshProfile, () => {});
 
   const { refreshGamificacion, fetchGamificacion } = useGamificacion();
   useFocusEffect(fetchGamificacion);
   const { savePublicProfile } = usePublicProfile(refreshProfile);
-  const { pickImage } = useAvatar(() => {}, () => {}, refreshProfile);
+
+  // ✅ usamos useAvatar con setProfile tipado
+  const { pickImage } = useAvatar(
+    (newAvatarUrl: string) => {
+      setProfile((prev: Profile | null) => ({
+        ...prev!,
+        public_profile: {
+          ...prev?.public_profile,
+          avatar_url: newAvatarUrl,
+        },
+      }));
+    },
+    setProfile,
+    refreshProfile
+  );
 
   const [showSettings, setShowSettings] = useState(false);
   const [showPrivateData, setShowPrivateData] = useState(false);
@@ -85,7 +100,7 @@ export default function ProfileScreen() {
           bio={profile?.public_profile?.bio}
           avatarUrl={profile?.public_profile?.avatar_url}
           onSave={savePublicProfile}
-          onPickImage={pickImage}
+          onPickImage={pickImage} // ✅ ya no da error
         />
 
         <TouchableOpacity
@@ -111,10 +126,8 @@ export default function ProfileScreen() {
             ]}
           >
             <SafeAreaView style={styles.safeAreaContent}>
-              {/* Título principal Ajustes */}
               <Text style={styles.modalTitle}>Ajustes</Text>
 
-              {/* Sección Datos privados */}
               <TouchableOpacity
                 onPress={() => setShowPrivateData(!showPrivateData)}
               >
@@ -130,7 +143,6 @@ export default function ProfileScreen() {
                 </View>
               )}
 
-              {/* Cerrar sesión */}
               <TouchableOpacity
                 onPress={() => {
                   setShowSettings(false);
@@ -153,11 +165,10 @@ export default function ProfileScreen() {
         <GamificacionCard refreshTrigger={refreshGamificacion} />
       </View>
 
-      {/* 🚀 Bloque de billetera */}
+      {/* Billetera */}
       <View style={styles.walletRow}>
         <BilleteraCard wallet={profile.wallet} />
       </View>
-
 
       {/* Tabs de encuestas */}
       <ProfileTabs profile={profile} refreshGamificacion={refreshGamificacion} />
@@ -200,7 +211,7 @@ const styles = StyleSheet.create({
   safeAreaContent: {
     flex: 1,
     padding: 20,
-    paddingTop: 40, // 👈 margen extra para bajar "Ajustes" y evitar notch/isla
+    paddingTop: 40,
   },
   modalTitle: {
     fontSize: 20,
@@ -227,7 +238,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 12,
   },
-    walletRow: {
+  walletRow: {
     paddingHorizontal: 0,
     paddingVertical: 2,
     backgroundColor: "#F3F4F6",

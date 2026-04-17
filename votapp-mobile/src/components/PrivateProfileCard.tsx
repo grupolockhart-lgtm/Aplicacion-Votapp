@@ -1,6 +1,6 @@
 // src/components/PrivateProfileCard.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import ModalSelector from "react-native-modal-selector";
 import {
@@ -42,6 +42,19 @@ export default function PrivateProfileCard({ onSave, initialData }: PrivateProfi
     ocupacion: initialData?.ocupacion || ocupaciones[0],
     religion: initialData?.religion || religiones[0],
   });
+
+  // ✅ sincroniza el formulario cuando cambian las props
+  useEffect(() => {
+    setForm({
+      telefono_movil: initialData?.telefono_movil || "",
+      ciudad: initialData?.ciudad || ciudades[0],
+      estado_civil: initialData?.estado_civil || "Soltero",
+      nivel_educativo: initialData?.nivel_educativo || nivelesEducativos[0],
+      profesion: initialData?.profesion || profesiones[0],
+      ocupacion: initialData?.ocupacion || ocupaciones[0],
+      religion: initialData?.religion || religiones[0],
+    });
+  }, [initialData]);
 
   const handleChange = (field: keyof typeof form, value: string) => {
     setForm({ ...form, [field]: value });

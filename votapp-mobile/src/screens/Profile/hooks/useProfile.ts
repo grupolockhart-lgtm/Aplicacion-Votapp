@@ -1,11 +1,11 @@
-// src/screens/Profile/hooks/useProfile.ts
 import { useState, useEffect, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 import { API_URL } from "../../../config/api";
+import { Profile } from "../../../Types/Profile";
 
 export const useProfile = (navigation: any) => {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   const refreshProfile = useCallback(async () => {
     try {
@@ -17,7 +17,6 @@ export const useProfile = (navigation: any) => {
       });
       const data = await res.json();
 
-
       if (!res.ok) throw new Error(data?.detail || "Error al cargar perfil");
 
       setProfile(data);
@@ -26,12 +25,10 @@ export const useProfile = (navigation: any) => {
     }
   }, []);
 
-  // Cargar perfil al montar
   useEffect(() => {
     refreshProfile();
   }, []);
 
-  // Refrescar perfil cada vez que la pantalla se enfoca
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
       refreshProfile();
@@ -39,5 +36,5 @@ export const useProfile = (navigation: any) => {
     return unsubscribe;
   }, [navigation]);
 
-  return { profile, refreshProfile };
+  return { profile, refreshProfile, setProfile };
 };
