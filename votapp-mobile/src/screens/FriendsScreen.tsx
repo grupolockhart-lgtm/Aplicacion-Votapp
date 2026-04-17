@@ -195,7 +195,7 @@ const renderFriendItem = ({ item }: { item: Friend }) => (
         <TouchableOpacity
           style={[styles.actionBtn, styles.profileBtn]}
           onPress={() =>
-            navigation.navigate("FriendProfileScreen", { friendId: item.friend_id })
+            navigation.navigate("FriendProfileScreen", { friendId: item.otro_usuario_id })
           }
         >
           <FontAwesome name="user" size={16} color="#fff" />
