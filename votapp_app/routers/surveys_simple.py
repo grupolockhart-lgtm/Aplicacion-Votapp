@@ -77,39 +77,28 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
 
 
 
-
 # -------------------
-# Crear encuesta simple (con subida a Cloudinary)
+# Crear encuesta simple (solo JSON con URLs de Cloudinary)
 # -------------------
 @router.post("/", response_model=SurveySimpleResponse)
 def crear_encuesta_simple(
     survey: SurveySimpleCreate,
-    files: List[UploadFile] = None,   # 👈 lista opcional de archivos
     db: Session = Depends(get_db),
     usuario = Depends(get_current_user)
 ):
     if not usuario:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
 
-    # 👇 subir cada archivo a Cloudinary y obtener URLs
-    urls = []
-    if files:
-        for f in files:
-            if not f.content_type.startswith("image/"):
-                raise HTTPException(status_code=400, detail="Solo se permiten imágenes")
-            url = upload_avatar(f.file)   # tu función ya devuelve la URL pública
-            urls.append(url)
-
     nueva = SurveySimple(
         titulo=survey.titulo,
         usuario_id=usuario.id,
-        imagenes=urls or survey.imagenes or [],   # 👈 guarda URLs de Cloudinary
+        imagenes=survey.imagenes or [],   # 👈 aquí ya deben venir URLs de Cloudinary
         videos=survey.videos or [],
         fecha_expiracion=survey.fecha_expiracion or datetime.now(timezone.utc)
     )
 
     db.add(nueva)
-    db.flush()   # 👈 asegura que nueva.id exista
+    db.flush()
 
     for pregunta in survey.preguntas:
         nueva_pregunta = SurveySimpleQuestion(
@@ -127,13 +116,12 @@ def crear_encuesta_simple(
             )
             db.add(nueva_opcion)
 
-    db.commit()   # 👈 un solo commit al final
+    db.commit()
     db.refresh(nueva)
 
     print("Encuesta creada con ID:", nueva.id)
 
     return build_survey_simple_response(nueva)
-
 
 
 # -------------------
