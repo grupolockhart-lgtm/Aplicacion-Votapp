@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -25,7 +26,7 @@ type User = {
   puntos?: number;
   racha_dias?: number;
   ultima_participacion?: string;
-  status?: string; // null, pending, accepted, rejected
+  status?: string | null;   // 👈 ahora acepta null
   friendship_id?: number;
 };
 
@@ -85,16 +86,12 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         { method: "POST" }
       );
       alert("Solicitud enviada");
-
-      // Actualizar inmediatamente en frontend
-      setUser((prev) =>
-        prev ? { ...prev, status: "pending" } : prev
-      );
+      setUser((prev) => prev ? { ...prev, status: "pending" } : prev);
     } catch (err) {
       console.error("Error al enviar solicitud:", err);
     } finally {
       setSending(false);
-      fetchUser(); // sincronizar con backend
+      fetchUser();
     }
   };
 
@@ -122,6 +119,35 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
     } catch (err) {
       console.error("Error al rechazar solicitud:", err);
     }
+  };
+
+  const deleteFriendship = async (friendshipId: number) => {
+    Alert.alert(
+      "Confirmar",
+      "¿Seguro que quieres eliminar esta amistad?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await fetch(
+                `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}`,
+                { method: "DELETE" }
+              );
+              alert("Amistad eliminada");
+              setUser((prev) =>
+                prev ? { ...prev, status: null, friendship_id: undefined } : prev
+              );
+            } catch (err) {
+              console.error("Error al eliminar amistad:", err);
+              alert("Error eliminando amistad");
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -163,7 +189,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         </Text>
       )}
 
-      {/* Mostrar botón de enviar si no hay relación o fue rechazada */}
+      {/* Botón de enviar solicitud */}
       {(!user.status || user.status === "rejected") && (
         <TouchableOpacity
           style={[styles.button, styles.request]}
@@ -182,7 +208,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         </TouchableOpacity>
       )}
 
-      {/* Mostrar texto informativo si está pendiente */}
+      {/* Texto informativo si está pendiente */}
       {user.status === "pending" && (
         <View style={{ marginTop: 16, alignItems: "center" }}>
           <Text style={{ fontSize: 16, fontWeight: "bold", color: "#555" }}>
@@ -191,27 +217,36 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         </View>
       )}
 
-      {/* Mostrar botones de aceptar/rechazar si está pendiente y el usuario actual es receptor */}
+      {/* Botones de aceptar/rechazar */}
       {user.status === "pending" && user.friendship_id && (
         <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 12 }}>
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: "#2196F3", marginRight: 8 }]}
+            style={[styles.button, styles.acceptBtn]}
             onPress={() => acceptFriendRequest(user.friendship_id!)}
           >
             <Text style={styles.buttonText}>Aceptar</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: "#F44336" }]}
+            style={[styles.button, styles.rejectBtn]}
             onPress={() => rejectFriendRequest(user.friendship_id!)}
           >
             <Text style={styles.buttonText}>Rechazar</Text>
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Botón de eliminar amistad */}
+      {user.status === "accepted" && user.friendship_id && (
+        <TouchableOpacity
+          style={[styles.button, styles.deleteBtn]}
+          onPress={() => deleteFriendship(user.friendship_id!)}
+        >
+          <Text style={styles.buttonText}>Eliminar amistad</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -236,8 +271,10 @@ const styles = StyleSheet.create({
     marginTop: 16,
     alignItems: "center",
   },
-  request: { backgroundColor: "#4CAF50" },
+  request: { backgroundColor: "#4CAF50" },   // verde para enviar solicitud
   buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
+  deleteBtn: { backgroundColor: "#F44336" }, // rojo para eliminar amistad
+  acceptBtn: { backgroundColor: "#2196F3" }, // azul para aceptar
+  rejectBtn: { backgroundColor: "#FF9800" }, // naranja para rechazar
 });
-
 

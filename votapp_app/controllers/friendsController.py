@@ -6,6 +6,7 @@ from datetime import datetime
 from ..database import get_db
 from ..models_social import Friend, Notification
 from ..models import Usuario, PerfilPublico
+from ..auth import get_current_user
 
 router = APIRouter()
 
@@ -264,14 +265,26 @@ def update_friend_request(friendship_id: int, action: str, db: Session = Depends
 # ELIMINAR AMISTAD
 # -------------------
 @router.delete("/friends/{friendship_id}")
-def delete_friendship(friendship_id: int, db: Session = Depends(get_db)):
+def delete_friendship(
+    friendship_id: int,
+    db: Session = Depends(get_db),
+    usuario = Depends(get_current_user)   # 👈 valida token y obtiene usuario
+):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+
     friendship = db.query(Friend).filter(Friend.id == friendship_id).first()
     if not friendship:
         raise HTTPException(status_code=404, detail="Amistad no encontrada")
 
+    # Validar que el usuario actual sea parte de la relación
+    if friendship.user_id != usuario.id and friendship.friend_id != usuario.id:
+        raise HTTPException(status_code=403, detail="No autorizado para eliminar esta amistad")
+
     db.delete(friendship)
     db.commit()
     return {"message": "Amistad eliminada"}
+
 
 # -------------------
 # BUSCAR AMIGOS POR NOMBRE O CORREO
