@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
 from ..models_simple import SurveySimple, SurveySimpleQuestion, SurveySimpleOption, SimpleVote
@@ -13,6 +13,7 @@ from typing import List
 import logging
 from sqlalchemy import func
 from ..models import Usuario
+from services.cloudinary_service import upload_avatar
 
 # 👇 importa la función oficial desde utils
 from votapp_app.utils import safe_json_list
@@ -78,21 +79,31 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
 
 
 # -------------------
-# Crear encuesta simple
+# Crear encuesta simple (con subida a Cloudinary)
 # -------------------
 @router.post("/", response_model=SurveySimpleResponse)
 def crear_encuesta_simple(
     survey: SurveySimpleCreate,
+    files: List[UploadFile] = None,   # 👈 lista opcional de archivos
     db: Session = Depends(get_db),
     usuario = Depends(get_current_user)
 ):
     if not usuario:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
 
+    # 👇 subir cada archivo a Cloudinary y obtener URLs
+    urls = []
+    if files:
+        for f in files:
+            if not f.content_type.startswith("image/"):
+                raise HTTPException(status_code=400, detail="Solo se permiten imágenes")
+            url = upload_avatar(f.file)   # tu función ya devuelve la URL pública
+            urls.append(url)
+
     nueva = SurveySimple(
         titulo=survey.titulo,
         usuario_id=usuario.id,
-        imagenes=survey.imagenes or [],
+        imagenes=urls or survey.imagenes or [],   # 👈 guarda URLs de Cloudinary
         videos=survey.videos or [],
         fecha_expiracion=survey.fecha_expiracion or datetime.now(timezone.utc)
     )
@@ -119,10 +130,9 @@ def crear_encuesta_simple(
     db.commit()   # 👈 un solo commit al final
     db.refresh(nueva)
 
-    print("Encuesta creada con ID:", nueva.id)  # 👈 log para confirmar
+    print("Encuesta creada con ID:", nueva.id)
 
     return build_survey_simple_response(nueva)
-
 
 
 
