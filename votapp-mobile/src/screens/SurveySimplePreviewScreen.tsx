@@ -1,6 +1,5 @@
-// -------------------
-// SurveySimplePreviewScreen
-// -------------------
+// votapp-mobile/src/screens/SurveySimplePreviewScreen.tsx
+
 import React from "react";
 import {
   View,
@@ -13,41 +12,36 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Types/Navigation";
 import { API_URL } from "../config/api";
 
-// -------------------
-// Tipado de Props
-// -------------------
 type Props = NativeStackScreenProps<
   RootStackParamList,
   "SurveySimplePreviewScreen"
 >;
 
-// -------------------
-// Componente Principal
-// -------------------
 export default function SurveySimplePreviewScreen({ route, navigation }: Props) {
-  const { draftSurvey, token } = route.params; // 👈 asegúrate de pasar el token desde el login
+  const { draftSurvey, token } = route.params;
 
-  // -------------------
-  // PUBLICAR ENCUESTA
-  // -------------------
   const publicarEncuesta = async () => {
     try {
-      // Clona el draft y asegura que las imágenes estén incluidas
-      const payload = {
-        ...draftSurvey,
-        imagenes: draftSurvey.imagenes ?? [], // 👈 aquí garantizas que se envíe
-        videos: draftSurvey.videos ?? [],
-      };
+      const formData = new FormData();
 
-      console.log("Payload enviado:", JSON.stringify(payload));
+      // Agrega el JSON del survey como string
+      formData.append("survey", JSON.stringify(draftSurvey));
+
+      // Agrega las imágenes como archivos
+      draftSurvey.imagenes.forEach((imgUri: string, index: number) => {
+        formData.append("files", {
+          uri: imgUri,
+          type: "image/jpeg", // ajusta según el tipo real
+          name: `imagen_${index}.jpg`,
+        } as any);
+      });
 
       const res = await fetch(`${API_URL}/surveys/simple/`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       if (!res.ok) {
@@ -65,27 +59,13 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
     }
   };
 
-
-
-  // -------------------
-  // RETURN (UI)
-  // -------------------
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#f9f9f9", padding: 20 }}>
-      <Text
-        style={{
-          fontSize: 22,
-          fontWeight: "bold",
-          marginBottom: 15,
-          color: "#333",
-        }}
-      >
+      <Text style={{ fontSize: 22, fontWeight: "bold", marginBottom: 15, color: "#333" }}>
         Previsualización de encuesta
       </Text>
 
-      <Text
-        style={{ fontSize: 20, fontWeight: "600", marginBottom: 10, color: "#222" }}
-      >
+      <Text style={{ fontSize: 20, fontWeight: "600", marginBottom: 10, color: "#222" }}>
         {draftSurvey.titulo}
       </Text>
 
@@ -95,15 +75,7 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
             {i + 1}. {p.texto}
           </Text>
           {p.opciones.map((o: any, j: number) => (
-            <Text
-              key={j}
-              style={{
-                marginLeft: 15,
-                fontSize: 16,
-                color: "#555",
-                marginBottom: 3,
-              }}
-            >
+            <Text key={j} style={{ marginLeft: 15, fontSize: 16, color: "#555", marginBottom: 3 }}>
               • {o.texto}
             </Text>
           ))}
@@ -114,12 +86,7 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
         <Image
           key={i}
           source={{ uri: img }}
-          style={{
-            width: "100%",
-            height: 200,
-            borderRadius: 10,
-            marginVertical: 10,
-          }}
+          style={{ width: "100%", height: 200, borderRadius: 10, marginVertical: 10 }}
         />
       ))}
 
@@ -135,12 +102,7 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
 
       <TouchableOpacity
         onPress={publicarEncuesta}
-        style={{
-          backgroundColor: "green",
-          padding: 12,
-          borderRadius: 8,
-          marginTop: 10,
-        }}
+        style={{ backgroundColor: "green", padding: 12, borderRadius: 8, marginTop: 10 }}
       >
         <Text style={{ color: "#fff", textAlign: "center", fontSize: 16 }}>
           Publicar
@@ -149,12 +111,7 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
 
       <TouchableOpacity
         onPress={() => navigation.goBack()}
-        style={{
-          backgroundColor: "gray",
-          padding: 12,
-          borderRadius: 8,
-          marginTop: 10,
-        }}
+        style={{ backgroundColor: "gray", padding: 12, borderRadius: 8, marginTop: 10 }}
       >
         <Text style={{ color: "#fff", textAlign: "center", fontSize: 16 }}>
           Editar
