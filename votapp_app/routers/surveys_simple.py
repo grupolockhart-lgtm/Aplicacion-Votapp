@@ -85,36 +85,43 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
 # -------------------
 # Crear encuesta simple (subida a Cloudinary)
 # -------------------
+
 @router.post("/", response_model=SurveySimpleResponse)
 def crear_encuesta_simple(
-    survey: str = Form(...),
-    files: List[UploadFile] = None,   # 👈 opcional: lista de imágenes
+    survey: str = Form(...),   # 👈 llega como string en multipart/form-data
+    files: List[UploadFile] = None,
     db: Session = Depends(get_db),
     usuario = Depends(get_current_user)
 ):
     if not usuario:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
 
+    try:
+        # 👇 convertir el string JSON a objeto Pydantic
+        survey_data = SurveySimpleCreate.parse_raw(survey)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error parseando survey: {str(e)}")
+
     urls = []
     if files:
         for f in files:
             if not f.content_type.startswith("image/"):
                 raise HTTPException(status_code=400, detail="Solo se permiten imágenes")
-            url = upload_avatar(f.file)   # 👈 sube a Cloudinary y devuelve URL pública
+            url = upload_avatar(f.file)
             urls.append(url)
 
     nueva = SurveySimple(
-        titulo=survey.titulo,
+        titulo=survey_data.titulo,   # 👈 ahora sí, objeto Pydantic
         usuario_id=usuario.id,
-        imagenes=urls or survey.imagenes or [],   # 👈 guarda URLs de Cloudinary
-        videos=survey.videos or [],
-        fecha_expiracion=survey.fecha_expiracion or datetime.now(timezone.utc)
+        imagenes=urls or survey_data.imagenes or [],
+        videos=survey_data.videos or [],
+        fecha_expiracion=survey_data.fecha_expiracion or datetime.now(timezone.utc)
     )
 
     db.add(nueva)
     db.flush()
 
-    for pregunta in survey.preguntas:
+    for pregunta in survey_data.preguntas:
         nueva_pregunta = SurveySimpleQuestion(
             texto=pregunta.texto,
             survey_simple_id=nueva.id
@@ -132,8 +139,6 @@ def crear_encuesta_simple(
 
     db.commit()
     db.refresh(nueva)
-
-    print("Encuesta creada con ID:", nueva.id)
 
     return build_survey_simple_response(nueva)
 
