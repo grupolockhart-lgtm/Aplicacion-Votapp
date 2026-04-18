@@ -3,7 +3,7 @@
 
 
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form
 from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
 from ..models_simple import SurveySimple, SurveySimpleQuestion, SurveySimpleOption, SimpleVote
@@ -87,7 +87,7 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
 # -------------------
 @router.post("/", response_model=SurveySimpleResponse)
 def crear_encuesta_simple(
-    survey: SurveySimpleCreate,
+    survey: str = Form(...),
     files: List[UploadFile] = None,   # 👈 opcional: lista de imágenes
     db: Session = Depends(get_db),
     usuario = Depends(get_current_user)
