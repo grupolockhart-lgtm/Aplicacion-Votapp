@@ -132,9 +132,15 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
           style: "destructive",
           onPress: async () => {
             try {
+              const storedToken = await AsyncStorage.getItem("userToken");
               await fetch(
                 `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}`,
-                { method: "DELETE" }
+                {
+                  method: "DELETE",
+                  headers: {
+                    Authorization: `Bearer ${storedToken}`,
+                  },
+                }
               );
               alert("Amistad eliminada");
               setUser((prev) =>

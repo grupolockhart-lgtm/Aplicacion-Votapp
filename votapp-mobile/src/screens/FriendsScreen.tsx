@@ -14,6 +14,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FontAwesome } from "@expo/vector-icons";  // 👈 Expo ya trae íconos integrados
+import { useFocusEffect } from "@react-navigation/native";
 
 type Friend = {
   id: number;               // id de la relación
@@ -136,12 +137,24 @@ export default function FriendsScreen() {
     }
   };
 
+
+
   useEffect(() => {
     if (userId) {
       fetchFriends();
       fetchPendingRequests();
     }
   }, [userId]);
+
+
+  useFocusEffect(
+      React.useCallback(() => {
+        if (userId) {
+          fetchFriends();
+          fetchPendingRequests();
+        }
+      }, [userId, token])
+    );
 
   if (loading) {
     return (
@@ -159,6 +172,15 @@ export default function FriendsScreen() {
       </View>
     );
   }
+
+
+
+
+
+
+
+
+
 
 const renderFriendItem = ({ item }: { item: Friend }) => (
   <View style={styles.friendCard}>
