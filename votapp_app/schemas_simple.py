@@ -1,3 +1,5 @@
+# votapp_app/schemas_simple.py
+
 from pydantic import BaseModel, field_validator, ValidationInfo
 from typing import List, Optional
 from datetime import datetime
@@ -41,6 +43,8 @@ class SurveySimpleCreate(BaseModel):
     imagenes: Optional[List[str]] = []
     videos: Optional[List[str]] = []
     fecha_expiracion: Optional[datetime] = None
+    asignado_a: Optional[int] = None   # 👈 nuevo campo
+
 
 class SurveySimpleResponse(BaseModel):
     id: int
@@ -50,6 +54,10 @@ class SurveySimpleResponse(BaseModel):
     videos: List[str] = []
     fecha_expiracion: Optional[datetime] = None
     fecha_creacion: Optional[datetime] = None
+
+    # 👇 añadimos creador y asignado
+    usuario_id: Optional[int] = None
+    asignado_a: Optional[int] = None
 
     # -------------------
     # Campos extra para cumplir contrato de Survey
@@ -81,6 +89,7 @@ class SurveySimpleResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
     # -------------------
     # Validadores defensivos (Pydantic v2)

@@ -10,6 +10,16 @@ import PersonalesScreen from "@/screens/PersonalesScreen";
 import VotadasScreen from "@/screens/VotadasScreen";
 import FinalizadasScreen from "@/screens/FinalizadasScreen";
 import SurveyHistory from "@/screens/SurveyHistory";
+import { FontAwesome } from "@expo/vector-icons"; // 👈 importamos íconos
+
+
+const styles = StyleSheet.create({
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 10, fontSize: 16, color: "#111827" },
+  errorText: { color: "red", fontSize: 16, fontWeight: "bold" },
+});
+
+
 
 // -------------------
 // Tipos
@@ -156,19 +166,28 @@ export default function SurveysScreen() {
 
       setDisponibles([
         ...toArray(normalesDisponibles).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...toArray(simplesDisponibles).map(normalizeSimple),
       ]);
+
       setVotadas([
         ...toArray(normalesVotadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...toArray(simplesVotadas).map(normalizeSimple),
+        ...toArray(simplesVotadas).map(normalizeSimple),   // 👈 simples votadas
       ]);
+
       setFinalizadas([
         ...toArray(normalesFinalizadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...toArray(simplesFinalizadas).map(normalizeSimple),
+        ...toArray(simplesFinalizadas).map(normalizeSimple), // 👈 simples expiradas
       ]);
+
       setPersonales([
         ...toArray(normalesPersonales).map((s: Survey) => ({ ...s, tipo: "normal" })),
+        ...toArray(simplesDisponibles)
+          .filter((s: any) =>
+            // 👇 condición: creadas por mí o asignadas a mí
+            s.usuario_id === s.current_user_id || s.asignado_a === s.current_user_id
+          )
+          .map(normalizeSimple),
       ]);
+
     } catch (err) {
       setError("No se pudieron refrescar las encuestas");
     }
@@ -219,73 +238,113 @@ export default function SurveysScreen() {
   }
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: "#111827",
-        tabBarInactiveTintColor: "#6B7280",
-        tabBarLabelStyle: { fontSize: 14, fontWeight: "600" },
-        tabBarIndicatorStyle: { backgroundColor: "#2563EB", height: 3 },
-        tabBarStyle: { backgroundColor: "#F9FAFB", borderRadius: 8, marginHorizontal: 4, marginTop: 4 },
+  <Tab.Navigator
+    screenOptions={{
+      tabBarActiveTintColor: "#111827",
+      tabBarInactiveTintColor: "#6B7280",
+      tabBarLabelStyle: { fontSize: 10, fontWeight: "500" },
+      tabBarIndicatorStyle: { backgroundColor: "#2563EB", height: 3 },
+      tabBarStyle: {
+        backgroundColor: "#F9FAFB",
+        borderRadius: 8,
+        marginHorizontal: 4,
+        marginTop: 4,
+      },
+    }}
+  >
+    <Tab.Screen
+      name="Globales"
+      options={{
+        tabBarLabel: "Globales",
+        tabBarIcon: ({ color }: { color: string }) => (
+          <FontAwesome name="globe" size={22} color={color} />
+        ),
       }}
     >
-      <Tab.Screen name="Globales" options={{ tabBarLabel: "🌐 Globales" }}>
-        {() => (
-          <DisponiblesScreen
-            surveys={disponibles}
-            globalMuted={globalMuted}
-            toggleMute={toggleMute}
-            refreshSurveys={refreshSurveys}
-            refreshProfile={refreshProfile}
-          />
-        )}
-      </Tab.Screen>
-
-      <Tab.Screen name="Personales" options={{ tabBarLabel: "👥 Personales" }}>
-        {() => (
-          <PersonalesScreen
-            surveys={personales}  
-            globalMuted={globalMuted}
-            toggleMute={toggleMute}
-          />
-        )}
-      </Tab.Screen>
-
-      <Tab.Screen name="Completadas" options={{ tabBarLabel: "✅ Completadas" }}>
-        {() => (
-          <VotadasScreen
-            surveys={votadas}
-            globalMuted={globalMuted}
-            toggleMute={toggleMute}
-            refreshSurveys={refreshSurveys}
-            refreshProfile={refreshProfile}
-          />
-        )}
-      </Tab.Screen>
-
-      <Tab.Screen name="Finalizadas" options={{ tabBarLabel: "🏁 Finalizadas" }}>
-        {() => (
-          <FinalizadasScreen
-            surveys={finalizadas}
-            globalMuted={globalMuted}
-            toggleMute={toggleMute}
-            refreshSurveys={refreshSurveys}
-            refreshProfile={refreshProfile}
-            userRole={userRole ?? "user"}
-          />
-        )}
-      </Tab.Screen>
-
-      {userRole === "admin" && (
-        <Tab.Screen name="Historial" options={{ tabBarLabel: "📜 Historial" }}>
-          {() => <SurveyHistory />}
-        </Tab.Screen>
+      {() => (
+        <DisponiblesScreen
+          surveys={disponibles}
+          globalMuted={globalMuted}
+          toggleMute={toggleMute}
+          refreshSurveys={refreshSurveys}
+          refreshProfile={refreshProfile}
+        />
       )}
-    </Tab.Navigator>
+    </Tab.Screen>
+
+    <Tab.Screen
+      name="Personales"
+      options={{
+        tabBarLabel: "Personales",
+        tabBarIcon: ({ color }: { color: string }) => (
+          <FontAwesome name="users" size={22} color={color} />
+        ),
+      }}
+    >
+      {() => (
+        <PersonalesScreen
+          surveys={personales}
+          globalMuted={globalMuted}
+          toggleMute={toggleMute}
+          refreshSurveys={refreshSurveys} // 👈 añadido para evitar el error
+        />
+      )}
+    </Tab.Screen>
+
+    <Tab.Screen
+      name="Completadas"
+      options={{
+        tabBarLabel: "Completadas",
+        tabBarIcon: ({ color }: { color: string }) => (
+          <FontAwesome name="check-circle" size={22} color={color} />
+        ),
+      }}
+    >
+      {() => (
+        <VotadasScreen
+          surveys={votadas}
+          globalMuted={globalMuted}
+          toggleMute={toggleMute}
+          refreshSurveys={refreshSurveys}
+          refreshProfile={refreshProfile}
+        />
+      )}
+    </Tab.Screen>
+
+    <Tab.Screen
+      name="Finalizadas"
+      options={{
+        tabBarLabel: "Finalizadas",
+        tabBarIcon: ({ color }: { color: string }) => (
+          <FontAwesome name="flag-checkered" size={22} color={color} />
+        ),
+      }}
+    >
+      {() => (
+        <FinalizadasScreen
+          surveys={finalizadas}
+          globalMuted={globalMuted}
+          toggleMute={toggleMute}
+          refreshSurveys={refreshSurveys}
+          refreshProfile={refreshProfile}
+          userRole={userRole ?? "user"}
+        />
+      )}
+    </Tab.Screen>
+
+    {userRole === "admin" && (
+      <Tab.Screen
+        name="Historial"
+        options={{
+          tabBarLabel: "Historial",
+          tabBarIcon: ({ color }: { color: string }) => (
+            <FontAwesome name="book" size={22} color={color} />
+          ),
+        }}
+      >
+        {() => <SurveyHistory />}
+      </Tab.Screen>
+    )}
+  </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 10, fontSize: 16, color: "#111827" },
-  errorText: { color: "red", fontSize: 16, fontWeight: "bold" },
-});

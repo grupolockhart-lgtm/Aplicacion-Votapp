@@ -85,7 +85,6 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
 # -------------------
 # Crear encuesta simple (subida a Cloudinary)
 # -------------------
-
 @router.post("/", response_model=SurveySimpleResponse)
 def crear_encuesta_simple(
     survey: str = Form(...),   # 👈 llega como string en multipart/form-data
@@ -111,8 +110,9 @@ def crear_encuesta_simple(
             urls.append(url)
 
     nueva = SurveySimple(
-        titulo=survey_data.titulo,   # 👈 ahora sí, objeto Pydantic
+        titulo=survey_data.titulo,
         usuario_id=usuario.id,
+        asignado_a=survey_data.asignado_a,   # 👈 ahora sí guardamos el asignado
         imagenes=urls or survey_data.imagenes or [],
         videos=survey_data.videos or [],
         fecha_expiracion=survey_data.fecha_expiracion or datetime.now(timezone.utc)
@@ -289,12 +289,13 @@ def listar_disponibles(db: Session = Depends(get_db), usuario = Depends(get_curr
         .options(
             selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
         )
-            .filter(
-                (SurveySimple.fecha_expiracion == None) |
-                (SurveySimple.fecha_expiracion > datetime.utcnow())
-            )
-
-
+        .filter(
+            ((SurveySimple.fecha_expiracion == None) |
+             (SurveySimple.fecha_expiracion > datetime.utcnow()))
+            &
+            ((SurveySimple.usuario_id == usuario.id) | 
+             (SurveySimple.asignado_a == usuario.id))   # 👈 filtro creador o asignado
+        )
         .order_by(SurveySimple.id.desc())
         .all()
     )
@@ -388,5 +389,34 @@ def obtener_encuesta_simple(
     return build_survey_simple_response(encuesta)
 
 
+# -------------------
+# Asignar encuesta simple a un amigo
+# -------------------
+@router.put("/{survey_id}/assign/{friend_id}", response_model=SurveySimpleResponse)
+def assign_simple_survey(
+    survey_id: int,
+    friend_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    # Buscar encuesta
+    survey = db.query(SurveySimple).filter(SurveySimple.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Encuesta simple no encontrada")
 
+    # Validar que el usuario actual sea el creador
+    if survey.usuario_id != current_user.id:
+        raise HTTPException(status_code=403, detail="No puedes asignar encuestas que no creaste")
+
+    # Validar que el amigo exista
+    friend = db.query(Usuario).filter(Usuario.id == friend_id).first()
+    if not friend:
+        raise HTTPException(status_code=404, detail="Amigo no encontrado")
+
+    # Asignar encuesta
+    survey.asignado_a = friend_id
+    db.commit()
+    db.refresh(survey)
+
+    return survey
 

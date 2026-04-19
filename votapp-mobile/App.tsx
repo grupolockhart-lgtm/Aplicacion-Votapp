@@ -23,7 +23,7 @@ import SurveySimplePreviewScreen from "./src/screens/SurveySimplePreviewScreen";
 import FriendsScreen from "./src/screens/FriendsScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import FriendProfileScreen from "./src/screens/FriendProfileScreen"; // 👈 importado
-
+import { FriendsProvider } from "./src/context/FriendsContext"; // 👈 importa el provider
 
 
 import type { RootStackParamList } from "./src/Types/Navigation";
@@ -91,77 +91,79 @@ function MainTabs() {
 export default function App() {
   return (
     <GestureHandlerRootView style={styles.container}>
-      {/* 👇 envuelve todo con SurveyProvider */}
+      {/* 👇 envuelve todo con SurveyProvider y FriendsProvider */}
       <SurveyProvider>
-        <NavigationContainer>
-          <Stack.Navigator id="RootStack" initialRouteName="LoginScreen">
-            <Stack.Screen
-              name="LoginScreen"
-              component={LoginScreen}
-              options={{ title: "Iniciar sesión" }}
-            />
-            <Stack.Screen
-              name="RegisterScreen"
-              component={RegisterScreen}
-              options={{ title: "Registrarse" }}
-            />
-            <Stack.Screen
-              name="MainTabs"
-              component={MainTabs}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="VoteScreen"
-              component={VoteScreen}
-              options={{ title: "Votar" }}
-            />
-            <Stack.Screen
-              name="ResultsScreen"
-              component={ResultsScreen}
-              options={{ title: "Resultados" }}
-            />
-            <Stack.Screen
-              name="SurveyCommentsScreen"
-              component={SurveyCommentsScreen}
-              options={{ title: "Comentarios" }}
-            />
-            <Stack.Screen
-              name="SurveyHistory"
-              component={SurveyHistory}
-              options={{ title: "Historial de encuesta" }}
-            />
-            <Stack.Screen
-              name="SurveyHistoryScreen"
-              component={SurveyHistoryScreen}
-              options={{ title: "Historial completo de encuestas" }}
-            />
-            <Stack.Screen
-              name="TestChart"
-              component={TestChart}
-              options={{ title: "Gráfico de prueba" }}
-            />
-            <Stack.Screen
-              name="LogoutScreen"
-              component={LogoutScreen}
-              options={{ title: "Cerrar sesión" }}
-            />
-            <Stack.Screen
-              name="WalletHistoryScreen"
-              component={WalletHistoryScreen}
-              options={{ title: "Historial de billetera" }}
-            />
-            <Stack.Screen
-              name="SurveySimplePreviewScreen"
-              component={SurveySimplePreviewScreen}
-              options={{ title: "Previsualización" }}
-            />
-            <Stack.Screen
-              name="FriendProfileScreen"
-              component={FriendProfileScreen}
-              options={{ title: "Perfil de amigo" }}
-            />
-          </Stack.Navigator>
-        </NavigationContainer>
+        <FriendsProvider>
+          <NavigationContainer>
+            <Stack.Navigator id="RootStack" initialRouteName="LoginScreen">
+              <Stack.Screen
+                name="LoginScreen"
+                component={LoginScreen}
+                options={{ title: "Iniciar sesión" }}
+              />
+              <Stack.Screen
+                name="RegisterScreen"
+                component={RegisterScreen}
+                options={{ title: "Registrarse" }}
+              />
+              <Stack.Screen
+                name="MainTabs"
+                component={MainTabs}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="VoteScreen"
+                component={VoteScreen}
+                options={{ title: "Votar" }}
+              />
+              <Stack.Screen
+                name="ResultsScreen"
+                component={ResultsScreen}
+                options={{ title: "Resultados" }}
+              />
+              <Stack.Screen
+                name="SurveyCommentsScreen"
+                component={SurveyCommentsScreen}
+                options={{ title: "Comentarios" }}
+              />
+              <Stack.Screen
+                name="SurveyHistory"
+                component={SurveyHistory}
+                options={{ title: "Historial de encuesta" }}
+              />
+              <Stack.Screen
+                name="SurveyHistoryScreen"
+                component={SurveyHistoryScreen}
+                options={{ title: "Historial completo de encuestas" }}
+              />
+              <Stack.Screen
+                name="TestChart"
+                component={TestChart}
+                options={{ title: "Gráfico de prueba" }}
+              />
+              <Stack.Screen
+                name="LogoutScreen"
+                component={LogoutScreen}
+                options={{ title: "Cerrar sesión" }}
+              />
+              <Stack.Screen
+                name="WalletHistoryScreen"
+                component={WalletHistoryScreen}
+                options={{ title: "Historial de billetera" }}
+              />
+              <Stack.Screen
+                name="SurveySimplePreviewScreen"
+                component={SurveySimplePreviewScreen}
+                options={{ title: "Previsualización" }}
+              />
+              <Stack.Screen
+                name="FriendProfileScreen"
+                component={FriendProfileScreen}
+                options={{ title: "Perfil de amigo" }}
+              />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </FriendsProvider>
       </SurveyProvider>
     </GestureHandlerRootView>
   );

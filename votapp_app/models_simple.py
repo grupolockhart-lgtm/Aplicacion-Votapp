@@ -17,7 +17,8 @@ class SurveySimple(Base):
     # Usuario creador (puede ser null si es anónima)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
 
-
+    # Usuario asignado (amigo destinatario)
+    asignado_a = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
 
     # Guardar multimedia como JSONB (listas nativas)
     imagenes = Column(JSONB, default=list)
@@ -26,12 +27,15 @@ class SurveySimple(Base):
     # Fecha de expiración: por defecto 24h después de creación
     fecha_expiracion = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(days=1))
 
-    # Relación con preguntas
+    # Relaciones
     preguntas = relationship(
         "SurveySimpleQuestion",
         back_populates="survey",
         cascade="all, delete-orphan"
     )
+
+    creador = relationship("Usuario", foreign_keys=[usuario_id], backref="surveys_creadas")
+    asignado = relationship("Usuario", foreign_keys=[asignado_a], backref="surveys_asignadas")
 
 
 class SurveySimpleQuestion(Base):
@@ -69,14 +73,12 @@ class SimpleVote(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     survey_simple_id = Column(Integer, ForeignKey("surveys_simple.id"), nullable=False)
-    pregunta_id = Column(Integer, ForeignKey("surveys_simple_questions.id"), nullable=False)  # ✅ nuevo campo
+    pregunta_id = Column(Integer, ForeignKey("surveys_simple_questions.id"), nullable=False)
     opcion_id = Column(Integer, ForeignKey("surveys_simple_options.id"), nullable=False)
 
     # Relaciones opcionales
     usuario = relationship("Usuario", backref="simple_votes")
     survey_simple = relationship("SurveySimple", backref="votes")
-    pregunta = relationship("SurveySimpleQuestion", backref="votes")   # ✅ relación nueva
+    pregunta = relationship("SurveySimpleQuestion", backref="votes")
     opcion = relationship("SurveySimpleOption", backref="votes")
-
-
 
