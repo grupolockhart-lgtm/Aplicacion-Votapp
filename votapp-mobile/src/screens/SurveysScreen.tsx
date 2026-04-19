@@ -6,6 +6,7 @@ import { API_URL } from "../config/api";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 
 import DisponiblesScreen from "@/screens/DisponiblesScreen";
+import PersonalesScreen from "@/screens/PersonalesScreen";
 import VotadasScreen from "@/screens/VotadasScreen";
 import FinalizadasScreen from "@/screens/FinalizadasScreen";
 import SurveyHistory from "@/screens/SurveyHistory";
@@ -33,7 +34,7 @@ export interface Survey {
   title: string;
   description?: string;
   fecha_expiracion?: string;
-  fecha_creacion?: string;   // 👈 añadimos este campo
+  fecha_creacion?: string;
   segundos_restantes?: number;
   questions: Question[];
   media_url?: string;
@@ -47,21 +48,20 @@ export interface Survey {
   presupuesto_total?: number;
   visibilidad_resultados?: "publica" | "privada";
   tipo: "normal" | "simple";
+  usuario_id?: number;        // 👈 añadido
+  current_user_id?: number;   // 👈 añadido
 }
-
-
 
 const Tab = createMaterialTopTabNavigator();
 
 export default function SurveysScreen() {
   const [disponibles, setDisponibles] = useState<Survey[]>([]);
+  const [personales, setPersonales] = useState<Survey[]>([]); 
   const [votadas, setVotadas] = useState<Survey[]>([]);
   const [finalizadas, setFinalizadas] = useState<Survey[]>([]);
-
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [globalMuted, setGlobalMuted] = useState<boolean>(true);
-
   const [userRole, setUserRole] = useState<string | null>(null);
 
   const toggleMute = () => setGlobalMuted((prev) => !prev);
@@ -73,132 +73,106 @@ export default function SurveysScreen() {
     return [];
   };
 
-
-
-
- // 🔑 Normalización de encuestas simples
-const normalizeSimple = (s: any): Survey => ({
-  id: s.id,
-  title: s.titulo,
-  description: s.description ?? "",
-  fecha_expiracion: s.fecha_expiracion,
-  fecha_creacion: s.fecha_creacion,   // 👈 añadido para poder ordenar por fecha
-  segundos_restantes: s.segundos_restantes ?? 0,
-  questions: Array.isArray(s.preguntas)
-    ? s.preguntas.map((q: any) => ({
-        id: q.id,
-        text: q.texto,
-        options: Array.isArray(q.opciones)
-          ? q.opciones.map((o: any) => ({
-              id: o.id,
-              text: o.texto,
-              count: o.votos,
-            }))
-          : [],
-        total_votes: null,
-      }))
-    : [],
-  // 👇 Ajuste clave: si no hay media_url explícito, tomamos la primera imagen
-  media_url: s.media_url ?? (s.imagenes?.[0] ?? null),
-  // 👇 Aseguramos que todas las imágenes y videos estén en media_urls
-  media_urls: Array.isArray(s.media_urls)
-    ? s.media_urls
-    : [...(s.imagenes ?? []), ...(s.videos ?? [])],
-  media_type: s.media_type ?? "native",
-  visibilidad_resultados: s.visibilidad_resultados ?? "publica",
-  patrocinada: s.patrocinada ?? false,
-  es_patrocinada: s.es_patrocinada ?? false,
-  patrocinador: s.patrocinador ?? null,
-  recompensa_puntos: s.recompensa_puntos ?? 0,
-  recompensa_dinero: s.recompensa_dinero ?? 0,
-  presupuesto_total: s.presupuesto_total ?? 0,
-  tipo: "simple",
-});
+  // 🔑 Normalización de encuestas simples
+  const normalizeSimple = (s: any): Survey => ({
+    id: s.id,
+    title: s.titulo,
+    description: s.description ?? "",
+    fecha_expiracion: s.fecha_expiracion,
+    fecha_creacion: s.fecha_creacion,
+    segundos_restantes: s.segundos_restantes ?? 0,
+    questions: Array.isArray(s.preguntas)
+      ? s.preguntas.map((q: any) => ({
+          id: q.id,
+          text: q.texto,
+          options: Array.isArray(q.opciones)
+            ? q.opciones.map((o: any) => ({
+                id: o.id,
+                text: o.texto,
+                count: o.votos,
+              }))
+            : [],
+          total_votes: null,
+        }))
+      : [],
+    media_url: s.media_url ?? (s.imagenes?.[0] ?? null),
+    media_urls: Array.isArray(s.media_urls)
+      ? s.media_urls
+      : [...(s.imagenes ?? []), ...(s.videos ?? [])],
+    media_type: s.media_type ?? "native",
+    visibilidad_resultados: s.visibilidad_resultados ?? "publica",
+    patrocinada: s.patrocinada ?? false,
+    es_patrocinada: s.es_patrocinada ?? false,
+    patrocinador: s.patrocinador ?? null,
+    recompensa_puntos: s.recompensa_puntos ?? 0,
+    recompensa_dinero: s.recompensa_dinero ?? 0,
+    presupuesto_total: s.presupuesto_total ?? 0,
+    tipo: "simple",
+  });
 
 
 
 
+  const refreshSurveys = async () => {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) return;
 
-const refreshSurveys = async () => {
-  try {
-    const token = await AsyncStorage.getItem("userToken");
-    if (!token) return;
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
 
-    const headers = {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    };
+      const responses = await Promise.allSettled([
+        fetch(`${API_URL}/surveys/disponibles`, { method: "GET", headers }),
+        fetch(`${API_URL}/surveys/personales`, { method: "GET", headers }),
+        fetch(`${API_URL}/surveys/votadas`, { method: "GET", headers }),
+        fetch(`${API_URL}/surveys/finalizadas`, { method: "GET", headers }),
+        fetch(`${API_URL}/surveys/simple/disponibles`, { method: "GET", headers }),
+        fetch(`${API_URL}/surveys/simple/votadas`, { method: "GET", headers }),
+        fetch(`${API_URL}/surveys/simple/finalizadas`, { method: "GET", headers }),
+      ]);
 
-    console.log("Token usado en fetch:", token);
-
-    const responses = await Promise.allSettled([
-      fetch(`${API_URL}/surveys/disponibles`, { method: "GET", headers }),
-      fetch(`${API_URL}/surveys/votadas`, { method: "GET", headers }),
-      fetch(`${API_URL}/surveys/finalizadas`, { method: "GET", headers }),
-      fetch(`${API_URL}/surveys/simple/disponibles`, { method: "GET", headers }),   // 👈 sin /api extra
-      fetch(`${API_URL}/surveys/simple/votadas`, { method: "GET", headers }),       // 👈 sin /api extra
-      fetch(`${API_URL}/surveys/simple/finalizadas`, { method: "GET", headers }),   // 👈 sin /api extra
-    ]);
-
-
-
-    const getJson = async (res: any, name: string) => {
-      if (res.status === "fulfilled") {
-        if (!res.value.ok) {
-          console.error(`${name} error:`, await res.value.text());
-          return [];
+      const getJson = async (res: any) => {
+        if (res.status === "fulfilled") {
+          if (!res.value.ok) return [];
+          try {
+            return await res.value.json();
+          } catch {
+            return [];
+          }
         }
-        try {
-          const json = await res.value.json();
-          console.log(`${name} status:`, res.value.status);
-          console.log(`${name} count:`, json.length);
-          return json;
-        } catch (err) {
-          console.error(`${name} parse error:`, err);
-          return [];
-        }
-      } else {
-        console.log(`${name} falló:`, res.reason);
         return [];
-      }
-    };
+      };
 
-    const normalesDisponibles = await getJson(responses[0], "Disponibles normales");
-    const normalesVotadas = await getJson(responses[1], "Votadas normales");
-    const normalesFinalizadas = await getJson(responses[2], "Finalizadas normales");
+      const normalesDisponibles = await getJson(responses[0]);
+      const normalesPersonales = await getJson(responses[1]);
+      const normalesVotadas = await getJson(responses[2]);
+      const normalesFinalizadas = await getJson(responses[3]);
+      const simplesDisponibles = await getJson(responses[4]);
+      const simplesVotadas = await getJson(responses[5]);
+      const simplesFinalizadas = await getJson(responses[6]);
 
-    const simplesDisponibles = await getJson(responses[3], "Disponibles simples");
-
-    const simplesVotadas = await getJson(responses[4], "Votadas simples");
-
-    const simplesFinalizadas = await getJson(responses[5], "Finalizadas simples");
-
-
-    
-    setDisponibles([
-      ...toArray(normalesDisponibles).map((s: Survey) => ({ ...s, tipo: "normal" })),
-      ...toArray(simplesDisponibles).map(normalizeSimple),   // 👈 ahora seguro
-    ]);
-
-    setVotadas([
-      ...toArray(normalesVotadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
-      ...toArray(simplesVotadas).map(normalizeSimple),
-    ]);
-
-    setFinalizadas([
-      ...toArray(normalesFinalizadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
-      ...toArray(simplesFinalizadas).map(normalizeSimple),
-    ]);
-
-
-  } catch (err) {
-    console.log("Error en refreshSurveys:", err);
-    setError("No se pudieron refrescar las encuestas");
-  }
-};
-
-
+      setDisponibles([
+        ...toArray(normalesDisponibles).map((s: Survey) => ({ ...s, tipo: "normal" })),
+        ...toArray(simplesDisponibles).map(normalizeSimple),
+      ]);
+      setVotadas([
+        ...toArray(normalesVotadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
+        ...toArray(simplesVotadas).map(normalizeSimple),
+      ]);
+      setFinalizadas([
+        ...toArray(normalesFinalizadas).map((s: Survey) => ({ ...s, tipo: "normal" })),
+        ...toArray(simplesFinalizadas).map(normalizeSimple),
+      ]);
+      setPersonales([
+        ...toArray(normalesPersonales).map((s: Survey) => ({ ...s, tipo: "normal" })),
+      ]);
+    } catch (err) {
+      setError("No se pudieron refrescar las encuestas");
+    }
+  };
 
   const refreshProfile = async () => {
     try {
@@ -209,10 +183,9 @@ const refreshSurveys = async () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || "Error al cargar perfil");
-
       setUserRole(data.user?.rol || null);
-    } catch (err) {
-      console.log("Error refrescando perfil:", err);
+    } catch {
+      console.log("Error refrescando perfil");
     }
   };
 
@@ -221,8 +194,6 @@ const refreshSurveys = async () => {
       try {
         await refreshSurveys();
         await refreshProfile();
-      } catch (err) {
-        setError("No se pudieron cargar los datos");
       } finally {
         setLoading(false);
       }
@@ -247,8 +218,6 @@ const refreshSurveys = async () => {
     );
   }
 
-
-  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -256,43 +225,44 @@ const refreshSurveys = async () => {
         tabBarInactiveTintColor: "#6B7280",
         tabBarLabelStyle: { fontSize: 14, fontWeight: "600" },
         tabBarIndicatorStyle: { backgroundColor: "#2563EB", height: 3 },
-        tabBarStyle: {
-          backgroundColor: "#F9FAFB",
-          borderRadius: 8,
-          marginHorizontal: 4,
-          marginTop: 4,
-        },
+        tabBarStyle: { backgroundColor: "#F9FAFB", borderRadius: 8, marginHorizontal: 4, marginTop: 4 },
       }}
     >
-      {userRole === "user" && (
-        <Tab.Screen name="Disponibles">
-          {() => (
-            <DisponiblesScreen
-              surveys={disponibles}
-              globalMuted={globalMuted}
-              toggleMute={toggleMute}
-              refreshSurveys={refreshSurveys}
-              refreshProfile={refreshProfile}
-            />
-          )}
-        </Tab.Screen>
-      )}
+      <Tab.Screen name="Globales" options={{ tabBarLabel: "🌐 Globales" }}>
+        {() => (
+          <DisponiblesScreen
+            surveys={disponibles}
+            globalMuted={globalMuted}
+            toggleMute={toggleMute}
+            refreshSurveys={refreshSurveys}
+            refreshProfile={refreshProfile}
+          />
+        )}
+      </Tab.Screen>
 
-      {userRole === "user" && (
-        <Tab.Screen name="Votadas">
-          {() => (
-            <VotadasScreen
-              surveys={votadas}
-              globalMuted={globalMuted}
-              toggleMute={toggleMute}
-              refreshSurveys={refreshSurveys}
-              refreshProfile={refreshProfile}
-            />
-          )}
-        </Tab.Screen>
-      )}
+      <Tab.Screen name="Personales" options={{ tabBarLabel: "👥 Personales" }}>
+        {() => (
+          <PersonalesScreen
+            surveys={personales}  
+            globalMuted={globalMuted}
+            toggleMute={toggleMute}
+          />
+        )}
+      </Tab.Screen>
 
-      <Tab.Screen name="Finalizadas">
+      <Tab.Screen name="Completadas" options={{ tabBarLabel: "✅ Completadas" }}>
+        {() => (
+          <VotadasScreen
+            surveys={votadas}
+            globalMuted={globalMuted}
+            toggleMute={toggleMute}
+            refreshSurveys={refreshSurveys}
+            refreshProfile={refreshProfile}
+          />
+        )}
+      </Tab.Screen>
+
+      <Tab.Screen name="Finalizadas" options={{ tabBarLabel: "🏁 Finalizadas" }}>
         {() => (
           <FinalizadasScreen
             surveys={finalizadas}
@@ -305,10 +275,8 @@ const refreshSurveys = async () => {
         )}
       </Tab.Screen>
 
-
-
       {userRole === "admin" && (
-        <Tab.Screen name="Historial">
+        <Tab.Screen name="Historial" options={{ tabBarLabel: "📜 Historial" }}>
           {() => <SurveyHistory />}
         </Tab.Screen>
       )}

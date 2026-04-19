@@ -264,6 +264,77 @@ def surveys_disponibles(
 
     return disponibles or []
 
+@router.get("/personales")
+def surveys_personales(
+    db: Session = Depends(database.get_db),
+    usuario: models.Usuario = Depends(get_current_user)
+):
+    ahora = datetime.now(santo_domingo_tz)
+
+    propias = db.query(models.Survey).filter(models.Survey.usuario_id == usuario.id)
+    asignadas = db.query(models.Survey).join(models.SurveyAssignment).filter(
+        models.SurveyAssignment.assigned_user_id == usuario.id
+    )
+    surveys = propias.union(asignadas).order_by(models.Survey.id.desc()).all()
+
+    personales = []
+    for s in surveys:
+        try:
+            if s.fecha_expiracion and s.fecha_expiracion < ahora:
+                continue
+
+            if not cumple_segmentacion(s, usuario):
+                continue
+
+            ya_voto = db.query(models.Vote).filter(
+                models.Vote.usuario_id == usuario.id,
+                models.Vote.survey_id == s.id
+            ).first()
+            if ya_voto:
+                continue
+
+            preguntas = []
+            for q in (s.questions or []):
+                opciones = [{"id": o.id, "text": o.text} for o in (q.options or [])]
+                preguntas.append({
+                    "id": q.id,
+                    "text": q.text,
+                    "options": opciones,
+                    "total_votes": None
+                })
+
+            media_urls = []
+            if s.media_urls:
+                try:
+                    media_urls = json.loads(s.media_urls)
+                except Exception:
+                    media_urls = []
+
+            visibilidad = getattr(s.visibilidad_resultados, "value", "publica")
+            segundos_restantes = calcular_segundos_restantes(s.fecha_expiracion) if s.fecha_expiracion else 0
+
+            personales.append({
+                "id": s.id,
+                "title": s.title,
+                "description": s.description,
+                "fecha_expiracion": s.fecha_expiracion.isoformat() if s.fecha_expiracion else None,
+                "segundos_restantes": segundos_restantes,
+                "questions": preguntas,
+                "media_url": s.media_url,
+                "media_urls": media_urls,
+                "visibilidad_resultados": visibilidad,
+                "es_patrocinada": s.patrocinada,
+                "patrocinador": s.patrocinador,
+                "recompensa_puntos": s.recompensa_puntos,
+                "recompensa_dinero": s.recompensa_dinero,
+                "presupuesto_total": s.presupuesto_total,
+            })
+
+        except Exception as e:
+            print(f"Error procesando encuesta {getattr(s, 'id', 'sin_id')}: {e}")
+            continue
+
+    return personales or []
 
 
 @router.get("/votadas")
