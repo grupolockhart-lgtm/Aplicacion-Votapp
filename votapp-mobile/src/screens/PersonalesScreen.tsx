@@ -13,7 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import CountdownTimer from "@/components/CountdownTimer";
 import SurveyCard from "@/components/SurveyCard";
 import type { Survey } from "@/screens/SurveysScreen";
-import { FriendsContext } from "@/context/FriendsContext"; // 👈 usamos el contexto
+import { FriendsContext } from "@/context/FriendsContext";
 
 // -------------------
 // Props
@@ -35,7 +35,7 @@ export default function PersonalesScreen({
   refreshSurveys,
 }: PersonalesProps) {
   const navigation = useNavigation();
-  const { friends } = useContext(FriendsContext); // 👈 obtenemos lista de amigos
+  const { friends } = useContext(FriendsContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSurveyId, setSelectedSurveyId] = useState<number | null>(null);
 
@@ -62,6 +62,7 @@ export default function PersonalesScreen({
   return (
     <>
       <FlatList
+        // 👇 Ordenamos por fecha de creación (más recientes primero)
         data={[...surveys].sort(
           (a, b) =>
             new Date(b.fecha_creacion ?? 0).getTime() -
@@ -96,6 +97,7 @@ export default function PersonalesScreen({
               <CountdownTimer segundosIniciales={item.segundos_restantes} />
             )}
 
+            {/* 👇 Solo las encuestas propias pueden asignarse */}
             {item.usuario_id === item.current_user_id && (
               <Button
                 title="Asignar a amigo"

@@ -294,29 +294,64 @@ def build_survey_simple_response(s: models_simple.SurveySimple):
         ]
     }
 
-@router.get("/personales")
+# -------------------
+# Endpoint: Encuestas Personales (simples + complejas normalizadas)
+# -------------------
+
+from votapp_app import models_simple
+
+def build_survey_simple_response(s: models_simple.SurveySimple):
+    return {
+        "id": s.id,
+        "title": s.titulo,  # 👈 normalizamos a 'title'
+        "description": "",  # 👈 si no hay descripción
+        "fecha_creacion": s.fecha_creacion.isoformat() if s.fecha_creacion else None,
+        "usuario_id": s.usuario_id,
+        "current_user_id": s.asignado_a or s.usuario_id,  # 👈 para que Personales pueda filtrar
+        "asignado_a": s.asignado_a,
+        "fecha_expiracion": s.fecha_expiracion.isoformat() if s.fecha_expiracion else None,
+        "segundos_restantes": calcular_segundos_restantes(s.fecha_expiracion) if s.fecha_expiracion else 0,
+        "questions": [
+            {
+                "id": q.id,
+                "text": q.texto,
+                "options": [
+                    {"id": o.id, "text": o.texto, "count": o.votos}
+                    for o in q.opciones
+                ],
+                "total_votes": None,
+            }
+            for q in s.preguntas
+        ],
+        "media_urls": s.imagenes or [],  # 👈 normalizamos a 'media_urls'
+        "media_url": s.imagenes[0] if s.imagenes else None,
+        "media_type": "image",
+        "visibilidad_resultados": "publica",
+        "patrocinada": False,
+        "es_patrocinada": False,
+        "patrocinador": None,
+        "recompensa_puntos": 0,
+        "recompensa_dinero": 0,
+        "presupuesto_total": 0,
+        "tipo": "simple",  # 👈 marcamos tipo
+    }
+
+@router.get("/surveys/personales")
 def surveys_personales(
     db: Session = Depends(database.get_db),
     usuario: models.Usuario = Depends(get_current_user)
 ):
     ahora = datetime.now(santo_domingo_tz)
 
-    # Encuestas complejas
+    personales = []
+
+    # Encuestas complejas (propias o asignadas)
     propias = db.query(models.Survey).filter(models.Survey.usuario_id == usuario.id)
     asignadas = db.query(models.Survey).join(models.SurveyAssignment).filter(
         models.SurveyAssignment.assigned_user_id == usuario.id
     )
     surveys = propias.union(asignadas).order_by(models.Survey.id.desc()).all()
 
-    # Encuestas simples
-    simples = db.query(models_simple.SurveySimple).filter(
-        (models_simple.SurveySimple.usuario_id == usuario.id) |
-        (models_simple.SurveySimple.asignado_a == usuario.id)
-    ).order_by(models_simple.SurveySimple.id.desc()).all()
-
-    personales = []
-
-    # Procesar encuestas complejas
     for s in surveys:
         try:
             if s.fecha_expiracion and s.fecha_expiracion < ahora:
@@ -359,18 +394,28 @@ def surveys_personales(
                 "questions": preguntas,
                 "media_url": s.media_url,
                 "media_urls": media_urls,
+                "media_type": s.media_type,
                 "visibilidad_resultados": visibilidad,
+                "patrocinada": s.patrocinada,
                 "es_patrocinada": s.patrocinada,
                 "patrocinador": s.patrocinador,
                 "recompensa_puntos": s.recompensa_puntos,
                 "recompensa_dinero": s.recompensa_dinero,
                 "presupuesto_total": s.presupuesto_total,
+                "usuario_id": s.usuario_id,
+                "current_user_id": usuario.id,
+                "tipo": "normal",
             })
         except Exception as e:
             print(f"Error procesando encuesta {getattr(s, 'id', 'sin_id')}: {e}")
             continue
 
-    # Procesar encuestas simples
+    # Encuestas simples (propias o asignadas)
+    simples = db.query(models_simple.SurveySimple).filter(
+        (models_simple.SurveySimple.usuario_id == usuario.id) |
+        (models_simple.SurveySimple.asignado_a == usuario.id)
+    ).order_by(models_simple.SurveySimple.id.desc()).all()
+
     for s in simples:
         try:
             personales.append(build_survey_simple_response(s))
