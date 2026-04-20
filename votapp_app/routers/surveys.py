@@ -20,6 +20,8 @@ from ..database import get_db
 from .logros import verificar_logros
 from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyWalletOut
 
+from votapp_app import models_simple   # 👈 importa tus modelos de encuestas simples
+
 import logging
 
 
@@ -264,6 +266,34 @@ def surveys_disponibles(
 
     return disponibles or []
 
+
+# -------------------
+# Endpoint: Encuestas Personales (incluye simples y complejas)
+# -------------------
+
+def build_survey_simple_response(s: models_simple.SurveySimple):
+    return {
+        "id": s.id,
+        "titulo": s.titulo,
+        "fecha_creacion": s.fecha_creacion.isoformat() if s.fecha_creacion else None,
+        "usuario_id": s.usuario_id,
+        "asignado_a": s.asignado_a,
+        "imagenes": s.imagenes or [],
+        "videos": s.videos or [],
+        "fecha_expiracion": s.fecha_expiracion.isoformat() if s.fecha_expiracion else None,
+        "preguntas": [
+            {
+                "id": q.id,
+                "texto": q.texto,
+                "opciones": [
+                    {"id": o.id, "texto": o.texto, "votos": o.votos}
+                    for o in q.opciones
+                ]
+            }
+            for q in s.preguntas
+        ]
+    }
+
 @router.get("/personales")
 def surveys_personales(
     db: Session = Depends(database.get_db),
@@ -271,21 +301,28 @@ def surveys_personales(
 ):
     ahora = datetime.now(santo_domingo_tz)
 
+    # Encuestas complejas
     propias = db.query(models.Survey).filter(models.Survey.usuario_id == usuario.id)
     asignadas = db.query(models.Survey).join(models.SurveyAssignment).filter(
         models.SurveyAssignment.assigned_user_id == usuario.id
     )
     surveys = propias.union(asignadas).order_by(models.Survey.id.desc()).all()
 
+    # Encuestas simples
+    simples = db.query(models_simple.SurveySimple).filter(
+        (models_simple.SurveySimple.usuario_id == usuario.id) |
+        (models_simple.SurveySimple.asignado_a == usuario.id)
+    ).order_by(models_simple.SurveySimple.id.desc()).all()
+
     personales = []
+
+    # Procesar encuestas complejas
     for s in surveys:
         try:
             if s.fecha_expiracion and s.fecha_expiracion < ahora:
                 continue
-
             if not cumple_segmentacion(s, usuario):
                 continue
-
             ya_voto = db.query(models.Vote).filter(
                 models.Vote.usuario_id == usuario.id,
                 models.Vote.survey_id == s.id
@@ -329,9 +366,16 @@ def surveys_personales(
                 "recompensa_dinero": s.recompensa_dinero,
                 "presupuesto_total": s.presupuesto_total,
             })
-
         except Exception as e:
             print(f"Error procesando encuesta {getattr(s, 'id', 'sin_id')}: {e}")
+            continue
+
+    # Procesar encuestas simples
+    for s in simples:
+        try:
+            personales.append(build_survey_simple_response(s))
+        except Exception as e:
+            print(f"Error procesando encuesta simple {getattr(s, 'id', 'sin_id')}: {e}")
             continue
 
     return personales or []
