@@ -3,7 +3,7 @@
 
 
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
 from ..models_simple import SurveySimple, SurveySimpleQuestion, SurveySimpleOption, SimpleVote
@@ -87,18 +87,29 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
 # -------------------
 @router.post("/", response_model=SurveySimpleResponse)
 def crear_encuesta_simple(
-    survey: SurveySimpleCreate,   # 👈 recibe JSON plano
+    survey: SurveySimpleCreate,
+    files: List[UploadFile] = File(None),   # 👈 recibir archivos opcionales
     db: Session = Depends(get_db),
     usuario = Depends(get_current_user)
 ):
     if not usuario:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
 
+    # 👇 lista de URLs finales
+    urls = []
+    if files:
+        for f in files:
+            if not f.content_type.startswith("image/"):
+                raise HTTPException(status_code=400, detail="Solo se permiten imágenes")
+            # 👇 subir a Cloudinary usando tu helper
+            url = upload_avatar(f.file)   # tu función que devuelve URL Cloudinary
+            urls.append(url)
+
     nueva = SurveySimple(
         titulo=survey.titulo,
         usuario_id=usuario.id,
         asignado_a=survey.asignado_a,
-        imagenes=survey.imagenes or [],
+        imagenes=urls or survey.imagenes or [],   # 👈 siempre Cloudinary si hay
         videos=survey.videos or [],
         fecha_expiracion=survey.fecha_expiracion or datetime.now(timezone.utc)
     )
@@ -126,7 +137,6 @@ def crear_encuesta_simple(
     db.refresh(nueva)
 
     return build_survey_simple_response(nueva)
-
 
 
 # -------------------
