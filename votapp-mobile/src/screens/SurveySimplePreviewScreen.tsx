@@ -43,7 +43,7 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ survey: surveyPayload }),
+        body: JSON.stringify(surveyPayload),
       });
 
       if (!res.ok) {
