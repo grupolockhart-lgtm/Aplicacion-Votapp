@@ -40,11 +40,11 @@ class SurveySimpleQuestionResponse(BaseModel):
 class SurveySimpleCreate(BaseModel):
     titulo: str
     preguntas: List[SurveySimpleQuestionCreate]
+    # 👇 ahora opcionales y con default vacío
     imagenes: Optional[List[str]] = []
     videos: Optional[List[str]] = []
     fecha_expiracion: Optional[datetime] = None
     asignado_a: Optional[int] = None   # 👈 nuevo campo
-
 
 class SurveySimpleResponse(BaseModel):
     id: int
@@ -55,7 +55,6 @@ class SurveySimpleResponse(BaseModel):
     fecha_expiracion: Optional[datetime] = None
     fecha_creacion: Optional[datetime] = None
 
-    # 👇 añadimos creador y asignado
     usuario_id: Optional[int] = None
     asignado_a: Optional[int] = None
 
@@ -89,7 +88,6 @@ class SurveySimpleResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
 
     # -------------------
     # Validadores defensivos (Pydantic v2)
@@ -125,8 +123,8 @@ class SurveySimpleResponse(BaseModel):
 # Voto
 # -------------------
 class SurveySimpleAnswer(BaseModel):
-    pregunta_id: int   # ✅ corregido: coincide con SimpleVote.pregunta_id
-    opcion_id: int     # ✅ corregido: coincide con SimpleVote.opcion_id
+    pregunta_id: int
+    opcion_id: int
 
 class SurveySimpleVote(BaseModel):
     answers: List[SurveySimpleAnswer]

@@ -1,5 +1,7 @@
 // votapp-mobile/src/screens/SurveySimplePreviewScreen.tsx
 
+// votapp-mobile/src/screens/SurveySimplePreviewScreen.tsx
+
 import React from "react";
 import {
   View,
@@ -26,24 +28,35 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
       const payload = JSON.parse(atob(payloadBase64));
       const currentUserId = payload.sub;
 
+      // 👇 JSON de la encuesta
       const surveyPayload = {
         titulo: draftSurvey.titulo,
-        preguntas: draftSurvey.preguntas,   // 👈 debe tener al menos una pregunta con opciones
-        imagenes: draftSurvey.imagenes ?? [],
+        preguntas: draftSurvey.preguntas,
         videos: draftSurvey.videos ?? [],
         fecha_expiracion: draftSurvey.fecha_expiracion,
         asignado_a: currentUserId,
       };
 
-      console.log("Payload encuesta:", surveyPayload);
+      const formData = new FormData();
+      // 👇 el JSON va como string
+      formData.append("survey", JSON.stringify(surveyPayload));
+
+      // 👇 cada imagen se agrega como archivo
+      draftSurvey.imagenes.forEach((imgUri: string, index: number) => {
+        formData.append("files", {
+          uri: imgUri,
+          type: "image/jpeg",
+          name: `imagen_${index}.jpg`,
+        } as any);
+      });
 
       const res = await fetch(`${API_URL}/surveys/simple/`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          // ⚠️ No pongas Content-Type, fetch lo define solo para FormData
         },
-        body: JSON.stringify(surveyPayload),
+        body: formData,
       });
 
       if (!res.ok) {
@@ -61,7 +74,6 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
       alert("Error publicando encuesta, revisa consola");
     }
   };
-
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#f9f9f9", padding: 20 }}>
