@@ -87,41 +87,26 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
 # -------------------
 @router.post("/", response_model=SurveySimpleResponse)
 def crear_encuesta_simple(
-    survey: SurveySimpleCreate,   # 👈 ahora recibe JSON plano
-    files: List[UploadFile] = None,
+    survey: SurveySimpleCreate,   # 👈 recibe JSON plano
     db: Session = Depends(get_db),
     usuario = Depends(get_current_user)
 ):
     if not usuario:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
 
-    try:
-        # 👇 convertir el string JSON a objeto Pydantic
-        survey_data = SurveySimpleCreate.parse_raw(survey)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error parseando survey: {str(e)}")
-
-    urls = []
-    if files:
-        for f in files:
-            if not f.content_type.startswith("image/"):
-                raise HTTPException(status_code=400, detail="Solo se permiten imágenes")
-            url = upload_avatar(f.file)
-            urls.append(url)
-
     nueva = SurveySimple(
-        titulo=survey_data.titulo,
+        titulo=survey.titulo,
         usuario_id=usuario.id,
-        asignado_a=survey_data.asignado_a,   # 👈 ahora sí guardamos el asignado
-        imagenes=urls or survey_data.imagenes or [],
-        videos=survey_data.videos or [],
-        fecha_expiracion=survey_data.fecha_expiracion or datetime.now(timezone.utc)
+        asignado_a=survey.asignado_a,
+        imagenes=survey.imagenes or [],
+        videos=survey.videos or [],
+        fecha_expiracion=survey.fecha_expiracion or datetime.now(timezone.utc)
     )
 
     db.add(nueva)
     db.flush()
 
-    for pregunta in survey_data.preguntas:
+    for pregunta in survey.preguntas:
         nueva_pregunta = SurveySimpleQuestion(
             texto=pregunta.texto,
             survey_simple_id=nueva.id
@@ -141,6 +126,7 @@ def crear_encuesta_simple(
     db.refresh(nueva)
 
     return build_survey_simple_response(nueva)
+
 
 
 # -------------------
