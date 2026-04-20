@@ -85,9 +85,11 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
 # -------------------
 # Crear encuesta simple (subida a Cloudinary)
 # -------------------
+from fastapi import Form
+
 @router.post("/", response_model=SurveySimpleResponse)
 def crear_encuesta_simple(
-    survey: SurveySimpleCreate = Depends(),   # 👈 JSON dentro de FormData
+    survey: str = Form(...),                  # 👈 survey llega como string JSON
     files: List[UploadFile] = File(None),     # 👈 imágenes como archivos
     db: Session = Depends(get_db),
     usuario = Depends(get_current_user)
@@ -95,30 +97,31 @@ def crear_encuesta_simple(
     if not usuario:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
 
-    # 👇 subimos las imágenes a Cloudinary si se mandaron archivos
+    # 👇 parseamos el JSON string a objeto Pydantic
+    try:
+        survey_obj = SurveySimpleCreate.model_validate_json(survey)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error parseando survey: {e}")
+
     urls = []
     if files:
         for f in files:
-            try:
-                url = upload_avatar(f.file, folder="surveys")
-                urls.append(url)
-            except Exception as e:
-                logger.error(f"Error subiendo imagen a Cloudinary: {e}")
-                raise HTTPException(status_code=500, detail="Error subiendo imagen")
+            url = upload_avatar(f.file, folder="surveys")
+            urls.append(url)
 
     nueva = SurveySimple(
-        titulo=survey.titulo,
+        titulo=survey_obj.titulo,
         usuario_id=usuario.id,
-        asignado_a=survey.asignado_a,
-        imagenes=urls or survey.imagenes or [],   # 👈 usa Cloudinary si hay, si no usa las URLs del JSON
-        videos=survey.videos or [],
-        fecha_expiracion=survey.fecha_expiracion or datetime.now(timezone.utc)
+        asignado_a=survey_obj.asignado_a,
+        imagenes=urls or survey_obj.imagenes or [],
+        videos=survey_obj.videos or [],
+        fecha_expiracion=survey_obj.fecha_expiracion or datetime.now(timezone.utc)
     )
 
     db.add(nueva)
     db.flush()
 
-    for pregunta in survey.preguntas:
+    for pregunta in survey_obj.preguntas:
         nueva_pregunta = SurveySimpleQuestion(
             texto=pregunta.texto,
             survey_simple_id=nueva.id
@@ -138,6 +141,7 @@ def crear_encuesta_simple(
     db.refresh(nueva)
 
     return build_survey_simple_response(nueva)
+
 
 
 
