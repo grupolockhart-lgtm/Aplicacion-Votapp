@@ -22,30 +22,33 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
 
   const publicarEncuesta = async () => {
     try {
-      const formData = new FormData();
+      const payloadBase64 = token.split(".")[1];
+      const payload = JSON.parse(atob(payloadBase64));
+      const currentUserId = payload.sub;
 
-      // Agrega el JSON del survey como string
-      formData.append("survey", JSON.stringify(draftSurvey));
+      const surveyPayload = {
+        titulo: draftSurvey.titulo,
+        preguntas: draftSurvey.preguntas,   // 👈 debe tener al menos una pregunta con opciones
+        imagenes: draftSurvey.imagenes ?? [],
+        videos: draftSurvey.videos ?? [],
+        fecha_expiracion: draftSurvey.fecha_expiracion,
+        asignado_a: currentUserId,
+      };
 
-      // Agrega las imágenes como archivos
-      draftSurvey.imagenes.forEach((imgUri: string, index: number) => {
-        formData.append("files", {
-          uri: imgUri,
-          type: "image/jpeg", // ajusta según el tipo real
-          name: `imagen_${index}.jpg`,
-        } as any);
-      });
+      console.log("Payload encuesta:", surveyPayload);
 
       const res = await fetch(`${API_URL}/surveys/simple/`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: formData,
+        body: JSON.stringify({ survey: surveyPayload }),
       });
 
       if (!res.ok) {
-        throw new Error(`Error ${res.status}: ${res.statusText}`);
+        const errText = await res.text();
+        throw new Error(`Error ${res.status}: ${errText}`);
       }
 
       const data = await res.json();
@@ -58,6 +61,7 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
       alert("Error publicando encuesta, revisa consola");
     }
   };
+
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#f9f9f9", padding: 20 }}>
