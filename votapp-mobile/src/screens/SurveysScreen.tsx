@@ -142,6 +142,7 @@ export default function SurveysScreen() {
         fetch(`${API_URL}/surveys/simple/disponibles`, { method: "GET", headers }),
         fetch(`${API_URL}/surveys/simple/votadas`, { method: "GET", headers }),
         fetch(`${API_URL}/surveys/simple/finalizadas`, { method: "GET", headers }),
+        fetch(`${API_URL}/surveys/simple/personales`, { method: "GET", headers }),
       ]);
 
       const getJson = async (res: any) => {
@@ -163,7 +164,8 @@ export default function SurveysScreen() {
       const simplesDisponibles = await getJson(responses[4]);
       const simplesVotadas = await getJson(responses[5]);
       const simplesFinalizadas = await getJson(responses[6]);
-
+      const simplesPersonales = await getJson(responses[7]);
+      
       setDisponibles([
         ...toArray(normalesDisponibles).map((s: Survey) => ({ ...s, tipo: "normal" })),
       ]);
@@ -180,7 +182,7 @@ export default function SurveysScreen() {
 
       setPersonales([
         ...toArray(normalesPersonales).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...toArray(simplesDisponibles)
+        ...toArray(simplesPersonales).map(normalizeSimple)
           .filter((s: any) =>
             // 👇 condición: creadas por mí o asignadas a mí
             s.usuario_id === s.current_user_id || s.asignado_a === s.current_user_id

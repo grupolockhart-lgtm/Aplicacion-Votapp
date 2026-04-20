@@ -306,6 +306,47 @@ def listar_disponibles(db: Session = Depends(get_db), usuario = Depends(get_curr
 
     return disponibles or []
 
+# -------------------
+# Listar encuestas personales (simples)
+# -------------------
+@router.get("/personales", response_model=List[SurveySimpleResponse])
+def listar_personales(
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user)
+):
+    encuestas = (
+        db.query(SurveySimple)
+        .options(
+            selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
+        )
+        .filter(
+            ((SurveySimple.usuario_id == usuario.id) | 
+             (SurveySimple.asignado_a == usuario.id))   # 👈 creadas por mí o asignadas a mí
+            &
+            ((SurveySimple.fecha_expiracion == None) |
+             (SurveySimple.fecha_expiracion > datetime.utcnow()))  # 👈 no expirada
+        )
+        .order_by(SurveySimple.id.desc())
+        .all()
+    )
+
+    personales = []
+    for e in encuestas:
+        # 👇 si ya votaste, no se muestra en personales
+        ya_voto = (
+            db.query(SimpleVote)
+            .filter(
+                SimpleVote.usuario_id == usuario.id,
+                SimpleVote.survey_simple_id == e.id,
+            )
+            .first()
+        )
+        if ya_voto:
+            continue
+
+        personales.append(build_survey_simple_response(e))
+
+    return personales or []
 
 
 # -------------------
