@@ -87,18 +87,30 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
 # -------------------
 @router.post("/", response_model=SurveySimpleResponse)
 def crear_encuesta_simple(
-    survey: SurveySimpleCreate,   # 👈 JSON directo
+    survey: SurveySimpleCreate = Depends(),   # 👈 JSON dentro de FormData
+    files: List[UploadFile] = File(None),     # 👈 imágenes como archivos
     db: Session = Depends(get_db),
     usuario = Depends(get_current_user)
 ):
     if not usuario:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
 
+    # 👇 subimos las imágenes a Cloudinary si se mandaron archivos
+    urls = []
+    if files:
+        for f in files:
+            try:
+                url = upload_avatar(f.file, folder="surveys")
+                urls.append(url)
+            except Exception as e:
+                logger.error(f"Error subiendo imagen a Cloudinary: {e}")
+                raise HTTPException(status_code=500, detail="Error subiendo imagen")
+
     nueva = SurveySimple(
         titulo=survey.titulo,
         usuario_id=usuario.id,
         asignado_a=survey.asignado_a,
-        imagenes=survey.imagenes or [],   # 👈 aquí ya esperas URLs (ej. Cloudinary)
+        imagenes=urls or survey.imagenes or [],   # 👈 usa Cloudinary si hay, si no usa las URLs del JSON
         videos=survey.videos or [],
         fecha_expiracion=survey.fecha_expiracion or datetime.now(timezone.utc)
     )
@@ -126,6 +138,7 @@ def crear_encuesta_simple(
     db.refresh(nueva)
 
     return build_survey_simple_response(nueva)
+
 
 
 
