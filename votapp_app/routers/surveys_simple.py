@@ -87,7 +87,7 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
 # -------------------
 @router.post("/", response_model=SurveySimpleResponse)
 def crear_encuesta_simple(
-    survey: str = Form(...),   # 👈 llega como string en multipart/form-data
+    survey: SurveySimpleCreate,   # 👈 ahora recibe JSON plano
     files: List[UploadFile] = None,
     db: Session = Depends(get_db),
     usuario = Depends(get_current_user)
