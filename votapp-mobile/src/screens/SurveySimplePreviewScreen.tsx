@@ -26,15 +26,16 @@ export default function SurveySimplePreviewScreen({ route, navigation }: Props) 
     try {
       const payloadBase64 = token.split(".")[1];
       const payload = JSON.parse(atob(payloadBase64));
-      const currentUserId = payload.sub;
+      const currentUserId = parseInt(payload.sub, 10);  // 👈 ahora es número
 
       // 👇 JSON de la encuesta
+
       const surveyPayload = {
         titulo: draftSurvey.titulo,
         preguntas: draftSurvey.preguntas,
         videos: draftSurvey.videos ?? [],
         fecha_expiracion: draftSurvey.fecha_expiracion,
-        asignado_a: currentUserId,
+        asignado_a: [currentUserId],
       };
 
       const formData = new FormData();

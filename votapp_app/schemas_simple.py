@@ -44,7 +44,7 @@ class SurveySimpleCreate(BaseModel):
     imagenes: Optional[List[str]] = []
     videos: Optional[List[str]] = []
     fecha_expiracion: Optional[datetime] = None
-    asignado_a: Optional[int] = None   # 👈 nuevo campo
+    asignado_a: Optional[List[int]] = []   # 👈 aquí el cambio
 
 class SurveySimpleResponse(BaseModel):
     id: int
