@@ -21,6 +21,7 @@ from .logros import verificar_logros
 from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyWalletOut
 
 from votapp_app import models_simple   # 👈 importa tus modelos de encuestas simples
+from sqlalchemy import any_
 
 import logging
 
@@ -413,7 +414,7 @@ def surveys_personales(
     # Encuestas simples (propias o asignadas)
     simples = db.query(models_simple.SurveySimple).filter(
         (models_simple.SurveySimple.usuario_id == usuario.id) |
-        (models_simple.SurveySimple.asignado_a == usuario.id)
+        (usuario.id == any_(models_simple.SurveySimple.asignado_a))
     ).order_by(models_simple.SurveySimple.id.desc()).all()
 
     for s in simples:
