@@ -268,32 +268,6 @@ def surveys_disponibles(
     return disponibles or []
 
 
-# -------------------
-# Endpoint: Encuestas Personales (incluye simples y complejas)
-# -------------------
-
-def build_survey_simple_response(s: models_simple.SurveySimple):
-    return {
-        "id": s.id,
-        "titulo": s.titulo,
-        "fecha_creacion": s.fecha_creacion.isoformat() if s.fecha_creacion else None,
-        "usuario_id": s.usuario_id,
-        "asignado_a": s.asignado_a,
-        "imagenes": s.imagenes or [],
-        "videos": s.videos or [],
-        "fecha_expiracion": s.fecha_expiracion.isoformat() if s.fecha_expiracion else None,
-        "preguntas": [
-            {
-                "id": q.id,
-                "texto": q.texto,
-                "opciones": [
-                    {"id": o.id, "texto": o.texto, "votos": o.votos}
-                    for o in q.opciones
-                ]
-            }
-            for q in s.preguntas
-        ]
-    }
 
 # -------------------
 # Endpoint: Encuestas Personales (simples + complejas normalizadas)
@@ -301,15 +275,15 @@ def build_survey_simple_response(s: models_simple.SurveySimple):
 
 from votapp_app import models_simple
 
-def build_survey_simple_response(s: models_simple.SurveySimple):
+def build_survey_simple_response(s: models_simple.SurveySimple, usuario_id: int):
     return {
         "id": s.id,
-        "title": s.titulo,  # 👈 normalizamos a 'title'
-        "description": "",  # 👈 si no hay descripción
+        "title": s.titulo,
+        "description": "",
         "fecha_creacion": s.fecha_creacion.isoformat() if s.fecha_creacion else None,
         "usuario_id": s.usuario_id,
-        "current_user_id": s.asignado_a or s.usuario_id,  # 👈 para que Personales pueda filtrar
-        "asignado_a": s.asignado_a,
+        "current_user_id": usuario_id,   # 👈 correcto
+        "asignado_a": s.asignado_a or [],
         "fecha_expiracion": s.fecha_expiracion.isoformat() if s.fecha_expiracion else None,
         "segundos_restantes": calcular_segundos_restantes(s.fecha_expiracion) if s.fecha_expiracion else 0,
         "questions": [
@@ -324,7 +298,7 @@ def build_survey_simple_response(s: models_simple.SurveySimple):
             }
             for q in s.preguntas
         ],
-        "media_urls": s.imagenes or [],  # 👈 normalizamos a 'media_urls'
+        "media_urls": s.imagenes or [],
         "media_url": s.imagenes[0] if s.imagenes else None,
         "media_type": "image",
         "visibilidad_resultados": "publica",
@@ -334,7 +308,7 @@ def build_survey_simple_response(s: models_simple.SurveySimple):
         "recompensa_puntos": 0,
         "recompensa_dinero": 0,
         "presupuesto_total": 0,
-        "tipo": "simple",  # 👈 marcamos tipo
+        "tipo": "simple",
     }
 
 @router.get("/surveys/personales")
@@ -419,7 +393,7 @@ def surveys_personales(
 
     for s in simples:
         try:
-            personales.append(build_survey_simple_response(s))
+            personales.append(build_survey_simple_response(s, usuario.id))
         except Exception as e:
             print(f"Error procesando encuesta simple {getattr(s, 'id', 'sin_id')}: {e}")
             continue
