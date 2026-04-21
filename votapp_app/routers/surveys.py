@@ -311,14 +311,12 @@ def build_survey_simple_response(s: models_simple.SurveySimple, usuario_id: int)
         "presupuesto_total": 0,
         "tipo": "simple",
     }
-
 @router.get("/surveys/personales")
 def surveys_personales(
     db: Session = Depends(database.get_db),
     usuario: models.Usuario = Depends(get_current_user)
 ):
     ahora = datetime.now(santo_domingo_tz)
-
     personales = []
 
     # Encuestas complejas (propias o asignadas)
@@ -389,7 +387,7 @@ def surveys_personales(
     # Encuestas simples (propias o asignadas)
     simples = db.query(models_simple.SurveySimple).filter(
         (models_simple.SurveySimple.usuario_id == usuario.id) |
-        (func.any(models_simple.SurveySimple.asignado_a) == usuario.id)
+        (models_simple.SurveySimple.asignado_a.contains([usuario.id]))   # ✅ filtro correcto
     ).order_by(models_simple.SurveySimple.id.desc()).all()
 
     for s in simples:
@@ -400,6 +398,7 @@ def surveys_personales(
             continue
 
     return personales or []
+
 
 
 @router.get("/votadas")
