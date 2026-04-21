@@ -388,7 +388,7 @@ def surveys_personales(
     # Encuestas simples (propias o asignadas)
     simples = db.query(models_simple.SurveySimple).filter(
         (models_simple.SurveySimple.usuario_id == usuario.id) |
-        (usuario.id == any_(models_simple.SurveySimple.asignado_a))
+        (func.any(models_simple.SurveySimple.asignado_a) == usuario.id)
     ).order_by(models_simple.SurveySimple.id.desc()).all()
 
     for s in simples:

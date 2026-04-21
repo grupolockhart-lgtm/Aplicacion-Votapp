@@ -99,7 +99,7 @@ export default function PersonalesScreen({
             badgeText = "📝 Creada por mí";
           } else if (
             Array.isArray(item.asignado_a)
-              ? item.asignado_a.includes(item.current_user_id)
+              ? (item.current_user_id !== undefined && item.asignado_a.includes(item.current_user_id))
               : item.asignado_a === item.current_user_id
           ) {
             badgeText = "👤 Asignada a mí";

@@ -60,7 +60,7 @@ export interface Survey {
   tipo: "normal" | "simple";
   usuario_id?: number;        // 👈 añadido
   current_user_id?: number;   // 👈 añadido
-  asignado_a?: number;   // 👈 añade este campo
+  asignado_a?: number[];   // 👈 añade este campo
 }
 
 const Tab = createMaterialTopTabNavigator();
@@ -87,23 +87,26 @@ export default function SurveysScreen() {
   // 🔑 Normalización de encuestas simples
   const normalizeSimple = (s: any): Survey => ({
     id: s.id,
-    title: s.titulo,
+    title: s.title ?? s.titulo,
     description: s.description ?? "",
     fecha_expiracion: s.fecha_expiracion,
     fecha_creacion: s.fecha_creacion,
     segundos_restantes: s.segundos_restantes ?? 0,
-    questions: Array.isArray(s.preguntas)
-      ? s.preguntas.map((q: any) => ({
+    usuario_id: s.usuario_id,
+    current_user_id: s.current_user_id,
+    asignado_a: Array.isArray(s.asignado_a) ? s.asignado_a : [],
+    questions: Array.isArray(s.questions ?? s.preguntas)
+      ? (s.questions ?? s.preguntas).map((q: any) => ({
           id: q.id,
-          text: q.texto,
-          options: Array.isArray(q.opciones)
-            ? q.opciones.map((o: any) => ({
+          text: q.text ?? q.texto,
+          options: Array.isArray(q.options ?? q.opciones)
+            ? (q.options ?? q.opciones).map((o: any) => ({
                 id: o.id,
-                text: o.texto,
-                count: o.votos,
+                text: o.text ?? o.texto,
+                count: o.count ?? o.votos,
               }))
             : [],
-          total_votes: null,
+          total_votes: q.total_votes ?? null,
         }))
       : [],
     media_url: s.media_url ?? (s.imagenes?.[0] ?? null),
@@ -120,6 +123,7 @@ export default function SurveysScreen() {
     presupuesto_total: s.presupuesto_total ?? 0,
     tipo: "simple",
   });
+
 
 
 
@@ -166,6 +170,10 @@ export default function SurveysScreen() {
       const simplesVotadas = await getJson(responses[5]);
       const simplesFinalizadas = await getJson(responses[6]);
       const simplesPersonales = await getJson(responses[7]);
+      console.log("simplesPersonales raw:", simplesPersonales); // 👈 log de depuración
+
+      const simplesPersonalesNormalized = toArray(simplesPersonales).map(normalizeSimple);
+      console.log("simplesPersonales normalized:", simplesPersonalesNormalized); // 👈 log normalizado
       
       setDisponibles([
         ...toArray(normalesDisponibles).map((s: Survey) => ({ ...s, tipo: "normal" })),
@@ -184,10 +192,13 @@ export default function SurveysScreen() {
       setPersonales([
         ...toArray(normalesPersonales).map((s: Survey) => ({ ...s, tipo: "normal" })),
         ...toArray(simplesPersonales)
-          .map(normalizeSimple) // 👈 normalizamos solo una vez
+          .map(normalizeSimple)
           .filter(
             (s: Survey) =>
-              s.usuario_id === s.current_user_id || s.asignado_a === s.current_user_id
+              s.usuario_id === s.current_user_id ||
+              (Array.isArray(s.asignado_a) &&
+              s.current_user_id !== undefined &&
+              s.asignado_a.includes(s.current_user_id))
           ),
       ]);
 
