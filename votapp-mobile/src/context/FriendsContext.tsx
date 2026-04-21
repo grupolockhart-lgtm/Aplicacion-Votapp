@@ -29,14 +29,24 @@ export const FriendsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const refreshFriends = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
-      const userId = await AsyncStorage.getItem("userId"); // 👈 asegúrate de guardar esto al loguear
-      if (!token || !userId) return;
+      if (!token) return;
 
+      // 👇 obtener el userId directamente del backend
+      const resUser = await fetch("https://aplicacion-votapp-test.onrender.com/api/users/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!resUser.ok) {
+        console.error("Error obteniendo usuario:", resUser.status);
+        return;
+      }
+      const userData = await resUser.json();
+      const userId = userData.user?.id || userData.id;
+      console.log("UserId obtenido del backend:", userId);
+
+      // 👇 ahora sí pedir amigos con ese userId
       const res = await fetch(
         `https://aplicacion-votapp-test.onrender.com/api/friends?user_id=${userId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (!res.ok) {
@@ -62,3 +72,4 @@ export const FriendsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     </FriendsContext.Provider>
   );
 };
+

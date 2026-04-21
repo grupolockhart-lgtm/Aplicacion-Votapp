@@ -37,6 +37,9 @@ export default function PersonalesScreen({
   const [selectedSurveyId, setSelectedSurveyId] = useState<number | null>(null);
   const [assigning, setAssigning] = useState(false);
 
+  // 👇 Log para depuración
+  console.log("Amigos en contexto (PersonalesScreen):", friends);
+
   const handleAssign = async (surveyId: number, friendId: number) => {
     try {
       setAssigning(true);
@@ -121,63 +124,74 @@ export default function PersonalesScreen({
       />
 
       {/* Modal de selección de amigos */}
-      <Modal visible={modalVisible} animationType="slide">
-        <View style={{ flex: 1, padding: 20 }}>
-          <Text style={{ fontSize: 18, marginBottom: 10 }}>
-            Selecciona un amigo
-          </Text>
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}   // 👈 importante
+      >
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <View style={{ backgroundColor: "#fff", padding: 20, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+            <Text style={{ fontSize: 18, marginBottom: 10 }}>
+              Selecciona un amigo
+            </Text>
 
-          {assigning ? (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-              <ActivityIndicator size="large" color="#2563EB" />
-              <Text style={{ marginTop: 10 }}>Asignando encuesta...</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={friends}
-              keyExtractor={(item) => item.friend_id.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    padding: 12,
-                    borderBottomWidth: 1,
-                    borderColor: "#ccc",
-                  }}
-                  onPress={() =>
-                    selectedSurveyId && handleAssign(selectedSurveyId, item.friend_id)
-                  }
-                >
-                  {item.avatar_url && (
-                    <Image
-                      source={{ uri: item.avatar_url }}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        marginRight: 10,
-                      }}
-                    />
-                  )}
-                  <Text style={{ fontSize: 16 }}>
-                    {item.alias || item.nombre || item.correo}
+            {assigning ? (
+              <View style={{ justifyContent: "center", alignItems: "center", paddingVertical: 20 }}>
+                <ActivityIndicator size="large" color="#2563EB" />
+                <Text style={{ marginTop: 10 }}>Asignando encuesta...</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={friends}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      padding: 12,
+                      borderBottomWidth: 1,
+                      borderColor: "#ccc",
+                    }}
+                    onPress={() =>
+                      selectedSurveyId && handleAssign(selectedSurveyId, item.friend_id)
+                    }
+                  >
+                    {item.avatar_url && (
+                      <Image
+                        source={{ uri: item.avatar_url }}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          marginRight: 10,
+                        }}
+                      />
+                    )}
+                    <Text style={{ fontSize: 16 }}>
+                      {item.alias || item.nombre || item.correo}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <Text style={{ textAlign: "center", marginTop: 20 }}>
+                    No tienes amigos disponibles
                   </Text>
-                </TouchableOpacity>
-              )}
-            />
-          )}
+                }
+              />
+            )}
 
-          <Button
-            title="Cerrar"
-            onPress={() => !assigning && setModalVisible(false)}
-            disabled={assigning}
-          />
+            <Button
+              title="Cerrar"
+              onPress={() => !assigning && setModalVisible(false)}
+              disabled={assigning}
+            />
+          </View>
         </View>
       </Modal>
+
     </>
   );
 }
-
 
 
