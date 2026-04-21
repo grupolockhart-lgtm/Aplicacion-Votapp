@@ -385,10 +385,15 @@ def surveys_personales(
             continue
 
     # Encuestas simples (propias o asignadas)
+    print("Usuario actual:", usuario.id)
+
     simples = db.query(models_simple.SurveySimple).filter(
         (models_simple.SurveySimple.usuario_id == usuario.id) |
-        (models_simple.SurveySimple.asignado_a.contains([usuario.id]))   # ✅ filtro correcto
+        (models_simple.SurveySimple.asignado_a.contains([usuario.id]))
     ).order_by(models_simple.SurveySimple.id.desc()).all()
+
+    print("Encuestas simples encontradas:", [(s.id, s.titulo, s.asignado_a) for s in simples])
+
 
     for s in simples:
         try:
