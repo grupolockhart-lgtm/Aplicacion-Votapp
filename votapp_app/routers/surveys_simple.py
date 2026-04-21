@@ -457,10 +457,10 @@ def assign_simple_survey(
     if not friend:
         raise HTTPException(status_code=404, detail="Amigo no encontrado")
 
-    # Asignar encuesta
-    survey.asignado_a = friend_id
-    db.commit()
-    db.refresh(survey)
+    # Asignar encuesta (ahora como array)
+    if friend_id not in survey.asignado_a:
+        survey.asignado_a.append(friend_id)
+        db.commit()
+        db.refresh(survey)
 
     return survey
-

@@ -32,29 +32,37 @@ export default function PersonalesScreen({
   refreshSurveys,
 }: PersonalesProps) {
   const navigation = useNavigation();
-  const { friends } = useContext(FriendsContext);
+  const { friends, refreshFriends } = useContext(FriendsContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSurveyId, setSelectedSurveyId] = useState<number | null>(null);
   const [assigning, setAssigning] = useState(false);
 
-  // 👇 Log para depuración
-  console.log("Amigos en contexto (PersonalesScreen):", friends);
+  // Nuevo: lista de amigos asignados para mostrar en modal
+  const [assignedFriendsList, setAssignedFriendsList] = useState<any[]>([]);
 
   const handleAssign = async (surveyId: number, friendId: number) => {
     try {
       setAssigning(true);
       const token = await AsyncStorage.getItem("userToken");
-      const API_URL = "http://localhost:8000"; // ajusta según tu backend
-      const res = await fetch(`${API_URL}/surveys/simple/${surveyId}/assign/${friendId}`, {
+      const API_URL = "https://aplicacion-votapp-test.onrender.com";
+
+      const url = `${API_URL}/api/surveys/simple/${surveyId}/assign/${friendId}`;
+      console.log("URL usada:", url);
+      console.log("Token:", token);
+
+      const res = await fetch(url, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
 
       if (res.ok) {
         Alert.alert("Éxito", "Encuesta asignada correctamente");
       } else {
+        const text = await res.text();
+        console.error("Respuesta backend:", text);
         Alert.alert("Error", "No se pudo asignar la encuesta");
       }
 
@@ -77,45 +85,60 @@ export default function PersonalesScreen({
             new Date(a.fecha_creacion ?? 0).getTime()
         )}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <SurveyCard
-            survey={item}
-            globalMuted={globalMuted}
-            toggleMute={toggleMute}
-            badgeText={
-              item.usuario_id === item.current_user_id
-                ? "📝 Creada por mí"
-                : "👥 Asignada"
-            }
-            isVisible={true}
-            onPress={() =>
-              (navigation as any).navigate("VoteScreen", {
-                surveyId: item.id,
-                surveyType: item.tipo,
-                title: item.title,
-                description: item.description,
-                questions: item.questions,
-                media_url: item.media_url,
-                media_urls: item.media_urls,
-                media_type: item.media_type,
-              })
-            }
-          >
-            {item.segundos_restantes !== undefined && (
-              <CountdownTimer segundosIniciales={item.segundos_restantes} />
-            )}
+        renderItem={({ item }) => {
+          // Encuentra amigos asignados (si asignado_a es array)
+          const assignedFriends = friends.filter(f =>
+            Array.isArray(item.asignado_a)
+              ? item.asignado_a.includes(f.friend_id)
+              : f.friend_id === item.asignado_a
+          );
 
-            {item.usuario_id === item.current_user_id && (
-              <Button
-                title="Asignar a amigo"
-                onPress={() => {
-                  setSelectedSurveyId(item.id);
-                  setModalVisible(true);
-                }}
-              />
-            )}
-          </SurveyCard>
-        )}
+          // Lógica del badge resumido
+          let badgeText = "";
+          if (item.usuario_id === item.current_user_id) {
+            badgeText = "📝 Creada por mí";
+          } else if (
+            Array.isArray(item.asignado_a)
+              ? item.asignado_a.includes(item.current_user_id)
+              : item.asignado_a === item.current_user_id
+          ) {
+            badgeText = "👤 Asignada a mí";
+          } else if (assignedFriends.length > 0) {
+            badgeText = `👥 Asignada a grupo (${assignedFriends.length})`;
+          } else {
+            badgeText = "👥 Asignada";
+          }
+
+          return (
+            <SurveyCard
+              survey={item}
+              globalMuted={globalMuted}
+              toggleMute={toggleMute}
+              badgeText={badgeText}
+              isVisible={true}
+              onPress={() => {
+                // Al tocar la tarjeta, abre modal con detalle de asignados
+                setAssignedFriendsList(assignedFriends);
+                setModalVisible(true);
+              }}
+            >
+              {item.segundos_restantes !== undefined && (
+                <CountdownTimer segundosIniciales={item.segundos_restantes} />
+              )}
+
+              {item.usuario_id === item.current_user_id && (
+                <Button
+                  title="Asignar a amigo"
+                  onPress={() => {
+                    setSelectedSurveyId(item.id);
+                    refreshFriends();
+                    setModalVisible(true);
+                  }}
+                />
+              )}
+            </SurveyCard>
+          );
+        }}
         ListEmptyComponent={
           <Text style={{ textAlign: "center", marginTop: 20 }}>
             No tienes encuestas personales
@@ -123,29 +146,44 @@ export default function PersonalesScreen({
         }
       />
 
-      {/* Modal de selección de amigos */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}   // 👈 importante
-      >
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <View style={{ backgroundColor: "#fff", padding: 20, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+      {/* Modal de detalle de amigos asignados */}
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "rgba(0,0,0,0.5)",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#fff",
+              padding: 20,
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+            }}
+          >
             <Text style={{ fontSize: 18, marginBottom: 10 }}>
-              Selecciona un amigo
+              Amigos asignados
             </Text>
 
             {assigning ? (
-              <View style={{ justifyContent: "center", alignItems: "center", paddingVertical: 20 }}>
+              <View
+                style={{
+                  justifyContent: "center",
+                  alignItems: "center",
+                  paddingVertical: 20,
+                }}
+              >
                 <ActivityIndicator size="large" color="#2563EB" />
                 <Text style={{ marginTop: 10 }}>Asignando encuesta...</Text>
               </View>
             ) : (
               <FlatList
-                data={friends}
+                data={assignedFriendsList}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
+                  <View
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
@@ -153,9 +191,6 @@ export default function PersonalesScreen({
                       borderBottomWidth: 1,
                       borderColor: "#ccc",
                     }}
-                    onPress={() =>
-                      selectedSurveyId && handleAssign(selectedSurveyId, item.friend_id)
-                    }
                   >
                     {item.avatar_url && (
                       <Image
@@ -171,11 +206,11 @@ export default function PersonalesScreen({
                     <Text style={{ fontSize: 16 }}>
                       {item.alias || item.nombre || item.correo}
                     </Text>
-                  </TouchableOpacity>
+                  </View>
                 )}
                 ListEmptyComponent={
                   <Text style={{ textAlign: "center", marginTop: 20 }}>
-                    No tienes amigos disponibles
+                    No hay amigos asignados
                   </Text>
                 }
               />
@@ -189,9 +224,9 @@ export default function PersonalesScreen({
           </View>
         </View>
       </Modal>
-
     </>
   );
 }
+
 
 

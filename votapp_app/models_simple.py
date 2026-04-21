@@ -1,7 +1,7 @@
 # votapp_app/models_simple.py
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from datetime import datetime, timedelta
 from votapp_app.database import Base
 
@@ -18,7 +18,7 @@ class SurveySimple(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
 
     # Usuario asignado (amigo destinatario)
-    asignado_a = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    asignado_a = Column(ARRAY(Integer), default=[])
 
     # Guardar multimedia como JSONB (listas nativas)
     imagenes = Column(JSONB, default=list)
@@ -35,7 +35,6 @@ class SurveySimple(Base):
     )
 
     creador = relationship("Usuario", foreign_keys=[usuario_id], backref="surveys_creadas")
-    asignado = relationship("Usuario", foreign_keys=[asignado_a], backref="surveys_asignadas")
 
 
 class SurveySimpleQuestion(Base):
