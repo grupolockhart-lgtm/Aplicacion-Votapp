@@ -60,6 +60,7 @@ export interface Survey {
   tipo: "normal" | "simple";
   usuario_id?: number;        // 👈 añadido
   current_user_id?: number;   // 👈 añadido
+  asignado_a?: number;   // 👈 añade este campo
 }
 
 const Tab = createMaterialTopTabNavigator();
@@ -182,13 +183,14 @@ export default function SurveysScreen() {
 
       setPersonales([
         ...toArray(normalesPersonales).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...toArray(simplesPersonales).map(normalizeSimple)
-          .filter((s: any) =>
-            // 👇 condición: creadas por mí o asignadas a mí
-            s.usuario_id === s.current_user_id || s.asignado_a === s.current_user_id
-          )
-          .map(normalizeSimple),
+        ...toArray(simplesPersonales)
+          .map(normalizeSimple) // 👈 normalizamos solo una vez
+          .filter(
+            (s: Survey) =>
+              s.usuario_id === s.current_user_id || s.asignado_a === s.current_user_id
+          ),
       ]);
+
 
     } catch (err) {
       setError("No se pudieron refrescar las encuestas");

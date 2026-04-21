@@ -97,7 +97,6 @@ export default function PersonalesScreen({
               <CountdownTimer segundosIniciales={item.segundos_restantes} />
             )}
 
-            {/* 👇 Solo las encuestas propias pueden asignarse */}
             {item.usuario_id === item.current_user_id && (
               <Button
                 title="Asignar a amigo"
@@ -108,6 +107,7 @@ export default function PersonalesScreen({
               />
             )}
           </SurveyCard>
+
         )}
         ListEmptyComponent={
           <Text style={{ textAlign: "center", marginTop: 20 }}>
