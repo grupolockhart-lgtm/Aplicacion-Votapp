@@ -338,7 +338,7 @@ def listar_personales(
         )
         .filter(
             ((SurveySimple.usuario_id == usuario.id) | 
-             (SurveySimple.asignado_a == usuario.id))   # 👈 creadas por mí o asignadas a mí
+             (SurveySimple.asignado_a.contains([usuario.id])))   # 👈 creadas por mí o asignadas a mí
             &
             ((SurveySimple.fecha_expiracion == None) |
              (SurveySimple.fecha_expiracion > datetime.utcnow()))  # 👈 no expirada
