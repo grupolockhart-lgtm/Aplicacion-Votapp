@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type Friend = {
   id: number;              // id de la relación de amistad
-  friend_id: number;       // id del usuario amigo (siempre presente en /friends)
+  friend_id: number;       // id del usuario amigo
   alias?: string;
   nombre?: string;
   correo?: string;
@@ -29,11 +29,21 @@ export const FriendsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const refreshFriends = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
-      if (!token) return;
+      const userId = await AsyncStorage.getItem("userId"); // 👈 asegúrate de guardar esto al loguear
+      if (!token || !userId) return;
 
-      const res = await fetch("https://aplicacion-votapp-test.onrender.com/api/friends", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `https://aplicacion-votapp-test.onrender.com/api/friends?user_id=${userId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!res.ok) {
+        console.error("Error al cargar amigos:", res.status);
+        return;
+      }
+
       const data = await res.json();
       console.log("Respuesta /api/friends:", data);
       setFriends(Array.isArray(data) ? data : []);
