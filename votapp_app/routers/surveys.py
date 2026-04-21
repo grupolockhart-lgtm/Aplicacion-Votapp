@@ -21,7 +21,8 @@ from .logros import verificar_logros
 from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyWalletOut
 
 from votapp_app import models_simple   # 👈 importa tus modelos de encuestas simples
-from sqlalchemy import any_
+from sqlalchemy import func
+
 
 import logging
 
