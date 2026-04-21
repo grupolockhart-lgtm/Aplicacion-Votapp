@@ -35,11 +35,11 @@ export default function PersonalesScreen({
   const { friends } = useContext(FriendsContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSurveyId, setSelectedSurveyId] = useState<number | null>(null);
-  const [assigning, setAssigning] = useState(false); // 👈 estado para spinner
+  const [assigning, setAssigning] = useState(false);
 
   const handleAssign = async (surveyId: number, friendId: number) => {
     try {
-      setAssigning(true); // 👈 mostramos spinner
+      setAssigning(true);
       const token = await AsyncStorage.getItem("userToken");
       const API_URL = "http://localhost:8000"; // ajusta según tu backend
       const res = await fetch(`${API_URL}/surveys/simple/${surveyId}/assign/${friendId}`, {
@@ -61,7 +61,7 @@ export default function PersonalesScreen({
       console.error("Error asignando encuesta:", error);
       Alert.alert("Error", "Ocurrió un problema al asignar la encuesta");
     } finally {
-      setAssigning(false); // 👈 ocultamos spinner
+      setAssigning(false);
     }
   };
 
@@ -135,7 +135,7 @@ export default function PersonalesScreen({
           ) : (
             <FlatList
               data={friends}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item) => item.friend_id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={{
@@ -146,7 +146,7 @@ export default function PersonalesScreen({
                     borderColor: "#ccc",
                   }}
                   onPress={() =>
-                    selectedSurveyId && handleAssign(selectedSurveyId, item.id)
+                    selectedSurveyId && handleAssign(selectedSurveyId, item.friend_id)
                   }
                 >
                   {item.avatar_url && (
@@ -168,7 +168,11 @@ export default function PersonalesScreen({
             />
           )}
 
-          <Button title="Cerrar" onPress={() => setModalVisible(false)} />
+          <Button
+            title="Cerrar"
+            onPress={() => !assigning && setModalVisible(false)}
+            disabled={assigning}
+          />
         </View>
       </Modal>
     </>

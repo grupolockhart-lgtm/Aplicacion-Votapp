@@ -3,8 +3,8 @@ import React, { createContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type Friend = {
-  id: number;
-  friend_id?: number;
+  id: number;              // id de la relación de amistad
+  friend_id: number;       // id del usuario amigo (siempre presente en /friends)
   alias?: string;
   nombre?: string;
   correo?: string;
@@ -35,7 +35,8 @@ export const FriendsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      setFriends(data);
+      console.log("Respuesta /api/friends:", data);
+      setFriends(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error cargando amigos:", err);
     }
