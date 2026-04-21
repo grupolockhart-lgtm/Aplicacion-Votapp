@@ -56,7 +56,7 @@ class SurveySimpleResponse(BaseModel):
     fecha_creacion: Optional[datetime] = None
 
     usuario_id: Optional[int] = None
-    asignado_a: Optional[int] = None
+    asignado_a: List[int] = []   # ✅ corregido: lista de enteros
 
     # -------------------
     # Campos extra para cumplir contrato de Survey

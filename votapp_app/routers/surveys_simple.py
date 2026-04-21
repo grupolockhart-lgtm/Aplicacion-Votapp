@@ -77,7 +77,9 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
         nivel_educativo=None,
         religion=None,
         nacionalidad=None,
-        estado_civil=None
+        estado_civil=None,
+        usuario_id=survey.usuario_id,          # 👈 añadir
+        asignado_a=survey.asignado_a or []     # 👈 añadir
     )
 
 
