@@ -1,5 +1,5 @@
 // src/screens/PersonalesScreen.tsx
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   FlatList,
   Text,
@@ -17,6 +17,7 @@ import CountdownTimer from "@/components/CountdownTimer";
 import SurveyCard from "@/components/SurveyCard";
 import type { Survey } from "@/screens/SurveysScreen";
 import { FriendsContext } from "@/context/FriendsContext";
+import { API_URL } from "../config/api";
 
 interface PersonalesProps {
   surveys: Survey[];
@@ -40,12 +41,39 @@ export default function PersonalesScreen({
   // Nuevo: lista de amigos asignados para mostrar en modal
   const [assignedFriendsList, setAssignedFriendsList] = useState<any[]>([]);
 
+  // Nuevo: userId obtenido desde /users/me
+  const [userId, setUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const token = await AsyncStorage.getItem("userToken");
+        if (!token) return;
+
+        const res = await fetch(`${API_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) {
+          console.error("Error al obtener perfil:", res.status);
+          return;
+        }
+
+        const profile = await res.json();
+        await AsyncStorage.setItem("userId", String(profile.id));
+        setUserId(profile.id);
+      } catch (err) {
+        console.error("❌ Error al obtener userId:", err);
+      }
+    };
+
+    fetchUserId();
+  }, []);
+
   const handleAssign = async (surveyId: number, friendId: number) => {
     try {
       setAssigning(true);
       const token = await AsyncStorage.getItem("userToken");
-      const API_URL = "https://aplicacion-votapp-test.onrender.com";
-
       const url = `${API_URL}/api/surveys/simple/${surveyId}/assign/${friendId}`;
       console.log("URL usada:", url);
       console.log("Token:", token);
@@ -93,14 +121,15 @@ export default function PersonalesScreen({
               : f.friend_id === item.asignado_a
           );
 
-          // Lógica del badge resumido
+          // Lógica del badge resumido (Plan A)
           let badgeText = "";
-          if (item.usuario_id === item.current_user_id) {
+          if (userId !== null && item.usuario_id === userId) {
             badgeText = "📝 Creada por mí";
           } else if (
-            Array.isArray(item.asignado_a)
-              ? (item.current_user_id !== undefined && item.asignado_a.includes(item.current_user_id))
-              : item.asignado_a === item.current_user_id
+            userId !== null &&
+            (Array.isArray(item.asignado_a)
+              ? item.asignado_a.includes(userId)
+              : item.asignado_a === userId)
           ) {
             badgeText = "👤 Asignada a mí";
           } else if (assignedFriends.length > 0) {
@@ -126,7 +155,7 @@ export default function PersonalesScreen({
                 <CountdownTimer segundosIniciales={item.segundos_restantes} />
               )}
 
-              {item.usuario_id === item.current_user_id && (
+              {userId !== null && item.usuario_id === userId && (
                 <Button
                   title="Asignar a amigo"
                   onPress={() => {
@@ -227,6 +256,7 @@ export default function PersonalesScreen({
     </>
   );
 }
+
 
 
 
