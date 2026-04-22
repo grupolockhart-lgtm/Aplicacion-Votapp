@@ -19,6 +19,7 @@ import logging
 from sqlalchemy import func
 from ..models import Usuario
 from services.cloudinary_service import upload_avatar
+from pydantic import BaseModel
 
 # 👇 importa la función oficial desde utils
 from votapp_app.utils import safe_json_list
@@ -442,19 +443,19 @@ def obtener_encuesta_simple(
 # -------------------
 # Asignar encuesta simple a un amigo
 # -------------------
+class AssignRequest(BaseModel):
+    asignado_por: int
+
 @router.put("/{survey_id}/assign/{friend_id}", response_model=SurveySimpleResponse)
 def assign_simple_survey(
     survey_id: int,
     friend_id: int,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    request: AssignRequest,   # 👈 recibes el body
+    db: Session = Depends(get_db)
 ):
     survey = db.query(SurveySimple).filter(SurveySimple.id == survey_id).first()
     if not survey:
         raise HTTPException(status_code=404, detail="Encuesta simple no encontrada")
-
-    if survey.usuario_id != current_user.id:
-        raise HTTPException(status_code=403, detail="No puedes asignar encuestas que no creaste")
 
     friend = db.query(Usuario).filter(Usuario.id == friend_id).first()
     if not friend:
@@ -464,7 +465,7 @@ def assign_simple_survey(
         survey.asignado_a.append(friend_id)
 
     # 👇 Guardar quién hizo la asignación
-    survey.asignado_por = current_user.id
+    survey.asignado_por = request.asignado_por
 
     db.commit()
     db.refresh(survey)

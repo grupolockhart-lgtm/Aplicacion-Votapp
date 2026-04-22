@@ -84,6 +84,7 @@ export default function PersonalesScreen({
     try {
       setAssigning(true);
       const token = await AsyncStorage.getItem("userToken");
+      const storedUserId = await AsyncStorage.getItem("userId"); // 👈 ya lo guardas en useEffect
       const url = `${API_URL}/api/surveys/simple/${surveyId}/assign/${friendId}`;
 
       const res = await fetch(url, {
@@ -92,6 +93,7 @@ export default function PersonalesScreen({
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ asignado_por: Number(storedUserId) }) // 👈 enviar tu id
       });
 
       if (res.ok) {
@@ -111,6 +113,7 @@ export default function PersonalesScreen({
       setAssigning(false);
     }
   };
+
 
   return (
     <>
@@ -145,11 +148,14 @@ export default function PersonalesScreen({
               : item.asignado_a === userId)
           ) {
             badgeText = "👤 Asignada a mí";
+          } else if (item.asignado_por) {
+            badgeText = `➡️ Asignada por usuario ${item.asignado_por}`;
           } else if (assignedFriends.length > 0) {
             badgeText = `👥 Asignada a grupo (${assignedFriends.length})`;
           } else {
             badgeText = "👥 Asignada";
           }
+
 
           return (
             <SurveyCard
@@ -208,6 +214,21 @@ export default function PersonalesScreen({
               Amigos asignados
             </Text>
 
+            {/* 👇 Mostrar quién asignó la encuesta */}
+            {selectedSurveyId !== null && (
+              (() => {
+                const asignadorId = surveys.find(s => s.id === selectedSurveyId)?.asignado_por;
+                const asignador = friends.find(f => f.friend_id === asignadorId);
+                return (
+                  <Text style={{ fontSize: 14, marginBottom: 10 }}>
+                    Asignada por: {asignador
+                      ? (asignador.alias || asignador.nombre || asignador.correo)
+                      : "Desconocido"}
+                  </Text>
+                );
+              })()
+            )}
+
             {assigning ? (
               <View style={{ justifyContent: "center", alignItems: "center", paddingVertical: 20 }}>
                 <ActivityIndicator size="large" color="#2563EB" />
@@ -246,6 +267,8 @@ export default function PersonalesScreen({
           </View>
         </View>
       </Modal>
+
+
     </>
   );
 }

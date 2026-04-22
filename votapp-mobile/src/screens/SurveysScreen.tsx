@@ -61,6 +61,7 @@ export interface Survey {
   usuario_id?: number;        // 👈 añadido
   current_user_id?: number;   // 👈 añadido
   asignado_a?: number[];   // 👈 añade este campo
+  asignado_por?: number;   
 }
 
 const Tab = createMaterialTopTabNavigator();
@@ -95,6 +96,7 @@ export default function SurveysScreen() {
     usuario_id: s.usuario_id,
     current_user_id: s.current_user_id,
     asignado_a: Array.isArray(s.asignado_a) ? s.asignado_a : [],
+    asignado_por: s.asignado_por ?? null,   // 👈 nuevo
     questions: Array.isArray(s.questions ?? s.preguntas)
       ? (s.questions ?? s.preguntas).map((q: any) => ({
           id: q.id,
@@ -123,6 +125,7 @@ export default function SurveysScreen() {
     presupuesto_total: s.presupuesto_total ?? 0,
     tipo: "simple",
   });
+
 
 
 
