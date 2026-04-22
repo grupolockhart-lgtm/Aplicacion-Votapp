@@ -299,7 +299,7 @@ def listar_disponibles(db: Session = Depends(get_db), usuario = Depends(get_curr
              (SurveySimple.fecha_expiracion > datetime.utcnow()))
             &
             ((SurveySimple.usuario_id == usuario.id) | 
-             (SurveySimple.asignado_a == usuario.id))   # 👈 filtro creador o asignado
+             (SurveySimple.asignado_a.contains([usuario.id])))   # ✅ correcto
         )
         .order_by(SurveySimple.id.desc())
         .all()
