@@ -40,6 +40,8 @@ export default function PersonalesScreen({
   const [assignedFriendsList, setAssignedFriendsList] = useState<any[]>([]);
   const [userId, setUserId] = useState<number | null>(null);
 
+  const [asignadorNombre, setAsignadorNombre] = useState<string>("Desconocido");
+
   useEffect(() => {
     const fetchUserId = async () => {
       try {
@@ -50,23 +52,15 @@ export default function PersonalesScreen({
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!res.ok) {
-          console.error("Error al obtener perfil:", res.status);
-          return;
-        }
+        if (!res.ok) return;
 
         const profile = await res.json();
-        console.log("Perfil recibido:", profile);
-
         const idValue = profile.user?.id;
         const parsedId = Number(idValue);
 
-        if (isNaN(parsedId)) {
-          console.error("❌ userId no válido:", idValue);
-        } else {
+        if (!isNaN(parsedId)) {
           await AsyncStorage.setItem("userId", String(parsedId));
           setUserId(parsedId);
-          console.log("✅ userId cargado:", parsedId);
         }
       } catch (err) {
         console.error("❌ Error al obtener userId:", err);
@@ -110,6 +104,45 @@ export default function PersonalesScreen({
     }
   };
 
+  const fetchAsignadorNombre = async (asignadorId: number) => {
+    try {
+      const res = await fetch(`${API_URL}/usuarios/${asignadorId}?current_user_id=${userId}`);
+      if (!res.ok) return "Desconocido";
+      const data = await res.json();
+      return (
+        data.usuario?.alias ||
+        data.usuario?.nombre ||
+        data.usuario?.correo ||
+        "Desconocido"
+      );
+    } catch (err) {
+      console.error("Error fetchAsignadorNombre:", err);
+      return "Desconocido";
+    }
+  };
+
+  // 👇 useEffect que carga el nombre del asignador al abrir el modal
+  useEffect(() => {
+    const cargarAsignador = async () => {
+      if (!selectedSurveyId) return;
+      const surveySeleccionada = surveys.find(s => s.id === selectedSurveyId);
+      const asignadorId = surveySeleccionada?.asignado_por;
+      if (!asignadorId) {
+        setAsignadorNombre("Desconocido");
+        return;
+      }
+
+      if (asignadorId === userId) {
+        setAsignadorNombre("Yo mismo");
+      } else {
+        const nombre = await fetchAsignadorNombre(asignadorId);
+        setAsignadorNombre(nombre);
+      }
+    };
+
+    cargarAsignador();
+  }, [selectedSurveyId, userId, surveys]);
+
   return (
     <>
       <FlatList
@@ -120,12 +153,6 @@ export default function PersonalesScreen({
         )}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => {
-          console.log("Comparando:", {
-            usuario_id: item.usuario_id,
-            userId,
-            asignado_a: item.asignado_a,
-          });
-
           const assignedFriends = friends.filter(f =>
             Array.isArray(item.asignado_a)
               ? item.asignado_a.includes(f.friend_id)
@@ -158,9 +185,7 @@ export default function PersonalesScreen({
               badgeText={badgeText}
               isVisible={true}
               onPress={() => {
-                console.log("Friends en contexto:", friends);
-                console.log("Survey seleccionada:", item.id);
-                setSelectedSurveyId(item.id); // 👈 ahora siempre se setea
+                setSelectedSurveyId(item.id);
                 setAssignedFriendsList(assignedFriends);
                 setModalVisible(true);
               }}
@@ -209,21 +234,9 @@ export default function PersonalesScreen({
               Amigos asignados
             </Text>
 
-            {/* 👇 Mostrar quién asignó la encuesta */}
-            {(() => {
-              console.log("selectedSurveyId en modal:", selectedSurveyId);
-              const asignadorId = surveys.find(s => s.id === selectedSurveyId)?.asignado_por;
-              console.log("AsignadorId en modal:", asignadorId);
-              const asignador = friends.find(f => Number(f.friend_id) === Number(asignadorId));
-              console.log("Asignador encontrado:", asignador);
-              return (
-                <Text style={{ fontSize: 14, marginBottom: 10 }}>
-                  Asignada por: {asignador
-                    ? (asignador.alias || asignador.nombre || asignador.correo)
-                    : "Desconocido"}
-                </Text>
-              );
-            })()}
+            <Text style={{ fontSize: 14, marginBottom: 10 }}>
+              Asignada por: {asignadorNombre}
+            </Text>
 
             {assigning ? (
               <View style={{ justifyContent: "center", alignItems: "center", paddingVertical: 20 }}>
@@ -266,4 +279,3 @@ export default function PersonalesScreen({
     </>
   );
 }
-
