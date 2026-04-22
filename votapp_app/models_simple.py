@@ -1,83 +1,130 @@
-# votapp_app/models_simple.py
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import JSONB, ARRAY
-from datetime import datetime, timedelta
-from votapp_app.database import Base
+# votapp_app/schemas_simple.py
 
-class SurveySimple(Base):
-    __tablename__ = "surveys_simple"
+from pydantic import BaseModel, field_validator, ValidationInfo
+from typing import List, Optional
+from datetime import datetime
+import json
 
-    id = Column(Integer, primary_key=True, index=True)
-    titulo = Column(String, nullable=False)
+# -------------------
+# Opciones
+# -------------------
+class SurveySimpleOptionCreate(BaseModel):
+    texto: str   # ✅ solo texto, sin votos
 
-    # Fecha de creación automática
-    fecha_creacion = Column(DateTime, default=datetime.utcnow)
+class SurveySimpleOptionResponse(BaseModel):
+    id: int
+    texto: str
+    votos: int
 
-    # Usuario creador (puede ser null si es anónima)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    class Config:
+        from_attributes = True   # ✅ reemplazo de orm_mode en Pydantic v2
 
-    # Usuario asignado (amigo destinatario)
-    asignado_a = Column(ARRAY(Integer), default=[])
+# -------------------
+# Preguntas
+# -------------------
+class SurveySimpleQuestionCreate(BaseModel):
+    texto: str
+    opciones: List[SurveySimpleOptionCreate]
 
-    # Guardar multimedia como JSONB (listas nativas)
-    imagenes = Column(JSONB, default=list)
-    videos = Column(JSONB, default=list)
+class SurveySimpleQuestionResponse(BaseModel):
+    id: int
+    texto: str
+    opciones: List[SurveySimpleOptionResponse]
 
-    # Fecha de expiración: por defecto 24h después de creación
-    fecha_expiracion = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(days=1))
+    class Config:
+        from_attributes = True
 
-    # Relaciones
-    preguntas = relationship(
-        "SurveySimpleQuestion",
-        back_populates="survey",
-        cascade="all, delete-orphan"
-    )
+# -------------------
+# Encuesta Simple (Create y Response)
+# -------------------
+class SurveySimpleCreate(BaseModel):
+    titulo: str
+    preguntas: List[SurveySimpleQuestionCreate]
+    # 👇 ahora opcionales y con default vacío
+    imagenes: Optional[List[str]] = []
+    videos: Optional[List[str]] = []
+    fecha_expiracion: Optional[datetime] = None
+    asignado_a: Optional[List[int]] = []   # 👈 aquí el cambio
 
-    creador = relationship("Usuario", foreign_keys=[usuario_id], backref="surveys_creadas")
+class SurveySimpleResponse(BaseModel):
+    id: int
+    titulo: str
+    preguntas: List[SurveySimpleQuestionResponse]
+    imagenes: List[str] = []
+    videos: List[str] = []
+    fecha_expiracion: Optional[datetime] = None
+    fecha_creacion: Optional[datetime] = None
 
+    usuario_id: Optional[int] = None
+    asignado_a: List[int] = []   # ✅ corregido: lista de enteros
 
-class SurveySimpleQuestion(Base):
-    __tablename__ = "surveys_simple_questions"
+    # -------------------
+    # Campos extra para cumplir contrato de Survey
+    # -------------------
+    description: str = ""
+    media_url: Optional[str] = None
+    media_urls: List[str] = []
+    media_type: str = "native"
+    segundos_restantes: int = 0
+    patrocinada: bool = False
+    patrocinador: Optional[str] = None
+    es_patrocinada: bool = False
+    recompensa_puntos: int = 0
+    recompensa_dinero: int = 0
+    presupuesto_total: int = 0
+    visibilidad_resultados: str = "publica"
+    tipo: str = "simple"
 
-    id = Column(Integer, primary_key=True, index=True)
-    texto = Column(String, nullable=False)
+    # -------------------
+    # Segmentación
+    # -------------------
+    sexo: Optional[str] = None
+    ciudad: Optional[str] = None
+    ocupacion: Optional[str] = None
+    nivel_educativo: Optional[str] = None
+    religion: Optional[str] = None
+    nacionalidad: Optional[str] = None
+    estado_civil: Optional[str] = None
 
-    survey_simple_id = Column(Integer, ForeignKey("surveys_simple.id"))
-    survey = relationship("SurveySimple", back_populates="preguntas")
+    class Config:
+        from_attributes = True
 
-    # Relación con opciones
-    opciones = relationship(
-        "SurveySimpleOption",
-        back_populates="pregunta",
-        cascade="all, delete-orphan"
-    )
+    # -------------------
+    # Validadores defensivos (Pydantic v2)
+    # -------------------
+    @field_validator("preguntas", mode="before")
+    def map_preguntas(cls, v, info: ValidationInfo):
+        return v or []
 
+    @field_validator("imagenes", mode="before")
+    def parse_imagenes(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v or []
 
-class SurveySimpleOption(Base):
-    __tablename__ = "surveys_simple_options"
+    @field_validator("videos", mode="before")
+    def parse_videos(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v or []
 
-    id = Column(Integer, primary_key=True, index=True)
-    texto = Column(String, nullable=False)
-    votos = Column(Integer, default=0)
+    @field_validator("media_urls", mode="before")
+    def map_media_urls(cls, v, info: ValidationInfo):
+        imagenes = info.data.get("imagenes") or []
+        return imagenes if imagenes else v or []
 
-    # Relación con pregunta
-    pregunta_id = Column(Integer, ForeignKey("surveys_simple_questions.id"))
-    pregunta = relationship("SurveySimpleQuestion", back_populates="opciones")
+# -------------------
+# Voto
+# -------------------
+class SurveySimpleAnswer(BaseModel):
+    pregunta_id: int
+    opcion_id: int
 
-
-class SimpleVote(Base):
-    __tablename__ = "surveys_simple_votes"
-
-    id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    survey_simple_id = Column(Integer, ForeignKey("surveys_simple.id"), nullable=False)
-    pregunta_id = Column(Integer, ForeignKey("surveys_simple_questions.id"), nullable=False)
-    opcion_id = Column(Integer, ForeignKey("surveys_simple_options.id"), nullable=False)
-
-    # Relaciones opcionales
-    usuario = relationship("Usuario", backref="simple_votes")
-    survey_simple = relationship("SurveySimple", backref="votes")
-    pregunta = relationship("SurveySimpleQuestion", backref="votes")
-    opcion = relationship("SurveySimpleOption", backref="votes")
-
+class SurveySimpleVote(BaseModel):
+    answers: List[SurveySimpleAnswer]

@@ -114,7 +114,7 @@ def crear_encuesta_simple(
     nueva = SurveySimple(
         titulo=survey_obj.titulo,
         usuario_id=usuario.id,
-        asignado_a=survey_obj.asignado_a,
+        asignado_a=survey_obj.asignado_a or [],
         imagenes=urls or survey_obj.imagenes or [],
         videos=survey_obj.videos or [],
         fecha_expiracion=survey_obj.fecha_expiracion or datetime.now(timezone.utc)
