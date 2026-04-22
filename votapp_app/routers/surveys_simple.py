@@ -449,24 +449,24 @@ def assign_simple_survey(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    # Buscar encuesta
     survey = db.query(SurveySimple).filter(SurveySimple.id == survey_id).first()
     if not survey:
         raise HTTPException(status_code=404, detail="Encuesta simple no encontrada")
 
-    # Validar que el usuario actual sea el creador
     if survey.usuario_id != current_user.id:
         raise HTTPException(status_code=403, detail="No puedes asignar encuestas que no creaste")
 
-    # Validar que el amigo exista
     friend = db.query(Usuario).filter(Usuario.id == friend_id).first()
     if not friend:
         raise HTTPException(status_code=404, detail="Amigo no encontrado")
 
-    # Asignar encuesta (ahora como array)
     if friend_id not in survey.asignado_a:
         survey.asignado_a.append(friend_id)
-        db.commit()
-        db.refresh(survey)
 
-    return survey
+    # 👇 Guardar quién hizo la asignación
+    survey.asignado_por = current_user.id
+
+    db.commit()
+    db.refresh(survey)
+
+    return build_survey_simple_response(survey)

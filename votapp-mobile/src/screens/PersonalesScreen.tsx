@@ -38,10 +38,7 @@ export default function PersonalesScreen({
   const [selectedSurveyId, setSelectedSurveyId] = useState<number | null>(null);
   const [assigning, setAssigning] = useState(false);
 
-  // Nuevo: lista de amigos asignados para mostrar en modal
   const [assignedFriendsList, setAssignedFriendsList] = useState<any[]>([]);
-
-  // Nuevo: userId obtenido desde /users/me
   const [userId, setUserId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -60,8 +57,19 @@ export default function PersonalesScreen({
         }
 
         const profile = await res.json();
-        await AsyncStorage.setItem("userId", String(profile.id));
-        setUserId(profile.id);
+        console.log("Perfil recibido:", profile);
+
+        // El id está dentro de profile.user.id
+        const idValue = profile.user?.id;
+        const parsedId = Number(idValue);
+
+        if (isNaN(parsedId)) {
+          console.error("❌ userId no válido:", idValue);
+        } else {
+          await AsyncStorage.setItem("userId", String(parsedId));
+          setUserId(parsedId);
+          console.log("✅ userId cargado:", parsedId);
+        }
       } catch (err) {
         console.error("❌ Error al obtener userId:", err);
       }
@@ -70,13 +78,13 @@ export default function PersonalesScreen({
     fetchUserId();
   }, []);
 
+
+
   const handleAssign = async (surveyId: number, friendId: number) => {
     try {
       setAssigning(true);
       const token = await AsyncStorage.getItem("userToken");
       const url = `${API_URL}/api/surveys/simple/${surveyId}/assign/${friendId}`;
-      console.log("URL usada:", url);
-      console.log("Token:", token);
 
       const res = await fetch(url, {
         method: "PUT",
@@ -113,15 +121,20 @@ export default function PersonalesScreen({
             new Date(a.fecha_creacion ?? 0).getTime()
         )}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => {
-          // Encuentra amigos asignados (si asignado_a es array)
+       renderItem={({ item }) => {
+          // Debug: ver valores en consola
+          console.log("Comparando:", {
+            usuario_id: item.usuario_id,
+            userId,
+            asignado_a: item.asignado_a,
+          });
+
           const assignedFriends = friends.filter(f =>
             Array.isArray(item.asignado_a)
               ? item.asignado_a.includes(f.friend_id)
               : f.friend_id === item.asignado_a
           );
 
-          // Lógica del badge resumido (Plan A)
           let badgeText = "";
           if (userId !== null && item.usuario_id === userId) {
             badgeText = "📝 Creada por mí";
@@ -146,7 +159,6 @@ export default function PersonalesScreen({
               badgeText={badgeText}
               isVisible={true}
               onPress={() => {
-                // Al tocar la tarjeta, abre modal con detalle de asignados
                 setAssignedFriendsList(assignedFriends);
                 setModalVisible(true);
               }}
@@ -168,6 +180,7 @@ export default function PersonalesScreen({
             </SurveyCard>
           );
         }}
+
         ListEmptyComponent={
           <Text style={{ textAlign: "center", marginTop: 20 }}>
             No tienes encuestas personales
@@ -175,7 +188,6 @@ export default function PersonalesScreen({
         }
       />
 
-      {/* Modal de detalle de amigos asignados */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View
           style={{
@@ -197,13 +209,7 @@ export default function PersonalesScreen({
             </Text>
 
             {assigning ? (
-              <View
-                style={{
-                  justifyContent: "center",
-                  alignItems: "center",
-                  paddingVertical: 20,
-                }}
-              >
+              <View style={{ justifyContent: "center", alignItems: "center", paddingVertical: 20 }}>
                 <ActivityIndicator size="large" color="#2563EB" />
                 <Text style={{ marginTop: 10 }}>Asignando encuesta...</Text>
               </View>
@@ -212,24 +218,11 @@ export default function PersonalesScreen({
                 data={assignedFriendsList}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      padding: 12,
-                      borderBottomWidth: 1,
-                      borderColor: "#ccc",
-                    }}
-                  >
+                  <View style={{ flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: 1, borderColor: "#ccc" }}>
                     {item.avatar_url && (
                       <Image
                         source={{ uri: item.avatar_url }}
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 16,
-                          marginRight: 10,
-                        }}
+                        style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }}
                       />
                     )}
                     <Text style={{ fontSize: 16 }}>

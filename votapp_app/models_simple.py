@@ -19,6 +19,7 @@ class SurveySimple(Base):
 
     # Usuario asignado (amigo destinatario)
     asignado_a = Column(ARRAY(Integer), default=[])
+    asignado_por = Column(Integer, ForeignKey("usuarios.id"), nullable=True)  # quién asignó
 
     # Guardar multimedia como JSONB (listas nativas)
     imagenes = Column(JSONB, default=list)

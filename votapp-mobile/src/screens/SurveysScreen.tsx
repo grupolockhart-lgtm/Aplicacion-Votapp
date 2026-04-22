@@ -189,18 +189,10 @@ export default function SurveysScreen() {
         ...toArray(simplesFinalizadas).map(normalizeSimple), // 👈 simples expiradas
       ]);
 
-      setPersonales([
-        ...toArray(normalesPersonales).map((s: Survey) => ({ ...s, tipo: "normal" })),
-        ...toArray(simplesPersonales)
+      setPersonales(
+        toArray(simplesPersonales)
           .map(normalizeSimple)
-          .filter(
-            (s: Survey) =>
-              s.usuario_id === s.current_user_id ||
-              (Array.isArray(s.asignado_a) &&
-              s.current_user_id !== undefined &&
-              s.asignado_a.includes(s.current_user_id))
-          ),
-      ]);
+      );
 
 
     } catch (err) {

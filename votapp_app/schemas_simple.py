@@ -57,6 +57,7 @@ class SurveySimpleResponse(BaseModel):
 
     usuario_id: Optional[int] = None
     asignado_a: List[int] = []   # ✅ corregido: lista de enteros
+    asignado_por: Optional[int] = None   # 👈 nuevo campo
 
     # -------------------
     # Campos extra para cumplir contrato de Survey
