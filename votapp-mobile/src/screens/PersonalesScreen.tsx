@@ -6,7 +6,6 @@ import {
   Button,
   Modal,
   View,
-  TouchableOpacity,
   Image,
   Alert,
   ActivityIndicator,
@@ -59,7 +58,6 @@ export default function PersonalesScreen({
         const profile = await res.json();
         console.log("Perfil recibido:", profile);
 
-        // El id está dentro de profile.user.id
         const idValue = profile.user?.id;
         const parsedId = Number(idValue);
 
@@ -78,13 +76,11 @@ export default function PersonalesScreen({
     fetchUserId();
   }, []);
 
-
-
   const handleAssign = async (surveyId: number, friendId: number) => {
     try {
       setAssigning(true);
       const token = await AsyncStorage.getItem("userToken");
-      const storedUserId = await AsyncStorage.getItem("userId"); // 👈 ya lo guardas en useEffect
+      const storedUserId = await AsyncStorage.getItem("userId");
       const url = `${API_URL}/api/surveys/simple/${surveyId}/assign/${friendId}`;
 
       const res = await fetch(url, {
@@ -93,7 +89,7 @@ export default function PersonalesScreen({
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ asignado_por: Number(storedUserId) }) // 👈 enviar tu id
+        body: JSON.stringify({ asignado_por: Number(storedUserId) }),
       });
 
       if (res.ok) {
@@ -114,7 +110,6 @@ export default function PersonalesScreen({
     }
   };
 
-
   return (
     <>
       <FlatList
@@ -124,8 +119,7 @@ export default function PersonalesScreen({
             new Date(a.fecha_creacion ?? 0).getTime()
         )}
         keyExtractor={(item) => item.id.toString()}
-       renderItem={({ item }) => {
-          // Debug: ver valores en consola
+        renderItem={({ item }) => {
           console.log("Comparando:", {
             usuario_id: item.usuario_id,
             userId,
@@ -156,7 +150,6 @@ export default function PersonalesScreen({
             badgeText = "👥 Asignada";
           }
 
-
           return (
             <SurveyCard
               survey={item}
@@ -165,6 +158,9 @@ export default function PersonalesScreen({
               badgeText={badgeText}
               isVisible={true}
               onPress={() => {
+                console.log("Friends en contexto:", friends);
+                console.log("Survey seleccionada:", item.id);
+                setSelectedSurveyId(item.id); // 👈 ahora siempre se setea
                 setAssignedFriendsList(assignedFriends);
                 setModalVisible(true);
               }}
@@ -186,7 +182,6 @@ export default function PersonalesScreen({
             </SurveyCard>
           );
         }}
-
         ListEmptyComponent={
           <Text style={{ textAlign: "center", marginTop: 20 }}>
             No tienes encuestas personales
@@ -215,19 +210,20 @@ export default function PersonalesScreen({
             </Text>
 
             {/* 👇 Mostrar quién asignó la encuesta */}
-            {selectedSurveyId !== null && (
-              (() => {
-                const asignadorId = surveys.find(s => s.id === selectedSurveyId)?.asignado_por;
-                const asignador = friends.find(f => f.friend_id === asignadorId);
-                return (
-                  <Text style={{ fontSize: 14, marginBottom: 10 }}>
-                    Asignada por: {asignador
-                      ? (asignador.alias || asignador.nombre || asignador.correo)
-                      : "Desconocido"}
-                  </Text>
-                );
-              })()
-            )}
+            {(() => {
+              console.log("selectedSurveyId en modal:", selectedSurveyId);
+              const asignadorId = surveys.find(s => s.id === selectedSurveyId)?.asignado_por;
+              console.log("AsignadorId en modal:", asignadorId);
+              const asignador = friends.find(f => Number(f.friend_id) === Number(asignadorId));
+              console.log("Asignador encontrado:", asignador);
+              return (
+                <Text style={{ fontSize: 14, marginBottom: 10 }}>
+                  Asignada por: {asignador
+                    ? (asignador.alias || asignador.nombre || asignador.correo)
+                    : "Desconocido"}
+                </Text>
+              );
+            })()}
 
             {assigning ? (
               <View style={{ justifyContent: "center", alignItems: "center", paddingVertical: 20 }}>
@@ -267,12 +263,7 @@ export default function PersonalesScreen({
           </View>
         </View>
       </Modal>
-
-
     </>
   );
 }
-
-
-
 

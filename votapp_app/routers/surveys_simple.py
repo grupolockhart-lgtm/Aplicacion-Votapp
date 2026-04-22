@@ -80,7 +80,8 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
         nacionalidad=None,
         estado_civil=None,
         usuario_id=survey.usuario_id,          # 👈 añadir
-        asignado_a=[x for x in (survey.asignado_a or []) if x is not None]
+        asignado_a=[x for x in (survey.asignado_a or []) if x is not None],
+        asignado_por=survey.asignado_por   # 👈 añadido aquí
     )
 
 
