@@ -339,11 +339,15 @@ def listar_personales(
             selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
         )
         .filter(
-            ((SurveySimple.usuario_id == usuario.id) | 
-             (SurveySimple.asignado_a.contains([usuario.id])))   # 👈 creadas por mí o asignadas a mí
+            (
+                (SurveySimple.usuario_id == usuario.id) |
+                (SurveySimple.asignado_a.any(usuario.id))
+            )
             &
-            ((SurveySimple.fecha_expiracion == None) |
-             (SurveySimple.fecha_expiracion > datetime.utcnow()))  # 👈 no expirada
+            (
+                (SurveySimple.fecha_expiracion == None) |
+                (SurveySimple.fecha_expiracion > datetime.utcnow())
+            )
         )
         .order_by(SurveySimple.id.desc())
         .all()
