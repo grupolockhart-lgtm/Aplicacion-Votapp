@@ -29,7 +29,10 @@ router = APIRouter(prefix="/surveys/simple", tags=["Surveys Simple"])
 # -------------------
 # Auxiliares
 # -------------------
-def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
+# -------------------
+# Auxiliares
+# -------------------
+def build_survey_simple_response(survey: SurveySimple, current_user_id: int) -> SurveySimpleResponse:
     ahora = datetime.now(timezone.utc)
     fecha_exp = survey.fecha_expiracion
     if fecha_exp and fecha_exp.tzinfo is None:
@@ -44,22 +47,19 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
         ]
         preguntas.append({"id": p.id, "texto": p.texto, "opciones": opciones})
 
-    # 👇 deserializar correctamente usando utils
     imagenes = safe_json_list(survey.imagenes)
     videos = safe_json_list(survey.videos)
 
     return SurveySimpleResponse(
         id=survey.id,
         titulo=survey.titulo,
-        fecha_expiracion=fecha_exp,   # ✅ devuelve datetime, no string
+        fecha_expiracion=fecha_exp,   # si tu modelo espera datetime
         fecha_creacion=survey.fecha_creacion,
         imagenes=imagenes,
         videos=videos,
         preguntas=preguntas,
         description="",
-        # 👇 usar la primera imagen como media_url
         media_url=imagenes[0] if imagenes else None,
-        # 👇 incluir imágenes y videos en media_urls
         media_urls=imagenes + videos,
         media_type="native",
         segundos_restantes=max(segundos_restantes, 0),
@@ -78,9 +78,11 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
         religion=None,
         nacionalidad=None,
         estado_civil=None,
-        usuario_id=survey.usuario_id,          # 👈 añadir
-        asignado_a=[x for x in (survey.asignado_a or []) if x is not None]
+        usuario_id=survey.usuario_id,
+        asignado_a=[x for x in (survey.asignado_a or []) if x is not None],
+        current_user_id=current_user_id   # 👈 añadido aquí
     )
+
 
 
 
