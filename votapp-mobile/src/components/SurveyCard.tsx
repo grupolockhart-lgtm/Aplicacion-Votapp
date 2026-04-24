@@ -13,7 +13,7 @@ interface Survey {
   title: string;
   description?: string;
   media_url?: string;
-  media_urls?: string[];   // 👈 ahora siempre array
+  media_urls?: string[];
   media_type?: string;
   segundos_restantes?: number;
   patrocinada?: boolean;
@@ -70,10 +70,9 @@ export default function SurveyCard({
     }
   }, [isFocused, survey.id]);
 
-
-
   return (
     <View style={[styles.post, survey.es_patrocinada && styles.patrocinadaPost]}>
+      {/* ✅ Multimedia */}
       {survey.media_url?.includes("youtube.com") ? (
         <FeedMediaYoutube source_url={survey.media_url} />
       ) : survey.media_url && /\.(mp4|mov)$/i.test(survey.media_url) ? (
@@ -98,11 +97,17 @@ export default function SurveyCard({
 
       <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
         <View style={styles.postContent}>
+          {/* ✅ Bloque de creador/asignador arriba del título */}
+          {children}
+
+          {/* ✅ Título de la encuesta */}
           <Text style={styles.cardTitle}>{survey.title}</Text>
+
           {survey.description && (
             <Text style={styles.cardDescription}>{survey.description}</Text>
           )}
 
+          {/* ✅ Badge opcional */}
           {badgeText ? (
             <View
               style={[
@@ -127,6 +132,7 @@ export default function SurveyCard({
         </View>
       </TouchableOpacity>
 
+      {/* ✅ Comentarios */}
       <TouchableOpacity
         onPress={() =>
           (navigation as any).navigate("SurveyCommentsScreen", {
@@ -139,8 +145,6 @@ export default function SurveyCard({
           💬 {commentsCount} comentarios
         </Text>
       </TouchableOpacity>
-
-      {children}
     </View>
   );
 }

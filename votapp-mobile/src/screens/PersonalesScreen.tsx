@@ -8,7 +8,7 @@ import {
   View,
   Image,
   Alert,
-  ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -37,10 +37,10 @@ export default function PersonalesScreen({
   const [selectedSurveyId, setSelectedSurveyId] = useState<number | null>(null);
   const [assigning, setAssigning] = useState(false);
 
-  const [assignedFriendsList, setAssignedFriendsList] = useState<any[]>([]);
   const [userId, setUserId] = useState<number | null>(null);
 
-  const [asignadorNombre, setAsignadorNombre] = useState<string>("Desconocido");
+  // ✅ Estado para selección múltiple
+  const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -72,7 +72,6 @@ export default function PersonalesScreen({
 
   const handleAssign = async (surveyId: number, friendId: number) => {
     try {
-      setAssigning(true);
       const token = await AsyncStorage.getItem("userToken");
       const storedUserId = await AsyncStorage.getItem("userId");
       const url = `${API_URL}/api/surveys/simple/${surveyId}/assign/${friendId}`;
@@ -86,63 +85,36 @@ export default function PersonalesScreen({
         body: JSON.stringify({ asignado_por: Number(storedUserId) }),
       });
 
-      if (res.ok) {
-        Alert.alert("Éxito", "Encuesta asignada correctamente");
-      } else {
+      if (!res.ok) {
         const text = await res.text();
         console.error("Respuesta backend:", text);
-        Alert.alert("Error", "No se pudo asignar la encuesta");
+        throw new Error("No se pudo asignar la encuesta");
+      }
+    } catch (error) {
+      console.error("Error asignando encuesta:", error);
+      throw error;
+    }
+  };
+
+  const handleAssignMultiple = async () => {
+    try {
+      setAssigning(true);
+      if (!selectedSurveyId) return;
+
+      for (const friendId of selectedFriends) {
+        await handleAssign(selectedSurveyId, friendId);
       }
 
+      Alert.alert("Éxito", "Encuesta asignada a los amigos seleccionados");
+      setSelectedFriends([]);
       setModalVisible(false);
       await refreshSurveys();
     } catch (error) {
-      console.error("Error asignando encuesta:", error);
-      Alert.alert("Error", "Ocurrió un problema al asignar la encuesta");
+      Alert.alert("Error", "Ocurrió un problema al asignar a varios amigos");
     } finally {
       setAssigning(false);
     }
   };
-
-  const fetchAsignadorNombre = async (asignadorId: number) => {
-    try {
-      const res = await fetch(`${API_URL}/usuarios/${asignadorId}?current_user_id=${userId}`);
-      if (!res.ok) return "Desconocido";
-      const data = await res.json();
-      return (
-        data.usuario?.alias ||
-        data.usuario?.nombre ||
-        data.usuario?.correo ||
-        "Desconocido"
-      );
-    } catch (err) {
-      console.error("Error fetchAsignadorNombre:", err);
-      return "Desconocido";
-    }
-  };
-
-  // 👇 useEffect que carga el nombre del asignador al abrir el modal
-  useEffect(() => {
-    const cargarAsignador = async () => {
-      if (!selectedSurveyId) return;
-      const surveySeleccionada = surveys.find(s => s.id === selectedSurveyId);
-      const asignadorId = surveySeleccionada?.asignado_por;
-      if (!asignadorId) {
-        setAsignadorNombre("Desconocido");
-        return;
-      }
-
-      if (asignadorId === userId) {
-        setAsignadorNombre("Yo mismo");
-      } else {
-        const nombre = await fetchAsignadorNombre(asignadorId);
-        setAsignadorNombre(nombre);
-      }
-    };
-
-    cargarAsignador();
-  }, [selectedSurveyId, userId, surveys]);
-
   return (
     <>
       <FlatList
@@ -153,40 +125,25 @@ export default function PersonalesScreen({
         )}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => {
-          const assignedFriends = friends.filter(f =>
-            Array.isArray(item.asignado_a)
-              ? item.asignado_a.includes(f.friend_id)
-              : f.friend_id === item.asignado_a
-          );
+          // ✅ Resolver creador y asignador desde friends
+          const creator = friends.find(f => f.friend_id === item.usuario_id);
+          const assigner = friends.find(f => f.friend_id === item.asignado_por);
 
-          let badgeText = "";
-          if (userId !== null && item.usuario_id === userId) {
-            badgeText = "📝 Creada por mí";
-          } else if (
-            userId !== null &&
-            (Array.isArray(item.asignado_a)
-              ? item.asignado_a.includes(userId)
-              : item.asignado_a === userId)
-          ) {
-            badgeText = "👤 Asignada a mí";
-          } else if (item.asignado_por) {
-            badgeText = `➡️ Asignada por usuario ${item.asignado_por}`;
-          } else if (assignedFriends.length > 0) {
-            badgeText = `👥 Asignada a grupo (${assignedFriends.length})`;
-          } else {
-            badgeText = "👥 Asignada";
-          }
+          const creatorName = creator?.alias || creator?.nombre || "Desconocido";
+          const creatorAvatar = creator?.avatar_url || null;
+          const assignerName = assigner?.alias || assigner?.nombre || "Desconocido";
+          const assignerAvatar = assigner?.avatar_url || null;
 
           return (
             <SurveyCard
               survey={item}
               globalMuted={globalMuted}
               toggleMute={toggleMute}
-              badgeText={badgeText}
+              badgeText={""} // 👈 vacío para no duplicar info
               isVisible={true}
               onPress={() => {
                 setSelectedSurveyId(item.id);
-                setAssignedFriendsList(assignedFriends);
+                refreshFriends();
                 setModalVisible(true);
               }}
             >
@@ -194,79 +151,100 @@ export default function PersonalesScreen({
                 <CountdownTimer segundosIniciales={item.segundos_restantes} />
               )}
 
-              {userId !== null && item.usuario_id === userId && (
-                <Button
-                  title="Asignar a amigo"
-                  onPress={() => {
-                    setSelectedSurveyId(item.id);
-                    refreshFriends();
-                    setModalVisible(true);
-                  }}
-                />
-              )}
+              {/* ✅ Mostrar creador y asignador */}
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                {creatorAvatar && (
+                  <Image
+                    source={{ uri: creatorAvatar }}
+                    style={{ width: 28, height: 28, borderRadius: 14, marginRight: 6 }}
+                  />
+                )}
+                {item.usuario_id === item.asignado_por ? (
+                  <Text style={{ fontSize: 14 }}>Creada y asignada por {creatorName}</Text>
+                ) : (
+                  <>
+                    <Text style={{ fontSize: 14 }}>Creada por {creatorName}</Text>
+                    {assignerAvatar && (
+                      <Image
+                        source={{ uri: assignerAvatar }}
+                        style={{ width: 28, height: 28, borderRadius: 14, marginLeft: 12, marginRight: 6 }}
+                      />
+                    )}
+                    <Text style={{ fontSize: 14 }}>Asignada por {assignerName}</Text>
+                  </>
+                )}
+              </View>
+
+              {/* ✅ Botón único universal */}
+              <Button
+                title="Asignar a amigos"
+                onPress={() => {
+                  setSelectedSurveyId(item.id);
+                  refreshFriends();
+                  setModalVisible(true);
+                }}
+              />
             </SurveyCard>
           );
         }}
-        ListEmptyComponent={
-          <Text style={{ textAlign: "center", marginTop: 20 }}>
-            No tienes encuestas personales
-          </Text>
-        }
       />
 
+      {/* ✅ Modal solo para asignar */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "flex-end",
-            backgroundColor: "rgba(0,0,0,0.5)",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "#fff",
-              padding: 20,
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-            }}
-          >
-            <Text style={{ fontSize: 18, marginBottom: 10 }}>
-              Amigos asignados
-            </Text>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <View style={{ backgroundColor: "#fff", padding: 20, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+            <Text style={{ fontSize: 18, marginBottom: 10 }}>Asignar encuesta</Text>
 
-            <Text style={{ fontSize: 14, marginBottom: 10 }}>
-              Asignada por: {asignadorNombre}
-            </Text>
+            {/* Sección de ya asignados */}
+            <Text style={{ fontSize: 16, marginVertical: 10 }}>Ya asignados</Text>
+            <FlatList
+              data={friends.filter(f =>
+                surveys.find(s => s.id === selectedSurveyId)?.asignado_a?.includes(f.friend_id)
+              )}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <View style={{ flexDirection: "row", alignItems: "center", padding: 12 }}>
+                  <Image source={{ uri: item.avatar_url }} style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }} />
+                  <Text style={{ flex: 1 }}>{item.alias || item.nombre || item.correo}</Text>
+                  <Text style={{ color: "green" }}>✔ Ya asignado</Text>
+                </View>
+              )}
+            />
 
-            {assigning ? (
-              <View style={{ justifyContent: "center", alignItems: "center", paddingVertical: 20 }}>
-                <ActivityIndicator size="large" color="#2563EB" />
-                <Text style={{ marginTop: 10 }}>Asignando encuesta...</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={assignedFriendsList}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                  <View style={{ flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: 1, borderColor: "#ccc" }}>
-                    {item.avatar_url && (
-                      <Image
-                        source={{ uri: item.avatar_url }}
-                        style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }}
-                      />
-                    )}
-                    <Text style={{ fontSize: 16 }}>
-                      {item.alias || item.nombre || item.correo}
-                    </Text>
-                  </View>
-                )}
-                ListEmptyComponent={
-                  <Text style={{ textAlign: "center", marginTop: 20 }}>
-                    No hay amigos asignados
-                  </Text>
-                }
-              />
-            )}
+            {/* Sección de selección múltiple */}
+            <Text style={{ fontSize: 16, marginVertical: 10 }}>Selecciona amigos para asignar</Text>
+            <FlatList
+              data={friends.filter(f =>
+                !surveys.find(s => s.id === selectedSurveyId)?.asignado_a?.includes(f.friend_id)
+              )}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => {
+                const isSelected = selectedFriends.includes(item.friend_id);
+                return (
+                  <TouchableOpacity
+                    style={{ flexDirection: "row", alignItems: "center", padding: 12 }}
+                    onPress={() => {
+                      if (isSelected) {
+                        setSelectedFriends(selectedFriends.filter(id => id !== item.friend_id));
+                      } else {
+                        setSelectedFriends([...selectedFriends, item.friend_id]);
+                      }
+                    }}
+                  >
+                    <Image source={{ uri: item.avatar_url }} style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }} />
+                    <Text style={{ flex: 1 }}>{item.alias || item.nombre || item.correo}</Text>
+                    <Text>{isSelected ? "✅" : "⬜"}</Text>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+
+            {/* Botón para asignar en lote */}
+            <Button
+              title="Asignar seleccionados"
+              onPress={handleAssignMultiple}
+              disabled={assigning || selectedFriends.length === 0}
+            />
 
             <Button
               title="Cerrar"
@@ -279,3 +257,4 @@ export default function PersonalesScreen({
     </>
   );
 }
+
