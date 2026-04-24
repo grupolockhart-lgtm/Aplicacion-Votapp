@@ -126,13 +126,11 @@ export default function PersonalesScreen({
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => {
           // ✅ Resolver creador y asignador desde friends
-          const creator = friends.find(f => f.friend_id === item.usuario_id);
-          const assigner = friends.find(f => f.friend_id === item.asignado_por);
+          const creatorName = item.usuario_alias || `ID ${item.usuario_id}`;
+          const creatorAvatar = item.usuario_avatar_url;
+          const assignerName = item.asignador_alias || `ID ${item.asignado_por}`;
+          const assignerAvatar = item.asignador_avatar_url;
 
-          const creatorName = creator?.alias || creator?.nombre || "Desconocido";
-          const creatorAvatar = creator?.avatar_url || null;
-          const assignerName = assigner?.alias || assigner?.nombre || "Desconocido";
-          const assignerAvatar = assigner?.avatar_url || null;
 
           return (
             <SurveyCard
@@ -174,6 +172,7 @@ export default function PersonalesScreen({
                   </>
                 )}
               </View>
+
 
               {/* ✅ Botón único universal */}
               <Button

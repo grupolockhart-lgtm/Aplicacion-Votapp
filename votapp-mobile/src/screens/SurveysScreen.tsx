@@ -58,11 +58,19 @@ export interface Survey {
   presupuesto_total?: number;
   visibilidad_resultados?: "publica" | "privada";
   tipo: "normal" | "simple";
-  usuario_id?: number;        // 👈 añadido
-  current_user_id?: number;   // 👈 añadido
-  asignado_a?: number[];   // 👈 añade este campo
-  asignado_por?: number;   
+
+  usuario_id?: number;
+  current_user_id?: number;
+  asignado_a?: number[];
+  asignado_por?: number;
+
+  // 👇 nuevos campos del backend
+  usuario_alias?: string;
+  usuario_avatar_url?: string;
+  asignador_alias?: string;
+  asignador_avatar_url?: string;
 }
+
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -96,7 +104,14 @@ export default function SurveysScreen() {
     usuario_id: s.usuario_id,
     current_user_id: s.current_user_id,
     asignado_a: Array.isArray(s.asignado_a) ? s.asignado_a : [],
-    asignado_por: s.asignado_por ?? null,   // 👈 nuevo
+    asignado_por: s.asignado_por ?? null,
+
+    // 👇 nuevos campos
+    usuario_alias: s.usuario_alias ?? null,
+    usuario_avatar_url: s.usuario_avatar_url ?? null,
+    asignador_alias: s.asignador_alias ?? null,
+    asignador_avatar_url: s.asignador_avatar_url ?? null,
+
     questions: Array.isArray(s.questions ?? s.preguntas)
       ? (s.questions ?? s.preguntas).map((q: any) => ({
           id: q.id,
@@ -125,6 +140,7 @@ export default function SurveysScreen() {
     presupuesto_total: s.presupuesto_total ?? 0,
     tipo: "simple",
   });
+
 
 
 

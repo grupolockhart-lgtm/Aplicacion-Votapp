@@ -56,8 +56,45 @@ class SurveySimpleResponse(BaseModel):
     fecha_creacion: Optional[datetime] = None
 
     usuario_id: Optional[int] = None
-    asignado_a: List[int] = []   # ✅ corregido: lista de enteros
-    asignado_por: Optional[int] = None   # 👈 nuevo campo
+    usuario_alias: Optional[str] = None        # 👈 nuevo
+    usuario_avatar_url: Optional[str] = None   # 👈 nuevo
+
+    asignado_a: List[int] = []
+    asignado_por: Optional[int] = None
+    asignador_alias: Optional[str] = None      # 👈 nuevo
+    asignador_avatar_url: Optional[str] = None # 👈 nuevo
+
+    # -------------------
+    # Campos extra para cumplir contrato de Survey
+    # -------------------
+    description: str = ""
+    media_url: Optional[str] = None
+    media_urls: List[str] = []
+    media_type: str = "native"
+    segundos_restantes: int = 0
+    patrocinada: bool = False
+    patrocinador: Optional[str] = None
+    es_patrocinada: bool = False
+    recompensa_puntos: int = 0
+    recompensa_dinero: int = 0
+    presupuesto_total: int = 0
+    visibilidad_resultados: str = "publica"
+    tipo: str = "simple"
+
+    # -------------------
+    # Segmentación
+    # -------------------
+    sexo: Optional[str] = None
+    ciudad: Optional[str] = None
+    ocupacion: Optional[str] = None
+    nivel_educativo: Optional[str] = None
+    religion: Optional[str] = None
+    nacionalidad: Optional[str] = None
+    estado_civil: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 
     # -------------------
     # Campos extra para cumplir contrato de Survey

@@ -30,7 +30,8 @@ router = APIRouter(prefix="/surveys/simple", tags=["Surveys Simple"])
 # -------------------
 # Auxiliares
 # -------------------
-def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
+
+def build_survey_simple_response(survey: SurveySimple, db: Session) -> SurveySimpleResponse:
     ahora = datetime.now(timezone.utc)
     fecha_exp = survey.fecha_expiracion
     if fecha_exp and fecha_exp.tzinfo is None:
@@ -45,22 +46,30 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
         ]
         preguntas.append({"id": p.id, "texto": p.texto, "opciones": opciones})
 
-    # 👇 deserializar correctamente usando utils
     imagenes = safe_json_list(survey.imagenes)
     videos = safe_json_list(survey.videos)
+
+    # 👇 Buscar creador y asignador en la tabla Usuario + PerfilPublico
+    creator = db.query(Usuario).filter(Usuario.id == survey.usuario_id).first()
+    assigner = None
+    if survey.asignado_por:
+        assigner = db.query(Usuario).filter(Usuario.id == survey.asignado_por).first()
+
+    creator_alias = creator.perfil_publico.alias if creator and creator.perfil_publico else None
+    creator_avatar = creator.perfil_publico.avatar_url if creator and creator.perfil_publico else None
+    assigner_alias = assigner.perfil_publico.alias if assigner and assigner.perfil_publico else None
+    assigner_avatar = assigner.perfil_publico.avatar_url if assigner and assigner.perfil_publico else None
 
     return SurveySimpleResponse(
         id=survey.id,
         titulo=survey.titulo,
-        fecha_expiracion=fecha_exp,   # ✅ devuelve datetime, no string
+        fecha_expiracion=fecha_exp,
         fecha_creacion=survey.fecha_creacion,
         imagenes=imagenes,
         videos=videos,
         preguntas=preguntas,
         description="",
-        # 👇 usar la primera imagen como media_url
         media_url=imagenes[0] if imagenes else None,
-        # 👇 incluir imágenes y videos en media_urls
         media_urls=imagenes + videos,
         media_type="native",
         segundos_restantes=max(segundos_restantes, 0),
@@ -72,16 +81,13 @@ def build_survey_simple_response(survey: SurveySimple) -> SurveySimpleResponse:
         presupuesto_total=0,
         visibilidad_resultados="publica",
         tipo="simple",
-        sexo=None,
-        ciudad=None,
-        ocupacion=None,
-        nivel_educativo=None,
-        religion=None,
-        nacionalidad=None,
-        estado_civil=None,
-        usuario_id=survey.usuario_id,          # 👈 añadir
+        usuario_id=survey.usuario_id,
+        usuario_alias=creator_alias,
+        usuario_avatar_url=creator_avatar,
         asignado_a=[x for x in (survey.asignado_a or []) if x is not None],
-        asignado_por=survey.asignado_por   # 👈 añadido aquí
+        asignado_por=survey.asignado_por,
+        asignador_alias=assigner_alias,
+        asignador_avatar_url=assigner_avatar,
     )
 
 
@@ -144,7 +150,7 @@ def crear_encuesta_simple(
     db.commit()
     db.refresh(nueva)
 
-    return build_survey_simple_response(nueva)
+    return build_survey_simple_response(nueva, db)
 
 
 
@@ -323,7 +329,7 @@ def listar_disponibles(db: Session = Depends(get_db), usuario = Depends(get_curr
         if ya_voto:
             continue
 
-        disponibles.append(build_survey_simple_response(e))
+        disponibles.append(build_survey_simple_response(e, db))
 
     return disponibles or []
 
@@ -369,7 +375,7 @@ def listar_personales(
         if ya_voto:
             continue
 
-        personales.append(build_survey_simple_response(e))
+        personales.append(build_survey_simple_response(e, db))
 
     return personales or []
 
@@ -399,7 +405,7 @@ def listar_votadas(db: Session = Depends(get_db), usuario = Depends(get_current_
             .first()
         )
         if ya_voto:
-            votadas.append(build_survey_simple_response(e))
+            votadas.append(build_survey_simple_response(e, db))
 
     return votadas or []
 
@@ -419,7 +425,7 @@ def listar_finalizadas(db: Session = Depends(get_db)):
         .all()
     )
 
-    return [build_survey_simple_response(e) for e in encuestas]
+    return [build_survey_simple_response(e, db) for e in encuestas]
 
 
 
@@ -438,7 +444,7 @@ def obtener_encuesta_simple(
     if not encuesta:
         raise HTTPException(status_code=404, detail="Encuesta no encontrada")
 
-    return build_survey_simple_response(encuesta)
+    return build_survey_simple_response(encuesta, db)
 
 
 # -------------------
@@ -471,4 +477,4 @@ def assign_simple_survey(
     db.commit()
     db.refresh(survey)
 
-    return build_survey_simple_response(survey)
+    return build_survey_simple_response(survey, db)
