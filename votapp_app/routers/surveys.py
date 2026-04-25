@@ -22,7 +22,8 @@ from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyWalletOut
 
 from votapp_app import models_simple   # 👈 importa tus modelos de encuestas simples
 from sqlalchemy import func
-from votapp_app.models_simple import SurveyAssignment, Usuario
+from votapp_app.models_simple import SurveyAssignment
+from votapp_app.models import Usuario
 
 import logging
 
