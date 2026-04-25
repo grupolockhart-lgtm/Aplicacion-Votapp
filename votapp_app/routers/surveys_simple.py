@@ -355,7 +355,7 @@ def listar_disponibles(db: Session = Depends(get_db), usuario = Depends(get_curr
         if ya_voto:
             continue
 
-        disponibles.append(build_survey_simple_response(e, db))
+        disponibles.append(build_survey_simple_response(e, usuario.id, db))
 
     return disponibles or []
 
@@ -401,7 +401,7 @@ def listar_personales(
         if ya_voto:
             continue
 
-        personales.append(build_survey_simple_response(e, db))
+        personales.append(build_survey_simple_response(e, usuario.id, db))
 
     return personales or []
 
@@ -431,7 +431,7 @@ def listar_votadas(db: Session = Depends(get_db), usuario = Depends(get_current_
             .first()
         )
         if ya_voto:
-            votadas.append(build_survey_simple_response(e, db))
+            votadas.append(build_survey_simple_response(e, usuario.id, db))
 
     return votadas or []
 
@@ -440,7 +440,10 @@ def listar_votadas(db: Session = Depends(get_db), usuario = Depends(get_current_
 # Listar encuestas finalizadas (simples)
 # -------------------
 @router.get("/finalizadas", response_model=List[SurveySimpleResponse])
-def listar_finalizadas(db: Session = Depends(get_db)):
+def listar_finalizadas(
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user)   # 👈 agregado
+):
     encuestas = (
         db.query(SurveySimple)
         .options(
@@ -451,8 +454,7 @@ def listar_finalizadas(db: Session = Depends(get_db)):
         .all()
     )
 
-    return [build_survey_simple_response(e, db) for e in encuestas]
-
+    return [build_survey_simple_response(e, usuario.id, db) for e in encuestas]
 
 
 # -------------------
@@ -461,7 +463,8 @@ def listar_finalizadas(db: Session = Depends(get_db)):
 @router.get("/{survey_id}", response_model=SurveySimpleResponse)
 def obtener_encuesta_simple(
     survey_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user)   # 👈 agregado
 ):
     encuesta = db.query(SurveySimple).options(
         selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
@@ -470,7 +473,8 @@ def obtener_encuesta_simple(
     if not encuesta:
         raise HTTPException(status_code=404, detail="Encuesta no encontrada")
 
-    return build_survey_simple_response(encuesta, db)
+    return build_survey_simple_response(encuesta, usuario.id, db)
+
 
 
 # -------------------
