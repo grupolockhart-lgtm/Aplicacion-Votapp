@@ -451,7 +451,7 @@ def obtener_encuesta_simple(
 # Asignar encuesta simple a un amigo
 # -------------------
 class AssignRequest(BaseModel):
-    asignado_por: int
+    asignado_por: int | None = None  # 👈 ahora opcional
 
 @router.put("/surveys/simple/{survey_id}/assign/{friend_id}", response_model=SurveySimpleResponse)
 def assign_simple_survey(
@@ -483,10 +483,13 @@ def assign_simple_survey(
     survey.asignado_a = survey.asignado_a + [friend_id]
 
     # 👇 Insertar en la nueva tabla SurveyAssignment
+    # Si no viene asignado_por en el request, usar el usuario autenticado como primer asignador
+    asignador_id = request.asignado_por if request.asignado_por else usuario.id
+
     assignment = SurveyAssignment(
         survey_id=survey.id,
         asignado_a=friend_id,
-        asignado_por=request.asignado_por
+        asignado_por=asignador_id
     )
     db.add(assignment)
 
