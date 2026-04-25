@@ -52,11 +52,10 @@ def build_survey_simple_response(survey: SurveySimple, usuario_id: int, db: Sess
     # 👇 Buscar creador
     creator = db.query(Usuario).filter(Usuario.id == survey.usuario_id).first()
 
-    # 👇 Buscar asignador en SurveyAssignment
+    # 👇 Buscar último asignador global en SurveyAssignment
     assignment = (
         db.query(SurveyAssignment)
-        .filter(SurveyAssignment.survey_id == survey.id,
-                SurveyAssignment.asignado_a == usuario_id)
+        .filter(SurveyAssignment.survey_id == survey.id)
         .order_by(SurveyAssignment.id.desc())
         .first()
     )
@@ -65,14 +64,14 @@ def build_survey_simple_response(survey: SurveySimple, usuario_id: int, db: Sess
     asignador_avatar = None
     if assignment:
         asignador = db.query(Usuario).filter(Usuario.id == assignment.asignado_por).first()
-        if asignador:
-            asignador_alias = getattr(asignador, "alias", None)
-            asignador_avatar = getattr(asignador, "avatar_url", None)
+        if asignador and asignador.perfil_publico:
+            asignador_alias = asignador.perfil_publico.alias
+            asignador_avatar = asignador.perfil_publico.avatar_url
     elif survey.asignado_por:  # fallback para encuestas viejas
         asignador = db.query(Usuario).filter(Usuario.id == survey.asignado_por).first()
-        if asignador:
-            asignador_alias = getattr(asignador, "alias", None)
-            asignador_avatar = getattr(asignador, "avatar_url", None)
+        if asignador and asignador.perfil_publico:
+            asignador_alias = asignador.perfil_publico.alias
+            asignador_avatar = asignador.perfil_publico.avatar_url
 
     return SurveySimpleResponse(
         id=survey.id,
