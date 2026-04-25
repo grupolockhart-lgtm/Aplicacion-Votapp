@@ -457,7 +457,7 @@ class AssignRequest(BaseModel):
 def assign_simple_survey(
     survey_id: int,
     friend_id: int,
-    request: AssignRequest,   # 👈 recibes el body
+    request: AssignRequest,
     db: Session = Depends(get_db)
 ):
     survey = db.query(SurveySimple).filter(SurveySimple.id == survey_id).first()
@@ -468,8 +468,12 @@ def assign_simple_survey(
     if not friend:
         raise HTTPException(status_code=404, detail="Amigo no encontrado")
 
+    # 👇 Manejo seguro del array asignado_a
+    if survey.asignado_a is None:
+        survey.asignado_a = []
+
     if friend_id not in survey.asignado_a:
-        survey.asignado_a.append(friend_id)
+        survey.asignado_a = survey.asignado_a + [friend_id]
 
     # 👇 Guardar quién hizo la asignación
     survey.asignado_por = request.asignado_por
@@ -478,3 +482,4 @@ def assign_simple_survey(
     db.refresh(survey)
 
     return build_survey_simple_response(survey, db)
+

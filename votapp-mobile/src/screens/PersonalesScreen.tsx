@@ -74,7 +74,7 @@ export default function PersonalesScreen({
     try {
       const token = await AsyncStorage.getItem("userToken");
       const storedUserId = await AsyncStorage.getItem("userId");
-      const url = `${API_URL}/api/surveys/simple/${surveyId}/assign/${friendId}`;
+      const url = `${API_URL}/surveys/simple/${surveyId}/assign/${friendId}`;
 
       const res = await fetch(url, {
         method: "PUT",
@@ -213,9 +213,20 @@ export default function PersonalesScreen({
             {/* Sección de selección múltiple */}
             <Text style={{ fontSize: 16, marginVertical: 10 }}>Selecciona amigos para asignar</Text>
             <FlatList
-              data={friends.filter(f =>
-                !surveys.find(s => s.id === selectedSurveyId)?.asignado_a?.includes(f.friend_id)
-              )}
+              data={friends.filter(f => {
+                const survey = surveys.find(s => s.id === selectedSurveyId);
+                if (!survey) return false;
+
+                const yaAsignados = survey.asignado_a ?? [];
+                const creadorId = survey.usuario_id;
+                const asignadorId = survey.asignado_por;
+
+                return (
+                  !yaAsignados.includes(f.friend_id) &&
+                  f.friend_id !== creadorId &&
+                  f.friend_id !== asignadorId
+                );
+              })}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => {
                 const isSelected = selectedFriends.includes(item.friend_id);
@@ -230,13 +241,17 @@ export default function PersonalesScreen({
                       }
                     }}
                   >
-                    <Image source={{ uri: item.avatar_url }} style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }} />
+                    <Image
+                      source={{ uri: item.avatar_url }}
+                      style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }}
+                    />
                     <Text style={{ flex: 1 }}>{item.alias || item.nombre || item.correo}</Text>
                     <Text>{isSelected ? "✅" : "⬜"}</Text>
                   </TouchableOpacity>
                 );
               }}
             />
+
 
             {/* Botón para asignar en lote */}
             <Button
