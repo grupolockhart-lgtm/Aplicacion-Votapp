@@ -6,7 +6,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
-from ..models_simple import SurveySimple, SurveySimpleQuestion, SurveySimpleOption, SimpleVote
+from ..models_simple import SurveySimple, SurveySimpleQuestion, SurveySimpleOption, SimpleVote, SurveyAssignment
 from ..schemas_simple import (
     SurveySimpleCreate,
     SurveySimpleVote,        # 👈 este sí existe en schemas_simple
@@ -453,12 +453,13 @@ def obtener_encuesta_simple(
 class AssignRequest(BaseModel):
     asignado_por: int
 
-@router.put("/{survey_id}/assign/{friend_id}", response_model=SurveySimpleResponse)
+@router.put("/surveys/simple/{survey_id}/assign/{friend_id}", response_model=SurveySimpleResponse)
 def assign_simple_survey(
     survey_id: int,
     friend_id: int,
     request: AssignRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user)  # 👈 usuario autenticado
 ):
     survey = db.query(SurveySimple).filter(SurveySimple.id == survey_id).first()
     if not survey:
@@ -468,18 +469,31 @@ def assign_simple_survey(
     if not friend:
         raise HTTPException(status_code=404, detail="Amigo no encontrado")
 
-    # 👇 Manejo seguro del array asignado_a
+    # 🚫 Regla 1: No asignar al creador
+    if friend_id == survey.usuario_id:
+        raise HTTPException(status_code=400, detail="No puedes asignar la encuesta al creador")
+
+    # 🚫 Regla 2: No asignar a alguien que ya la tiene
+    if survey.asignado_a and friend_id in survey.asignado_a:
+        raise HTTPException(status_code=400, detail="Este usuario ya tiene la encuesta asignada")
+
+    # 👇 Manejo seguro del array asignado_a (compatibilidad)
     if survey.asignado_a is None:
         survey.asignado_a = []
+    survey.asignado_a = survey.asignado_a + [friend_id]
 
-    if friend_id not in survey.asignado_a:
-        survey.asignado_a = survey.asignado_a + [friend_id]
-
-    # 👇 Guardar quién hizo la asignación
-    survey.asignado_por = request.asignado_por
+    # 👇 Insertar en la nueva tabla SurveyAssignment
+    assignment = SurveyAssignment(
+        survey_id=survey.id,
+        asignado_a=friend_id,
+        asignado_por=request.asignado_por
+    )
+    db.add(assignment)
 
     db.commit()
     db.refresh(survey)
 
-    return build_survey_simple_response(survey, db)
+    # 👇 build_survey_simple_response ahora recibe db y usuario.id
+    return build_survey_simple_response(survey, usuario.id, db)
+
 

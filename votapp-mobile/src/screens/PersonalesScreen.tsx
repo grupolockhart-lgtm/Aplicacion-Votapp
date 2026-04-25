@@ -125,19 +125,17 @@ export default function PersonalesScreen({
         )}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => {
-          // ✅ Resolver creador y asignador desde friends
           const creatorName = item.usuario_alias || `ID ${item.usuario_id}`;
           const creatorAvatar = item.usuario_avatar_url;
           const assignerName = item.asignador_alias || `ID ${item.asignado_por}`;
           const assignerAvatar = item.asignador_avatar_url;
-
 
           return (
             <SurveyCard
               survey={item}
               globalMuted={globalMuted}
               toggleMute={toggleMute}
-              badgeText={""} // 👈 vacío para no duplicar info
+              badgeText={""}
               isVisible={true}
               onPress={() => {
                 setSelectedSurveyId(item.id);
@@ -157,11 +155,9 @@ export default function PersonalesScreen({
                     style={{ width: 28, height: 28, borderRadius: 14, marginRight: 6 }}
                   />
                 )}
-                {item.usuario_id === item.asignado_por ? (
-                  <Text style={{ fontSize: 14 }}>Creada y asignada por {creatorName}</Text>
-                ) : (
+                <Text style={{ fontSize: 14 }}>Creada por {creatorName}</Text>
+                {userId !== item.usuario_id && item.asignado_por && (
                   <>
-                    <Text style={{ fontSize: 14 }}>Creada por {creatorName}</Text>
                     {assignerAvatar && (
                       <Image
                         source={{ uri: assignerAvatar }}
@@ -173,8 +169,6 @@ export default function PersonalesScreen({
                 )}
               </View>
 
-
-              {/* ✅ Botón único universal */}
               <Button
                 title="Asignar a amigos"
                 onPress={() => {
@@ -219,12 +213,11 @@ export default function PersonalesScreen({
 
                 const yaAsignados = survey.asignado_a ?? [];
                 const creadorId = survey.usuario_id;
-                const asignadorId = survey.asignado_por;
 
                 return (
                   !yaAsignados.includes(f.friend_id) &&
                   f.friend_id !== creadorId &&
-                  f.friend_id !== asignadorId
+                  f.friend_id !== userId
                 );
               })}
               keyExtractor={(item) => item.id.toString()}
@@ -252,8 +245,6 @@ export default function PersonalesScreen({
               }}
             />
 
-
-            {/* Botón para asignar en lote */}
             <Button
               title="Asignar seleccionados"
               onPress={handleAssignMultiple}
@@ -271,4 +262,3 @@ export default function PersonalesScreen({
     </>
   );
 }
-

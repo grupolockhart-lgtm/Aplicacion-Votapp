@@ -22,7 +22,7 @@ from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyWalletOut
 
 from votapp_app import models_simple   # 👈 importa tus modelos de encuestas simples
 from sqlalchemy import func
-
+from votapp_app.models_simple import SurveyAssignment, Usuario
 
 import logging
 
@@ -276,15 +276,32 @@ def surveys_disponibles(
 
 from votapp_app import models_simple
 
-def build_survey_simple_response(s: models_simple.SurveySimple, usuario_id: int):
+def build_survey_simple_response(s: models_simple.SurveySimple, usuario_id: int, db: Session):
+    # Datos del creador
+    creator = db.query(Usuario).filter(Usuario.id == s.usuario_id).first()
+
+    # Buscar asignador directo para el usuario actual
+    assignment = db.query(SurveyAssignment).filter(
+        SurveyAssignment.survey_id == s.id,
+        SurveyAssignment.asignado_a == usuario_id
+    ).first()
+
+    asignador_alias = None
+    asignador_avatar_url = None
+    if assignment:
+        asignador = db.query(Usuario).filter(Usuario.id == assignment.asignado_por).first()
+        if asignador:
+            asignador_alias = asignador.alias
+            asignador_avatar_url = asignador.avatar_url
+
     return {
         "id": s.id,
         "title": s.titulo,
         "description": "",
         "fecha_creacion": s.fecha_creacion.isoformat() if s.fecha_creacion else None,
         "usuario_id": s.usuario_id,
-        "current_user_id": usuario_id,   # 👈 correcto
-        "asignado_a": [x for x in (s.asignado_a or []) if x is not None],  # 👈 normalizado
+        "current_user_id": usuario_id,
+        "asignado_a": [x for x in (s.asignado_a or []) if x is not None],
         "fecha_expiracion": s.fecha_expiracion.isoformat() if s.fecha_expiracion else None,
         "segundos_restantes": calcular_segundos_restantes(s.fecha_expiracion) if s.fecha_expiracion else 0,
         "questions": [
@@ -310,8 +327,11 @@ def build_survey_simple_response(s: models_simple.SurveySimple, usuario_id: int)
         "recompensa_dinero": 0,
         "presupuesto_total": 0,
         "tipo": "simple",
+        "usuario_alias": creator.alias if creator else None,
+        "usuario_avatar_url": creator.avatar_url if creator else None,
+        "asignador_alias": asignador_alias,
+        "asignador_avatar_url": asignador_avatar_url,
     }
-
 
 
 @router.get("/surveys/personales")
@@ -401,7 +421,7 @@ def surveys_personales(
 
     for s in simples:
         try:
-            personales.append(build_survey_simple_response(s, usuario.id))
+            personales.append(build_survey_simple_response(s, usuario.id, db))
         except Exception as e:
             print(f"Error procesando encuesta simple {getattr(s, 'id', 'sin_id')}: {e}")
             continue

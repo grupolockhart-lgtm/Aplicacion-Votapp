@@ -2,6 +2,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
+from sqlalchemy.sql import func
 from datetime import datetime, timedelta
 from votapp_app.database import Base
 
@@ -17,9 +18,9 @@ class SurveySimple(Base):
     # Usuario creador (puede ser null si es anónima)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
 
-    # Usuario asignado (amigo destinatario)
+    # Usuario asignado (array de destinatarios)
     asignado_a = Column(ARRAY(Integer), default=[])
-    asignado_por = Column(Integer, ForeignKey("usuarios.id"), nullable=True)  # quién asignó
+    asignado_por = Column(Integer, ForeignKey("usuarios.id"), nullable=True)  # campo legacy
 
     # Guardar multimedia como JSONB (listas nativas)
     imagenes = Column(JSONB, default=list)
@@ -36,6 +37,9 @@ class SurveySimple(Base):
     )
 
     creador = relationship("Usuario", foreign_keys=[usuario_id], backref="surveys_creadas")
+
+    # 👇 Nueva relación con asignaciones
+    assignments = relationship("SurveyAssignment", back_populates="survey", cascade="all, delete-orphan")
 
 
 class SurveySimpleQuestion(Base):
@@ -82,3 +86,18 @@ class SimpleVote(Base):
     pregunta = relationship("SurveySimpleQuestion", backref="votes")
     opcion = relationship("SurveySimpleOption", backref="votes")
 
+
+# 👇 Nuevo modelo para asignaciones directas
+class SurveyAssignment(Base):
+    __tablename__ = "survey_assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    survey_id = Column(Integer, ForeignKey("surveys_simple.id", ondelete="CASCADE"), nullable=False)
+    asignado_a = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    asignado_por = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    fecha_asignacion = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relaciones
+    survey = relationship("SurveySimple", back_populates="assignments")
+    asignado_a_user = relationship("Usuario", foreign_keys=[asignado_a])
+    asignado_por_user = relationship("Usuario", foreign_keys=[asignado_por])
