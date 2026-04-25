@@ -31,7 +31,7 @@ router = APIRouter(prefix="/surveys/simple", tags=["Surveys Simple"])
 # Auxiliares
 # -------------------
 
-def build_survey_simple_response(survey: SurveySimple, db: Session) -> SurveySimpleResponse:
+def build_survey_simple_response(survey: SurveySimple, usuario_id: int, db: Session) -> SurveySimpleResponse:
     ahora = datetime.now(timezone.utc)
     fecha_exp = survey.fecha_expiracion
     if fecha_exp and fecha_exp.tzinfo is None:
@@ -49,16 +49,30 @@ def build_survey_simple_response(survey: SurveySimple, db: Session) -> SurveySim
     imagenes = safe_json_list(survey.imagenes)
     videos = safe_json_list(survey.videos)
 
-    # 👇 Buscar creador y asignador en la tabla Usuario + PerfilPublico
+    # 👇 Buscar creador
     creator = db.query(Usuario).filter(Usuario.id == survey.usuario_id).first()
-    assigner = None
-    if survey.asignado_por:
-        assigner = db.query(Usuario).filter(Usuario.id == survey.asignado_por).first()
 
-    creator_alias = creator.perfil_publico.alias if creator and creator.perfil_publico else None
-    creator_avatar = creator.perfil_publico.avatar_url if creator and creator.perfil_publico else None
-    assigner_alias = assigner.perfil_publico.alias if assigner and assigner.perfil_publico else None
-    assigner_avatar = assigner.perfil_publico.avatar_url if assigner and assigner.perfil_publico else None
+    # 👇 Buscar asignador en SurveyAssignment
+    assignment = (
+        db.query(SurveyAssignment)
+        .filter(SurveyAssignment.survey_id == survey.id,
+                SurveyAssignment.asignado_a == usuario_id)
+        .order_by(SurveyAssignment.id.desc())
+        .first()
+    )
+
+    asignador_alias = None
+    asignador_avatar = None
+    if assignment:
+        asignador = db.query(Usuario).filter(Usuario.id == assignment.asignado_por).first()
+        if asignador:
+            asignador_alias = getattr(asignador, "alias", None)
+            asignador_avatar = getattr(asignador, "avatar_url", None)
+    elif survey.asignado_por:  # fallback para encuestas viejas
+        asignador = db.query(Usuario).filter(Usuario.id == survey.asignado_por).first()
+        if asignador:
+            asignador_alias = getattr(asignador, "alias", None)
+            asignador_avatar = getattr(asignador, "avatar_url", None)
 
     return SurveySimpleResponse(
         id=survey.id,
@@ -82,13 +96,14 @@ def build_survey_simple_response(survey: SurveySimple, db: Session) -> SurveySim
         visibilidad_resultados="publica",
         tipo="simple",
         usuario_id=survey.usuario_id,
-        usuario_alias=creator_alias,
-        usuario_avatar_url=creator_avatar,
+        usuario_alias=creator.perfil_publico.alias if creator and creator.perfil_publico else None,
+        usuario_avatar_url=creator.perfil_publico.avatar_url if creator and creator.perfil_publico else None,
         asignado_a=[x for x in (survey.asignado_a or []) if x is not None],
         asignado_por=survey.asignado_por,
-        asignador_alias=assigner_alias,
-        asignador_avatar_url=assigner_avatar,
+        asignador_alias=asignador_alias,
+        asignador_avatar_url=asignador_avatar,
     )
+
 
 
 
@@ -488,15 +503,13 @@ def assign_simple_survey(
     if survey.asignado_a and friend_id in survey.asignado_a:
         raise HTTPException(status_code=400, detail="Este usuario ya tiene la encuesta asignada")
 
-    # 👇 Manejo seguro del array asignado_a (compatibilidad)
+    # 👇 Manejo seguro del array asignado_a
     if survey.asignado_a is None:
         survey.asignado_a = []
     survey.asignado_a = survey.asignado_a + [friend_id]
 
-    # 👇 Insertar en la nueva tabla SurveyAssignment
-    # Si no viene asignado_por en el request, usar el usuario autenticado como primer asignador
+    # 👇 Insertar en SurveyAssignment
     asignador_id = request.asignado_por if request.asignado_por else usuario.id
-
     assignment = SurveyAssignment(
         survey_id=survey.id,
         asignado_a=friend_id,
@@ -507,7 +520,9 @@ def assign_simple_survey(
     db.commit()
     db.refresh(survey)
 
-    # 👇 build_survey_simple_response ahora recibe db y usuario.id
-    return build_survey_simple_response(survey, db)
+    # ✅ Pasar usuario.id para que se muestre “Asignada por …”
+    return build_survey_simple_response(survey, usuario.id, db)
+
+
 
 

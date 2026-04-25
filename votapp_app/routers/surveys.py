@@ -24,6 +24,7 @@ from votapp_app import models_simple   # 👈 importa tus modelos de encuestas s
 from sqlalchemy import func
 from votapp_app.models_simple import SurveyAssignment
 from votapp_app.models import Usuario
+from votapp_app.models_simple import SurveySimple
 
 import logging
 
@@ -281,19 +282,28 @@ def build_survey_simple_response(s: models_simple.SurveySimple, usuario_id: int,
     # Datos del creador
     creator = db.query(Usuario).filter(Usuario.id == s.usuario_id).first()
 
-    # Buscar asignador directo para el usuario actual
-    assignment = db.query(SurveyAssignment).filter(
-        SurveyAssignment.survey_id == s.id,
-        SurveyAssignment.asignado_a == usuario_id
-    ).first()
+    # Buscar asignador en survey_assignments
+    assignment = (
+        db.query(SurveyAssignment)
+        .filter(SurveyAssignment.survey_id == s.id,
+                SurveyAssignment.asignado_a == usuario_id)
+        .order_by(SurveyAssignment.id.desc())
+        .first()
+    )
 
     asignador_alias = None
     asignador_avatar_url = None
+
     if assignment:
         asignador = db.query(Usuario).filter(Usuario.id == assignment.asignado_por).first()
         if asignador:
-            asignador_alias = asignador.alias
-            asignador_avatar_url = asignador.avatar_url
+            asignador_alias = getattr(asignador, "alias", None)
+            asignador_avatar_url = getattr(asignador, "avatar_url", None)
+    elif s.asignado_por:  # fallback para encuestas viejas
+        asignador = db.query(Usuario).filter(Usuario.id == s.asignado_por).first()
+        if asignador:
+            asignador_alias = getattr(asignador, "alias", None)
+            asignador_avatar_url = getattr(asignador, "avatar_url", None)
 
     return {
         "id": s.id,
@@ -328,11 +338,12 @@ def build_survey_simple_response(s: models_simple.SurveySimple, usuario_id: int,
         "recompensa_dinero": 0,
         "presupuesto_total": 0,
         "tipo": "simple",
-        "usuario_alias": creator.alias if creator else None,
-        "usuario_avatar_url": creator.avatar_url if creator else None,
+        "usuario_alias": getattr(creator, "alias", None) if creator else None,
+        "usuario_avatar_url": getattr(creator, "avatar_url", None) if creator else None,
         "asignador_alias": asignador_alias,
         "asignador_avatar_url": asignador_avatar_url,
     }
+
 
 
 @router.get("/surveys/personales")
