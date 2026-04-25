@@ -55,10 +55,13 @@ def build_survey_simple_response(survey: SurveySimple, usuario_id: int, db: Sess
     # 👇 Buscar último asignador global en SurveyAssignment
     assignment = (
         db.query(SurveyAssignment)
-        .filter(SurveyAssignment.survey_id == survey.id)
+        .filter(
+            SurveyAssignment.survey_id == survey.id,
+            SurveyAssignment.asignado_a == usuario_id
+        )
         .order_by(SurveyAssignment.id.desc())
         .first()
-    )
+)
 
     asignador_alias = None
     asignador_avatar = None

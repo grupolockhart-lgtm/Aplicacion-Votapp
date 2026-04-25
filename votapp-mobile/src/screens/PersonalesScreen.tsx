@@ -156,7 +156,7 @@ export default function PersonalesScreen({
                   />
                 )}
                 <Text style={{ fontSize: 14 }}>Creada por {creatorName}</Text>
-                {userId !== item.usuario_id && item.asignado_por && (
+                {userId !== item.usuario_id && item.asignador_alias && (
                   <>
                     {assignerAvatar && (
                       <Image
