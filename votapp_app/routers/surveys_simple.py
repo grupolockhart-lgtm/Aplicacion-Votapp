@@ -508,6 +508,6 @@ def assign_simple_survey(
     db.refresh(survey)
 
     # 👇 build_survey_simple_response ahora recibe db y usuario.id
-    return build_survey_simple_response(survey, usuario.id, db)
+    return build_survey_simple_response(survey, db)
 
 
