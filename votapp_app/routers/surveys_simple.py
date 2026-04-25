@@ -131,6 +131,17 @@ def crear_encuesta_simple(
     db.add(nueva)
     db.flush()
 
+    # 👇 Crear registro inicial en survey_assignments si hay destinatarios
+    if survey_obj.asignado_a:
+        for destinatario_id in survey_obj.asignado_a:
+            assignment = SurveyAssignment(
+                survey_id=nueva.id,
+                asignado_a=destinatario_id,
+                asignado_por=usuario.id  # el creador como asignador inicial
+            )
+            db.add(assignment)
+
+    # luego sigues con las preguntas
     for pregunta in survey_obj.preguntas:
         nueva_pregunta = SurveySimpleQuestion(
             texto=pregunta.texto,
