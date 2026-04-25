@@ -464,7 +464,7 @@ def obtener_encuesta_simple(
 class AssignRequest(BaseModel):
     asignado_por: int | None = None  # 👈 ahora opcional
 
-@router.put("/surveys/simple/{survey_id}/assign/{friend_id}", response_model=SurveySimpleResponse)
+@router.put("/{survey_id}/assign/{friend_id}", response_model=SurveySimpleResponse)
 def assign_simple_survey(
     survey_id: int,
     friend_id: int,
