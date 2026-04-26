@@ -178,7 +178,7 @@ def crear_encuesta_simple(
     db.commit()
     db.refresh(nueva)
 
-    return build_survey_simple_response(nueva, db)
+    return build_survey_simple_response(nueva, usuario.id, db)
 
 
 
