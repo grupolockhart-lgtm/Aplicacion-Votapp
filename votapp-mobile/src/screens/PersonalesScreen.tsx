@@ -138,9 +138,16 @@ export default function PersonalesScreen({
               badgeText={""}
               isVisible={true}
               onPress={() => {
-                setSelectedSurveyId(item.id);
-                refreshFriends();
-                setModalVisible(true);
+                navigation.navigate("VoteScreen", {
+                  surveyId: item.id,
+                  surveyType: item.tipo,
+                  title: item.title,        // 👈 defensivo: usa title o titulo
+                  description: item.description,
+                  questions: item.questions, // 👈 defensivo: usa questions o preguntas
+                  media_url: item.media_url,
+                  media_urls: item.media_urls,
+                  media_type: item.media_type,
+                });
               }}
             >
               {item.segundos_restantes !== undefined && (
@@ -178,6 +185,9 @@ export default function PersonalesScreen({
                 }}
               />
             </SurveyCard>
+
+
+
           );
         }}
       />
