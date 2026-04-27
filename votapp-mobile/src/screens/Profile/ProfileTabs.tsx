@@ -42,7 +42,7 @@ export default function ProfileTabs({ profile, friendMode = false, friendId, ref
       >
         {() => (
           <SimpleSurveyGrid
-            userId={friendMode ? friendId : profile?.user?.id}
+            userId={friendMode ? friendId : undefined} 
             refreshGamificacion={refreshGamificacion} // 👈 ahora sí lo pasas
           />
           )}
