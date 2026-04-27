@@ -3,7 +3,23 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
 
-export default function PublicProfileCard({ alias, bio, avatarUrl, onSave, onPickImage }: any) {
+type Props = {
+  alias?: string;
+  bio?: string;
+  avatarUrl?: string;
+  onSave?: (data: { alias: string; bio: string; avatar_url: string }) => void;
+  onPickImage?: () => void;
+  editable?: boolean; // 👈 nueva prop
+};
+
+export default function PublicProfileCard({
+  alias,
+  bio,
+  avatarUrl,
+  onSave,
+  onPickImage,
+  editable = true,
+}: Props) {
   const [editing, setEditing] = useState(false);
   const [localAlias, setLocalAlias] = useState(alias || "");
   const [localBio, setLocalBio] = useState(bio || "");
@@ -19,7 +35,7 @@ export default function PublicProfileCard({ alias, bio, avatarUrl, onSave, onPic
   return (
     <View style={styles.card}>
       <View style={styles.row}>
-        {/* Avatar con botón flotante */}
+        {/* Avatar */}
         <View style={styles.avatarContainer}>
           <Image
             source={{
@@ -30,16 +46,18 @@ export default function PublicProfileCard({ alias, bio, avatarUrl, onSave, onPic
             }}
             style={styles.avatar}
           />
-          <TouchableOpacity style={styles.floatingButton} onPress={onPickImage}>
-            <Text style={styles.icon}>📷</Text>
-          </TouchableOpacity>
+          {editable && (
+            <TouchableOpacity style={styles.floatingButton} onPress={onPickImage}>
+              <Text style={styles.icon}>📷</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Info: título, alias, bio */}
+        {/* Info */}
         <View style={styles.info}>
           <Text style={styles.title}>Perfil público</Text>
 
-          {editing ? (
+          {editing && editable ? (
             <>
               <TextInput
                 style={styles.input}
@@ -64,7 +82,7 @@ export default function PublicProfileCard({ alias, bio, avatarUrl, onSave, onPic
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={() => {
-                  onSave({ alias: localAlias, bio: localBio, avatar_url: localAvatar });
+                  onSave?.({ alias: localAlias, bio: localBio, avatar_url: localAvatar });
                   setEditing(false);
                 }}
               >
@@ -78,9 +96,11 @@ export default function PublicProfileCard({ alias, bio, avatarUrl, onSave, onPic
             <>
               <View style={styles.aliasRow}>
                 <Text style={styles.alias}>{alias || "Sin alias"}</Text>
-                <TouchableOpacity style={styles.iconButton} onPress={() => setEditing(true)}>
-                  <Text style={styles.icon}>✏️</Text>
-                </TouchableOpacity>
+                {editable && (
+                  <TouchableOpacity style={styles.iconButton} onPress={() => setEditing(true)}>
+                    <Text style={styles.icon}>✏️</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               <Text style={styles.bio}>{bio || "Sin descripción"}</Text>
             </>

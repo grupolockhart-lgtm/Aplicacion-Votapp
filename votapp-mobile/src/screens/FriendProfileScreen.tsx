@@ -168,12 +168,13 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
   return (
     <View style={styles.container}>
       {/* Perfil público */}
-      <PublicProfileCard
-        alias={user.alias}
-        bio={user.bio}
-        avatarUrl={user.avatar_url}
-        onSave={() => {}} // solo visualización
-      />
+    <PublicProfileCard
+      alias={user.alias}
+      bio={user.bio}
+      avatarUrl={user.avatar_url}
+      editable={false}   // 👈 nueva prop
+      onSave={() => {}}  // no se usa en modo amigo
+    />
 
       {/* Gamificación y logros */}
       <GamificacionCard

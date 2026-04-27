@@ -99,6 +99,7 @@ export default function ProfileScreen() {
           alias={profile?.public_profile?.alias}
           bio={profile?.public_profile?.bio}
           avatarUrl={profile?.public_profile?.avatar_url}
+          editable={true}
           onSave={savePublicProfile}
           onPickImage={pickImage} // ✅ ya no da error
         />
