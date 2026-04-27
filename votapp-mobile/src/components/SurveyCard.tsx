@@ -177,5 +177,5 @@ const styles = StyleSheet.create({
   patrocinadaBadgeText: { color: "#000" },
   participasteBadge: { backgroundColor: "#10B981" },
   participasteBadgeText: { color: "#fff" },
-  commentsText: { fontSize: 13, color: "#2563eb", marginTop: 6 },
+  commentsText: { fontSize: 13, color: "#2563eb", marginTop: 0 },
 });
