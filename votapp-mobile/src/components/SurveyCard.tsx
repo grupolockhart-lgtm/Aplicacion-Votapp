@@ -13,7 +13,7 @@ interface Survey {
   title: string;
   description?: string;
   media_url?: string;
-  media_urls?: string[];   // 👈 ahora siempre array
+  media_urls?: string[];
   media_type?: string;
   segundos_restantes?: number;
   patrocinada?: boolean;
@@ -70,8 +70,6 @@ export default function SurveyCard({
     }
   }, [isFocused, survey.id]);
 
-
-
   return (
     <View style={[styles.post, survey.es_patrocinada && styles.patrocinadaPost]}>
       {survey.media_url?.includes("youtube.com") ? (
@@ -127,6 +125,7 @@ export default function SurveyCard({
         </View>
       </TouchableOpacity>
 
+      {/* 💬 Comentarios con padding */}
       <TouchableOpacity
         onPress={() =>
           (navigation as any).navigate("SurveyCommentsScreen", {
@@ -135,12 +134,17 @@ export default function SurveyCard({
         }
         activeOpacity={0.7}
       >
-        <Text style={styles.commentsText}>
-          💬 {commentsCount} comentarios
-        </Text>
+        <View style={{ paddingHorizontal: 12 }}>
+          <Text style={styles.commentsText}>
+            💬 {commentsCount} comentarios
+          </Text>
+        </View>
       </TouchableOpacity>
 
-      {children}
+      {/* Children con padding */}
+      <View style={{ paddingHorizontal: 12 }}>
+        {children}
+      </View>
     </View>
   );
 }

@@ -3,12 +3,12 @@ import React, { useState, useContext, useEffect } from "react";
 import {
   FlatList,
   Text,
-  Button,
   Modal,
   View,
   Image,
   Alert,
   TouchableOpacity,
+  StyleSheet,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -36,10 +36,7 @@ export default function PersonalesScreen({
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSurveyId, setSelectedSurveyId] = useState<number | null>(null);
   const [assigning, setAssigning] = useState(false);
-
   const [userId, setUserId] = useState<number | null>(null);
-
-  // ✅ Estado para selección múltiple
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
 
   useEffect(() => {
@@ -115,6 +112,7 @@ export default function PersonalesScreen({
       setAssigning(false);
     }
   };
+
   return (
     <>
       <FlatList
@@ -141,57 +139,77 @@ export default function PersonalesScreen({
                 navigation.navigate("VoteScreen", {
                   surveyId: item.id,
                   surveyType: item.tipo,
-                  title: item.title,        // 👈 defensivo: usa title o titulo
+                  title: item.title,
                   description: item.description,
-                  questions: item.questions, // 👈 defensivo: usa questions o preguntas
+                  questions: item.questions,
                   media_url: item.media_url,
                   media_urls: item.media_urls,
                   media_type: item.media_type,
                 });
               }}
             >
-              {item.segundos_restantes !== undefined && (
-                <CountdownTimer segundosIniciales={item.segundos_restantes} />
-              )}
+              {/* 💬 Comentarios + ⏳ Tiempo restante en la misma fila */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  paddingHorizontal: 0,
+                  marginBottom: 0,
+                }}
+              >
+                {/* Comentario */}
+                {item.description && (
+                  <Text style={{ fontSize: 14, color: "#555", flex: 1 }} numberOfLines={3}>
+                    {item.description}
+                  </Text>
+                )}
+
+                {/* Tiempo restante */}
+                {item.segundos_restantes !== undefined && (
+                  <CountdownTimer segundosIniciales={item.segundos_restantes} />
+                )}
+              </View>
 
               {/* ✅ Mostrar creador y asignador */}
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+              <View style={[styles.infoRow, { paddingHorizontal: 0, marginBottom: 0 }]}>
                 {creatorAvatar && (
-                  <Image
-                    source={{ uri: creatorAvatar }}
-                    style={{ width: 28, height: 28, borderRadius: 14, marginRight: 6 }}
-                  />
+                  <Image source={{ uri: creatorAvatar }} style={styles.avatar} />
                 )}
-                <Text style={{ fontSize: 14 }}>Creada por {creatorName}</Text>
+                <Text style={styles.infoText}>Creada por {creatorName}</Text>
                 {userId !== item.usuario_id && item.asignador_alias && (
                   <>
                     {assignerAvatar && (
                       <Image
                         source={{ uri: assignerAvatar }}
-                        style={{ width: 28, height: 28, borderRadius: 14, marginLeft: 12, marginRight: 6 }}
+                        style={[styles.avatar, { marginLeft: 12 }]}
                       />
                     )}
-                    <Text style={{ fontSize: 14 }}>Asignada por {assignerName}</Text>
+                    <Text style={styles.infoText}>Asignada por {assignerName}</Text>
                   </>
                 )}
               </View>
 
-              <Button
-                title="Asignar a amigos"
-                onPress={() => {
-                  setSelectedSurveyId(item.id);
-                  refreshFriends();
-                  setModalVisible(true);
-                }}
-              />
+              {/* 🎯 Botón moderno */}
+              <View style={{ paddingHorizontal: 0, marginTop: 0 }}>
+                <TouchableOpacity
+                  style={styles.assignButton}
+                  onPress={() => {
+                    setSelectedSurveyId(item.id);
+                    refreshFriends();
+                    setModalVisible(true);
+                  }}
+                >
+                  <Text style={styles.assignButtonText}>Asignar a amigos</Text>
+                </TouchableOpacity>
+              </View>
+
             </SurveyCard>
-
-
-
           );
         }}
-      />
 
+
+      />
       {/* ✅ Modal solo para asignar */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
@@ -206,8 +224,8 @@ export default function PersonalesScreen({
               )}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
-                <View style={{ flexDirection: "row", alignItems: "center", padding: 12 }}>
-                  <Image source={{ uri: item.avatar_url }} style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }} />
+                <View style={styles.friendRow}>
+                  <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
                   <Text style={{ flex: 1 }}>{item.alias || item.nombre || item.correo}</Text>
                   <Text style={{ color: "green" }}>✔ Ya asignado</Text>
                 </View>
@@ -235,7 +253,7 @@ export default function PersonalesScreen({
                 const isSelected = selectedFriends.includes(item.friend_id);
                 return (
                   <TouchableOpacity
-                    style={{ flexDirection: "row", alignItems: "center", padding: 12 }}
+                    style={styles.friendRow}
                     onPress={() => {
                       if (isSelected) {
                         setSelectedFriends(selectedFriends.filter(id => id !== item.friend_id));
@@ -244,10 +262,7 @@ export default function PersonalesScreen({
                       }
                     }}
                   >
-                    <Image
-                      source={{ uri: item.avatar_url }}
-                      style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }}
-                    />
+                    <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
                     <Text style={{ flex: 1 }}>{item.alias || item.nombre || item.correo}</Text>
                     <Text>{isSelected ? "✅" : "⬜"}</Text>
                   </TouchableOpacity>
@@ -255,20 +270,58 @@ export default function PersonalesScreen({
               }}
             />
 
-            <Button
-              title="Asignar seleccionados"
+            <TouchableOpacity
+              style={[styles.assignButton, { opacity: assigning || selectedFriends.length === 0 ? 0.5 : 1 }]}
               onPress={handleAssignMultiple}
               disabled={assigning || selectedFriends.length === 0}
-            />
+            >
+              <Text style={styles.assignButtonText}>Asignar seleccionados</Text>
+            </TouchableOpacity>
 
-            <Button
-              title="Cerrar"
+            <TouchableOpacity
+              style={[styles.assignButton, { backgroundColor: "#6B7280", marginTop: 10 }]}
               onPress={() => !assigning && setModalVisible(false)}
               disabled={assigning}
-            />
+            >
+              <Text style={styles.assignButtonText}>Cerrar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 8,
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 6,
+  },
+  infoText: {
+    fontSize: 13,
+    color: "#333",
+  },
+  assignButton: {
+    backgroundColor: "#2563EB",
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  assignButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  friendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+  },
+});
