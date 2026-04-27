@@ -40,7 +40,12 @@ export default function ProfileTabs({ profile, friendMode = false, friendId, ref
           ),
         }}
       >
-        {() => <SimpleSurveyGrid userId={friendMode ? friendId : profile?.user?.id} />}
+        {() => (
+          <SimpleSurveyGrid
+            userId={friendMode ? friendId : profile?.user?.id}
+            refreshGamificacion={refreshGamificacion} // 👈 ahora sí lo pasas
+          />
+          )}
       </Tab.Screen>
 
       {/* Solo mostrar Patrocinadas y Generales si NO es modo amigo */}
