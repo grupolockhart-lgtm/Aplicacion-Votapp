@@ -6,10 +6,12 @@ import {
   ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import PublicProfileCard from "../components/PublicProfileCard";
+import GamificacionCard from "../components/GamificacionCard";
+import ProfileTabs from "./Profile/ProfileTabs";
 
 type FriendProfileProps = {
   route: { params: { friendId: number } };
@@ -18,7 +20,6 @@ type FriendProfileProps = {
 type User = {
   id: number;
   nombre: string;
-  correo: string;
   alias?: string;
   avatar_url?: string;
   bio?: string;
@@ -26,7 +27,7 @@ type User = {
   puntos?: number;
   racha_dias?: number;
   ultima_participacion?: string;
-  status?: string | null;   // 👈 ahora acepta null
+  status?: string | null;
   friendship_id?: number;
 };
 
@@ -52,7 +53,6 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         console.error("Error obteniendo usuario actual:", err);
       }
     };
-
     loadCurrentUser();
   }, []);
 
@@ -62,7 +62,6 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         `https://aplicacion-votapp-test.onrender.com/api/usuarios/${friendId}?current_user_id=${currentUserId}`
       );
       const data = await res.json();
-      console.log("Respuesta backend:", data);
       setUser(data.usuario ? data.usuario : data);
     } catch (err) {
       console.error("Error al cargar perfil:", err);
@@ -85,7 +84,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         `https://aplicacion-votapp-test.onrender.com/api/friends/request?user_id=${currentUserId}&friend_id=${user.id}`,
         { method: "POST" }
       );
-      alert("Solicitud enviada");
+      Alert.alert("Solicitud enviada");
       setUser((prev) => prev ? { ...prev, status: "pending" } : prev);
     } catch (err) {
       console.error("Error al enviar solicitud:", err);
@@ -101,7 +100,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=accepted`,
         { method: "PUT" }
       );
-      alert("Solicitud aceptada");
+      Alert.alert("Solicitud aceptada");
       fetchUser();
     } catch (err) {
       console.error("Error al aceptar solicitud:", err);
@@ -114,7 +113,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}?action=rejected`,
         { method: "PUT" }
       );
-      alert("Solicitud rechazada");
+      Alert.alert("Solicitud rechazada");
       fetchUser();
     } catch (err) {
       console.error("Error al rechazar solicitud:", err);
@@ -122,38 +121,32 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
   };
 
   const deleteFriendship = async (friendshipId: number) => {
-    Alert.alert(
-      "Confirmar",
-      "¿Seguro que quieres eliminar esta amistad?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const storedToken = await AsyncStorage.getItem("userToken");
-              await fetch(
-                `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}`,
-                {
-                  method: "DELETE",
-                  headers: {
-                    Authorization: `Bearer ${storedToken}`,
-                  },
-                }
-              );
-              alert("Amistad eliminada");
-              setUser((prev) =>
-                prev ? { ...prev, status: null, friendship_id: undefined } : prev
-              );
-            } catch (err) {
-              console.error("Error al eliminar amistad:", err);
-              alert("Error eliminando amistad");
-            }
-          },
+    Alert.alert("Confirmar", "¿Seguro que quieres eliminar esta amistad?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const storedToken = await AsyncStorage.getItem("userToken");
+            await fetch(
+              `https://aplicacion-votapp-test.onrender.com/api/friends/${friendshipId}`,
+              {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${storedToken}` },
+              }
+            );
+            Alert.alert("Amistad eliminada");
+            setUser((prev) =>
+              prev ? { ...prev, status: null, friendship_id: undefined } : prev
+            );
+          } catch (err) {
+            console.error("Error al eliminar amistad:", err);
+            Alert.alert("Error eliminando amistad");
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (loading) {
@@ -174,56 +167,44 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
 
   return (
     <View style={styles.container}>
-      {user.avatar_url && (
-        <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
-      )}
-      <Text style={styles.title}>Perfil de {user.nombre}</Text>
-      {user.alias && <Text style={styles.info}>Alias: {user.alias}</Text>}
-      <Text style={styles.info}>ID: {user.id}</Text>
-      <Text style={styles.info}>Correo: {user.correo}</Text>
-      {user.bio && <Text style={styles.info}>Bio: {user.bio}</Text>}
-      {user.nivel && <Text style={styles.info}>Nivel: {user.nivel}</Text>}
-      {user.puntos !== undefined && (
-        <Text style={styles.info}>Puntos: {user.puntos}</Text>
-      )}
-      {user.racha_dias !== undefined && (
-        <Text style={styles.info}>Racha de días: {user.racha_dias}</Text>
-      )}
-      {user.ultima_participacion && (
-        <Text style={styles.info}>
-          Última participación: {user.ultima_participacion}
-        </Text>
-      )}
+      {/* Perfil público */}
+      <PublicProfileCard
+        alias={user.alias}
+        bio={user.bio}
+        avatarUrl={user.avatar_url}
+        onSave={() => {}} // solo visualización
+      />
 
-      {/* Botón de enviar solicitud */}
+      {/* Gamificación y logros */}
+      <GamificacionCard
+        nivelProp={user.nivel}
+        puntosProp={user.puntos}
+        rachaProp={user.racha_dias}
+      />
+
+
+      {/* Tab de encuestas publicadas */}
+      <ProfileTabs
+        profile={{ public_profile: user }}
+        friendMode={true}
+        friendId={user.id}
+      />
+
+      {/* Acciones de amistad */}
       {(!user.status || user.status === "rejected") && (
         <TouchableOpacity
           style={[styles.button, styles.request]}
           onPress={sendFriendRequest}
           disabled={sending}
         >
-          {sending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>
-              {user.status === "rejected"
-                ? "Reenviar solicitud de amistad"
-                : "Enviar solicitud de amistad"}
-            </Text>
-          )}
+          <Text style={styles.buttonText}>
+            {user.status === "rejected"
+              ? "Reenviar solicitud de amistad"
+              : "Enviar solicitud de amistad"}
+          </Text>
         </TouchableOpacity>
       )}
 
-      {/* Texto informativo si está pendiente */}
-      {user.status === "pending" && (
-        <View style={{ marginTop: 16, alignItems: "center" }}>
-          <Text style={{ fontSize: 16, fontWeight: "bold", color: "#555" }}>
-            Solicitud en espera
-          </Text>
-        </View>
-      )}
-
-      {/* Botones de aceptar/rechazar */}
       {user.status === "pending" && user.friendship_id && (
         <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 12 }}>
           <TouchableOpacity
@@ -241,7 +222,6 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
         </View>
       )}
 
-      {/* Botón de eliminar amistad */}
       {user.status === "accepted" && user.friendship_id && (
         <TouchableOpacity
           style={[styles.button, styles.deleteBtn]}
@@ -253,23 +233,10 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, backgroundColor: "#F3F4F6" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 16,
-    alignSelf: "center",
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  info: { fontSize: 16, marginBottom: 8, textAlign: "center" },
   button: {
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -277,10 +244,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
     alignItems: "center",
   },
-  request: { backgroundColor: "#4CAF50" },   // verde para enviar solicitud
+  request: { backgroundColor: "#4CAF50" },
   buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
-  deleteBtn: { backgroundColor: "#F44336" }, // rojo para eliminar amistad
-  acceptBtn: { backgroundColor: "#2196F3" }, // azul para aceptar
-  rejectBtn: { backgroundColor: "#FF9800" }, // naranja para rechazar
+  deleteBtn: { backgroundColor: "#F44336" },
+  acceptBtn: { backgroundColor: "#2196F3" },
+  rejectBtn: { backgroundColor: "#FF9800" },
 });
-

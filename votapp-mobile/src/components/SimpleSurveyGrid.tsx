@@ -39,9 +39,11 @@ interface Survey {
 
 type Props = {
   data?: Survey[];
+  userId?: number;   // 👈 nuevo
+  refreshGamificacion?: boolean; // 👈 nuevo
 };
 
-export default function SimpleSurveyGrid({ data }: Props) {
+export default function SimpleSurveyGrid({ data, userId, refreshGamificacion }: Props) {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
@@ -67,7 +69,11 @@ export default function SimpleSurveyGrid({ data }: Props) {
           return;
         }
 
-        const res = await fetch(`${API_URL}/users/me/surveys/simple`, {
+        const endpoint = userId
+          ? `${API_URL}/users/${userId}/surveys/simple`
+          : `${API_URL}/users/me/surveys/simple`;
+
+        const res = await fetch(endpoint, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -89,7 +95,7 @@ export default function SimpleSurveyGrid({ data }: Props) {
               created_at: s.created_at ?? s.date ?? null,
               tipo: s.tipo ?? "simple",
               description: s.description ?? "",
-              reward: s.reward ?? null,   // 👈 normalizamos reward si viene del backend
+              reward: s.reward ?? null,
             }))
           : [];
 
@@ -107,8 +113,11 @@ export default function SimpleSurveyGrid({ data }: Props) {
         setLoading(false);
       }
     };
+
     loadSurveys();
-  }, [data]);
+  }, [data, userId, refreshGamificacion]); // 👈 ahora también depende del trigger
+
+
 
   if (loading) return <ActivityIndicator size="large" color="#2563EB" />;
 
