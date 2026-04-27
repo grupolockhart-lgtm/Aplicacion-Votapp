@@ -530,48 +530,4 @@ def assign_simple_survey(
     return build_survey_simple_response(survey, usuario.id, db)
 
 
-# -------------------
-# Listar encuestas simples de un usuario específico
-# -------------------
-@router.get("/{user_id}/surveys/simple", response_model=List[SurveySimpleResponse])
-def listar_encuestas_simple_de_usuario(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
-):
-    encuestas = (
-        db.query(SurveySimple)
-        .options(
-            selectinload(SurveySimple.preguntas).selectinload(SurveySimpleQuestion.opciones)
-        )
-        .filter(
-            (SurveySimple.usuario_id == user_id) |
-            (SurveySimple.asignado_a.any(user_id))
-        )
-        .filter(
-            (SurveySimple.fecha_expiracion == None) |
-            (SurveySimple.fecha_expiracion > datetime.utcnow())
-        )
-        .order_by(SurveySimple.id.desc())
-        .all()
-    )
-
-    personales = []
-    for e in encuestas:
-        # 👇 si ya votó ese usuario, no se muestra
-        ya_voto = (
-            db.query(SimpleVote)
-            .filter(
-                SimpleVote.usuario_id == user_id,
-                SimpleVote.survey_simple_id == e.id,
-            )
-            .first()
-        )
-        if ya_voto:
-            continue
-
-        # reutiliza tu función build_survey_simple_response
-        personales.append(build_survey_simple_response(e, user_id, db))
-
-    return personales or []
 

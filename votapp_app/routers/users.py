@@ -449,6 +449,27 @@ def search_users(query: str = Query(..., min_length=1), db: Session = Depends(ge
     return results
 
 
+# -----------------------------
+# Listar encuestas simples de un usuario específico
+# -----------------------------
+@router.get("/{user_id}/surveys/simple", response_model=List[SurveySimpleResponse])
+def listar_encuestas_simples_de_usuario(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    usuario = db.query(Usuario).filter(Usuario.id == user_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    encuestas = (
+        db.query(SurveySimple)
+        .filter(SurveySimple.usuario_id == user_id)
+        .all()
+    )
+
+    # 👇 reutiliza tu función build_survey_simple_response si quieres normalizar
+    return [SurveySimpleResponse.model_validate(e) for e in encuestas]
 
 
 
