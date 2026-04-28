@@ -29,6 +29,7 @@ type User = {
   ultima_participacion?: string;
   status?: string | null;
   friendship_id?: number;
+  logros?: any[];   // 👈 nueva propiedad opcional
 };
 
 export default function FriendProfileScreen({ route }: FriendProfileProps) {
@@ -168,33 +169,44 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
   return (
     <View style={styles.container}>
       {/* Perfil público */}
-    <PublicProfileCard
-      alias={user.alias}
-      bio={user.bio}
-      avatarUrl={user.avatar_url}
-      editable={false}   // 👈 nueva prop
-      onSave={() => {}}  // no se usa en modo amigo
-    />
+      <PublicProfileCard
+        alias={user.alias}
+        bio={user.bio}
+        avatarUrl={user.avatar_url}
+        editable={false}
+        onSave={() => {}}
+      />
 
       {/* Gamificación y logros */}
       <GamificacionCard
         nivelProp={user.nivel}
         puntosProp={user.puntos}
         rachaProp={user.racha_dias}
+        logrosProp={user.logros}   // 👈 ahora sí válido
       />
 
+      {/* Tab de encuestas ocupa el espacio central */}
+      <View style={{ flex: 1 }}>
+        <ProfileTabs
+          profile={{ public_profile: user }}
+          friendMode={true}
+          friendId={user.id}
+        />
+      </View>
 
-      {/* Tab de encuestas publicadas */}
-      <ProfileTabs
-        profile={{ public_profile: user }}
-        friendMode={true}
-        friendId={user.id}
-      />
+      {/* Botón flotante de amistad */}
+      {user.status === "accepted" && user.friendship_id && (
+        <TouchableOpacity
+          style={[styles.button, styles.deleteBtn, styles.floatingButton]}
+          onPress={() => deleteFriendship(user.friendship_id!)}
+        >
+          <Text style={styles.buttonText}>Eliminar amistad</Text>
+        </TouchableOpacity>
+      )}
 
-      {/* Acciones de amistad */}
       {(!user.status || user.status === "rejected") && (
         <TouchableOpacity
-          style={[styles.button, styles.request]}
+          style={[styles.button, styles.request, styles.floatingButton]}
           onPress={sendFriendRequest}
           disabled={sending}
         >
@@ -207,7 +219,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
       )}
 
       {user.status === "pending" && user.friendship_id && (
-        <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 12 }}>
+        <View style={[styles.floatingRow]}>
           <TouchableOpacity
             style={[styles.button, styles.acceptBtn]}
             onPress={() => acceptFriendRequest(user.friendship_id!)}
@@ -222,15 +234,6 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
           </TouchableOpacity>
         </View>
       )}
-
-      {user.status === "accepted" && user.friendship_id && (
-        <TouchableOpacity
-          style={[styles.button, styles.deleteBtn]}
-          onPress={() => deleteFriendship(user.friendship_id!)}
-        >
-          <Text style={styles.buttonText}>Eliminar amistad</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 }
@@ -239,15 +242,29 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F3F4F6" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   button: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 6,
-    marginTop: 16,
     alignItems: "center",
   },
-  request: { backgroundColor: "#4CAF50" },
+  request: { backgroundColor: "#4CAF50", width: "80%" },
   buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
-  deleteBtn: { backgroundColor: "#F44336" },
-  acceptBtn: { backgroundColor: "#2196F3" },
-  rejectBtn: { backgroundColor: "#FF9800" },
+  deleteBtn: { backgroundColor: "#F44336", width: "90%" },
+  acceptBtn: { backgroundColor: "#2196F3", flex: 1, marginHorizontal: 4 },
+  rejectBtn: { backgroundColor: "#FF9800", flex: 1, marginHorizontal: 4 },
+
+  // Botón flotante
+  floatingButton: {
+    position: "absolute",
+    bottom: 40,
+    alignSelf: "center",
+  },
+  floatingRow: {
+    position: "absolute",
+    bottom: 40,
+    flexDirection: "row",
+    justifyContent: "center",
+    width: "100%",
+    paddingHorizontal: 20,
+  },
 });

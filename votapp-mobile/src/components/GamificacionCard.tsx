@@ -10,6 +10,7 @@ interface GamificacionProps {
   puntosProp?: number;
   nivelProp?: number;
   rachaProp?: number;
+  logrosProp?: any[];
 }
 
 export default function GamificacionCard({
@@ -17,11 +18,12 @@ export default function GamificacionCard({
   puntosProp,
   nivelProp,
   rachaProp,
+  logrosProp,
 }: GamificacionProps) {
   const [puntos, setPuntos] = useState(puntosProp ?? 0);
   const [racha, setRacha] = useState(rachaProp ?? 0);
   const [nivel, setNivel] = useState(nivelProp ?? 1);
-  const [logros, setLogros] = useState<any[]>([]);
+  const [logros, setLogros] = useState<any[]>(logrosProp ?? []);
   const [loading, setLoading] = useState(false);
 
   const [selectedLogro, setSelectedLogro] = useState<any | null>(null);
