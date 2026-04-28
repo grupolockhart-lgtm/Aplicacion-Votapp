@@ -60,6 +60,14 @@ export default function GamificacionCard({
     }
   }, [refreshTrigger]);
 
+  // 👇 Nuevo efecto para sincronizar logros cuando cambian las props
+  useEffect(() => {
+    if (logrosProp) {
+      setLogros(logrosProp);
+    }
+  }, [logrosProp]);
+
+
   return (
     <View style={styles.container}>
       {/* Datos principales en horizontal */}

@@ -39,6 +39,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
 
+  // 1️⃣ Primer useEffect: carga el usuario actual
   useEffect(() => {
     const loadCurrentUser = async () => {
       try {
@@ -57,6 +58,7 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
     loadCurrentUser();
   }, []);
 
+  // 2️⃣ Función para cargar perfil del amigo
   const fetchUser = async () => {
     try {
       const res = await fetch(
@@ -71,9 +73,40 @@ export default function FriendProfileScreen({ route }: FriendProfileProps) {
     }
   };
 
+
+  // 3️⃣ Función para cargar gamificación del amigo (aquí pegas el bloque que me preguntaste)
+  const fetchFriendGamificacion = async () => {
+    try {
+      const storedToken = await AsyncStorage.getItem("userToken");
+      if (!storedToken) return;
+
+      const res = await fetch(
+        `https://aplicacion-votapp-test.onrender.com/api/gamificacion/usuarios/${friendId}/gamificacion`,
+        { headers: { Authorization: `Bearer ${storedToken}` } }
+      );
+      const data = await res.json();
+
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              puntos: data.puntos,
+              nivel: data.nivel,
+              racha_dias: data.racha_dias,
+              logros: data.logros,
+            }
+          : prev
+      );
+    } catch (err) {
+      console.error("Error cargando gamificación del amigo:", err);
+    }
+  };
+
+  // 4️⃣ Segundo useEffect: cuando ya tienes currentUserId, llamas a ambas funciones
   useEffect(() => {
     if (currentUserId) {
       fetchUser();
+      fetchFriendGamificacion(); // 👈 aquí se trae también logros
     }
   }, [friendId, currentUserId]);
 
