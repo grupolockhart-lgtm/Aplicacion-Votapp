@@ -28,20 +28,37 @@ import ProfileTabs from "./Profile/ProfileTabs";
 import PrivateProfileCard from "../components/PrivateProfileCard";
 import { API_URL } from "../config/api";
 import BilleteraCard from "../components/BilleteraCard";
-import { Profile } from "../Types/Profile"; // 👈 importa tu tipo
+import { Profile } from "../Types/Profile";
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
 
-  // ✅ ahora obtenemos también setProfile del hook
   const { profile, refreshProfile, setProfile } = useProfile(navigation);
   const { saveUserData } = useUserData(API_URL, refreshProfile, () => {});
-
   const { refreshGamificacion, fetchGamificacion } = useGamificacion();
-  useFocusEffect(fetchGamificacion);
   const { savePublicProfile } = usePublicProfile(refreshProfile);
 
-  // ✅ usamos useAvatar con setProfile tipado
+  // ✅ corregido: useFocusEffect con callback
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+
+      async function loadGamificacion() {
+        try {
+          await fetchGamificacion();
+        } catch (err) {
+          console.error("Error cargando gamificación:", err);
+        }
+      }
+
+      loadGamificacion();
+
+      return () => {
+        isActive = false;
+      };
+    }, [fetchGamificacion])
+  );
+
   const { pickImage } = useAvatar(
     (newAvatarUrl: string) => {
       setProfile((prev: Profile | null) => ({
@@ -101,7 +118,7 @@ export default function ProfileScreen() {
           avatarUrl={profile?.public_profile?.avatar_url}
           editable={true}
           onSave={savePublicProfile}
-          onPickImage={pickImage} // ✅ ya no da error
+          onPickImage={pickImage}
         />
 
         <TouchableOpacity

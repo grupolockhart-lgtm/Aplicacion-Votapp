@@ -135,8 +135,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: "#2563EB",
-    borderRadius: 20,
     padding: 6,
   },
   info: {
@@ -191,6 +189,6 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 18,
-    color: "#fff",
+    color: "#2563EB", // azul solo en el ícono
   },
 });
