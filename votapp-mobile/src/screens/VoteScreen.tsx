@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context"; // 👈 añadido
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
@@ -102,13 +103,13 @@ export default function VoteScreen({ route, navigation }: Props) {
       surveyType === "normal"
         ? {
             answers: Object.entries(answers).map(([qId, optId]) => ({
-              question_id: Number(qId),   // normales
+              question_id: Number(qId),
               option_id: Number(optId),
             })),
           }
         : {
             answers: Object.entries(answers).map(([qId, optId]) => ({
-              pregunta_id: Number(qId),   // simples
+              pregunta_id: Number(qId),
               opcion_id: Number(optId),
             })),
           };
@@ -117,11 +118,6 @@ export default function VoteScreen({ route, navigation }: Props) {
       surveyType === "normal"
         ? `${API_URL}/surveys/${surveyId}/vote`
         : `${API_URL}/surveys/simple/${surveyId}/vote`;
-
-    // 🔎 Logs de depuración
-    console.log("SurveyType:", surveyType);
-    console.log("Payload enviado:", JSON.stringify(payload, null, 2));
-    console.log("Endpoint:", endpoint);
 
     try {
       setLoading(true);
@@ -189,61 +185,66 @@ export default function VoteScreen({ route, navigation }: Props) {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Encuesta</Text>
-
-      {media_url?.includes("youtube.com") ? (
-        <FeedMediaYoutube source_url={media_url} />
-      ) : media_url && /\.(mp4|mov)$/i.test(media_url) ? (
-        <FeedMedia
-          media_url={media_url}
-          isActive={true}
-          globalMuted={globalMuted}
-          toggleMute={() => setGlobalMuted(!globalMuted)}
-        />
-      ) : Array.isArray(media_urls) && media_urls.length > 0 ? (
-        <SurveyMediaCarousel
-          media={media_urls.map((url) => ({ url, type: "image" }))}
-          globalMuted={globalMuted}
-          toggleMute={() => setGlobalMuted(!globalMuted)}
-          isActive={true}
-        />
-      ) : (
-        <Text style={{ padding: 12, color: "#888" }}>
-          No hay contenido multimedia disponible
-        </Text>
-      )}
-
-      {questions.map((q: Question) => (
-        <View key={q.id} style={styles.questionBlock}>
-          <Text style={styles.questionText}>{q.text}</Text>
-          {q.options.map((o: Option) => (
-            <TouchableOpacity
-              key={o.id}
-              style={[
-                styles.optionButton,
-                answers[q.id] === o.id && styles.optionSelected,
-              ]}
-              onPress={() => handleSelect(q.id, o.id)}
-            >
-              <Text style={styles.optionText}>{o.text}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ))}
-
-      <TouchableOpacity
-        style={styles.submitButton}
-        onPress={handleSubmit}
-        disabled={loading}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 40 }} // 👈 espacio extra
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
+        <Text style={styles.title}>Encuesta</Text>
+
+        {media_url?.includes("youtube.com") ? (
+          <FeedMediaYoutube source_url={media_url} />
+        ) : media_url && /\.(mp4|mov)$/i.test(media_url) ? (
+          <FeedMedia
+            media_url={media_url}
+            isActive={true}
+            globalMuted={globalMuted}
+            toggleMute={() => setGlobalMuted(!globalMuted)}
+          />
+        ) : Array.isArray(media_urls) && media_urls.length > 0 ? (
+          <SurveyMediaCarousel
+            media={media_urls.map((url) => ({ url, type: "image" }))}
+            globalMuted={globalMuted}
+            toggleMute={() => setGlobalMuted(!globalMuted)}
+            isActive={true}
+          />
         ) : (
-          <Text style={styles.submitText}>Confirmar Voto</Text>
+          <Text style={{ padding: 12, color: "#888" }}>
+            No hay contenido multimedia disponible
+          </Text>
         )}
-      </TouchableOpacity>
-    </ScrollView>
+
+        {questions.map((q: Question) => (
+          <View key={q.id} style={styles.questionBlock}>
+            <Text style={styles.questionText}>{q.text}</Text>
+            {q.options.map((o: Option) => (
+              <TouchableOpacity
+                key={o.id}
+                style={[
+                  styles.optionButton,
+                  answers[q.id] === o.id && styles.optionSelected,
+                ]}
+                onPress={() => handleSelect(q.id, o.id)}
+              >
+                <Text style={styles.optionText}>{o.text}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ))}
+
+        <TouchableOpacity
+          style={styles.submitButton}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.submitText}>Confirmar Voto</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

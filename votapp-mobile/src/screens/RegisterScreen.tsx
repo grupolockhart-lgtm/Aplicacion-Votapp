@@ -32,6 +32,7 @@ interface FormData {
   apellido: string;
   correo: string;
   contraseña: string;
+  confirmarContraseña: string;   // 👈 nuevo
   cedula: string;             // 👈 nuevo
   telefono_movil: string;     // 👈 nuevo
   sexo: string;
@@ -57,6 +58,7 @@ export default function RegisterScreen() {
   apellido: "",
   correo: "",
   contraseña: "",
+  confirmarContraseña: "",   // 👈 nuevo
   cedula: "",                // 👈 nuevo
   telefono_movil: "",        // 👈 nuevo
   sexo: sexos[0],
@@ -86,6 +88,8 @@ export default function RegisterScreen() {
     if (!/\S+@\S+\.\S+/.test(form.correo))
       return "El correo no tiene un formato válido";
     if (!form.contraseña.trim()) return "La contraseña es obligatoria";
+    if (form.contraseña !== form.confirmarContraseña)
+      return "Las contraseñas no coinciden";   // 👈 validación nueva
     return null;
   };
 
@@ -162,8 +166,10 @@ return (
         style={styles.input}
         placeholder="Correo"
         value={form.correo}
-        onChangeText={(v) => handleChange("correo", v)}
+        onChangeText={(v) => handleChange("correo", v.toLowerCase())} // 👈 convierte todo a minúsculas
         keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
       />
 
       <Text style={styles.label}>Contraseña</Text>
@@ -174,6 +180,20 @@ return (
         value={form.contraseña}
         onChangeText={(v) => handleChange("contraseña", v)}
       />
+
+      // -------------------
+      // Confirmación de contraseña
+      // -------------------
+
+      <Text style={styles.label}>Confirmar contraseña</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Confirmar contraseña"
+        secureTextEntry
+        value={form.confirmarContraseña}
+        onChangeText={(v) => handleChange("confirmarContraseña", v)}
+      />
+
 
       <Text style={styles.label}>Cédula</Text>
       <TextInput
@@ -214,20 +234,56 @@ return (
         <TextInput style={styles.input} editable={false} value={form.estado_civil} />
       </ModalSelector>
 
+
+      // -------------------
+      // Fecha de nacimiento
+      // -------------------
+
       <Text style={styles.label}>Fecha de nacimiento</Text>
       <Button title="Seleccionar fecha" onPress={() => setShowDatePicker(true)} />
+
       {showDatePicker && (
-        <DateTimePicker
-          value={form.fecha_nacimiento}
-          mode="date"
-          display="default"
-          onChange={(event, date) => {
-            setShowDatePicker(false);
-            if (date) handleChange("fecha_nacimiento", date);
-          }}
-        />
+        <View style={{ marginVertical: 10 }}>
+          <DateTimePicker
+            value={form.fecha_nacimiento}
+            mode="date"
+            display={Platform.OS === "ios" ? "inline" : "spinner"}
+            onChange={(event, date) => {
+              if (Platform.OS === "ios") {
+                if (date) handleChange("fecha_nacimiento", date);
+              } else {
+                if (event.type === "set" && date) {
+                  handleChange("fecha_nacimiento", date);
+                  setShowDatePicker(false);
+                } else if (event.type === "dismissed") {
+                  setShowDatePicker(false);
+                }
+              }
+            }}
+          />
+
+          {Platform.OS === "ios" && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#2563EB",
+                padding: 8,
+                borderRadius: 6,
+                marginTop: 6,
+                alignItems: "center",
+              }}
+              onPress={() => setShowDatePicker(false)}
+            >
+              <Text style={{ color: "#fff", fontWeight: "600" }}>Cerrar selector</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       )}
-      <Text style={styles.dateText}>{form.fecha_nacimiento.toLocaleDateString()}</Text>
+
+      <Text style={styles.dateText}>
+        {form.fecha_nacimiento.toLocaleDateString()}
+      </Text>
+
+
 
       <Text style={styles.label}>Nacionalidad</Text>
       <ModalSelector
