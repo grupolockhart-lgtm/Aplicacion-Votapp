@@ -23,8 +23,8 @@ co = cohere.Client(os.getenv("COHERE_API_KEY"))
 def resumir_con_cohere(texto: str) -> str:
     prompt = f"Resume en máximo 2 frases claras y neutrales:\n\n{texto}"
     response = co.chat(
-        model="command-r-09-2024",   # modelo vigente
-        message=prompt       # aquí va el prompt real
+        model="command-a-plus-05-2026",   # modelo vigente
+        message=prompt  
     )
     return response.text.strip()
 
@@ -62,8 +62,8 @@ def generar_preguntas_con_cohere(titulo: str, resumen: str):
     ]
     """
     response = co.chat(
-        model="command-r-09-2024",   # modelo vigente
-        message=prompt       # aquí va el prompt real
+        model="command-a-plus-05-2026",   # modelo vigente
+        message=prompt  
     )
 
 
