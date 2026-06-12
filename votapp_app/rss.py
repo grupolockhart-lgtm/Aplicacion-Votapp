@@ -24,7 +24,7 @@ def resumir_con_cohere(texto: str) -> str:
     prompt = f"Resume en máximo 2 frases claras y neutrales:\n\n{texto}"
     response = co.chat(
         model="command-r",
-        messages=[{"role": "user", "content": prompt}]
+        message="Tu texto aquí"
     )
     return response.text.strip()
 
@@ -63,7 +63,7 @@ def generar_preguntas_con_cohere(titulo: str, resumen: str):
     """
     response = co.chat(
         model="command-r",
-        messages=[{"role": "user", "content": prompt}]
+        message="Tu texto aquí"
     )
 
 
