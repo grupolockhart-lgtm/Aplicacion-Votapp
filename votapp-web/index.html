@@ -1,0 +1,45 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Crear Encuesta</title>
+</head>
+<body>
+  <h1>Crear nueva encuesta</h1>
+  <form id="surveyForm">
+    <label>Título:</label>
+    <input type="text" id="title" required><br><br>
+
+    <label>Opciones:</label><br>
+    <input type="text" class="option" placeholder="Opción 1"><br>
+    <input type="text" class="option" placeholder="Opción 2"><br>
+    <button type="button" onclick="addOption()">Agregar opción</button><br><br>
+
+    <button type="submit">Crear encuesta</button>
+  </form>
+
+  <script>
+    const API_URL = "https://aplicacion-votapp.onrender.com/api"; // o dinámico desde .env
+
+    document.getElementById("surveyForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("title").value;
+      const options = Array.from(document.querySelectorAll(".option"))
+        .map(o => o.value)
+        .filter(v => v);
+
+      const res = await fetch(`${API_URL}/surveys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, options })
+      });
+
+      const data = await res.json();
+      alert("Encuesta creada: " + JSON.stringify(data.survey));
+    });
+  </script>
+
+</body>
+</html>

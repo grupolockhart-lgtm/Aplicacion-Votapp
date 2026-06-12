@@ -1,0 +1,22 @@
+
+ //tsconfig.json
+
+{
+  "extends": "./node_modules/expo/tsconfig.base.json",
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "baseUrl": "./votapp-mobile",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": [
+    "votapp-mobile/src",
+    "votapp-mobile/env.d.ts"
+  ]
+}
+
+
+
+
+
