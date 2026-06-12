@@ -23,7 +23,8 @@ from typing import List
 from services.cloudinary_service import upload_avatar
 from votapp_app.tasks import cerrar_encuestas_por_presupuesto
 
-
+import cohere
+print(">>> Cohere SDK version en Render:", cohere.__version__)
 
 BASE_URL = os.getenv("APP_BASE_URL", "https://aplicacion-votapp-test.onrender.com")
 
