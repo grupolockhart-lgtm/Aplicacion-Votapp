@@ -4,7 +4,6 @@ import uvicorn
 
 
 
-
 from votapp_app.main import handler
 
 if __name__ == "__main__":
