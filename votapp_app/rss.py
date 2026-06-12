@@ -26,7 +26,9 @@ def resumir_con_cohere(texto: str) -> str:
         model="command-a-plus-05-2026",
         messages=[{"role": "user", "content": prompt}]
     )
-    return response.message.content[0].text.strip()
+    # Filtrar solo los items de tipo texto
+    texts = [c.text for c in response.message.content if c.type == "text"]
+    return texts[0].strip() if texts else ""
 
 def generar_preguntas_con_cohere(titulo: str, resumen: str):
     prompt = f"""
@@ -66,7 +68,9 @@ def generar_preguntas_con_cohere(titulo: str, resumen: str):
         messages=[{"role": "user", "content": prompt}]
     )
 
-    preguntas_json = response.message.content[0].text.strip()
+    texts = [c.text for c in response.message.content if c.type == "text"]
+    preguntas_json = texts[0].strip() if texts else "[]"
+    
     try:
         preguntas = json.loads(preguntas_json)
         if not isinstance(preguntas, list):
