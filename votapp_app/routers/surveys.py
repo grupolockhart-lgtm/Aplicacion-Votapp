@@ -956,7 +956,9 @@ def surveys_disponibles(
 ):
     ahora = datetime.now(santo_domingo_tz)
     surveys = db.query(models.Survey).filter(
-        (models.Survey.fecha_expiracion == None) | (models.Survey.fecha_expiracion >= ahora)
+        ((models.Survey.fecha_expiracion == None) | (models.Survey.fecha_expiracion >= ahora)),
+        models.Survey.active == True,              # 👈 solo activas
+        models.Survey.closed_reason == None        # 👈 no cerradas      
     ).order_by(models.Survey.id.desc()).all()   # 👈 usar id si no existe fecha_creacion
 
     disponibles = []
