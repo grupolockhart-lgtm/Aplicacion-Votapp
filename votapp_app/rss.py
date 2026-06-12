@@ -18,15 +18,15 @@ import os
 print("COHERE_API_KEY loaded:", os.getenv("COHERE_API_KEY")[:6], "...")
 
 RSS_URL = "https://www.diariolibre.com/rss/portada.xml"
-co = cohere.Client(os.getenv("COHERE_API_KEY"))
+co = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
 
 def resumir_con_cohere(texto: str) -> str:
     prompt = f"Resume en máximo 2 frases claras y neutrales:\n\n{texto}"
     response = co.chat(
-        model="command-a-plus-05-2026",   # modelo vigente
-        message=prompt  
+        model="command-a-plus-05-2026",
+        messages=[{"role": "user", "content": prompt}]
     )
-    return response.text.strip()
+    return response.message.content[0].text.strip()
 
 def generar_preguntas_con_cohere(titulo: str, resumen: str):
     prompt = f"""
@@ -62,12 +62,11 @@ def generar_preguntas_con_cohere(titulo: str, resumen: str):
     ]
     """
     response = co.chat(
-        model="command-a-plus-05-2026",   # modelo vigente
-        message=prompt  
+        model="command-a-plus-05-2026",
+        messages=[{"role": "user", "content": prompt}]
     )
 
-
-    preguntas_json = response.text
+    preguntas_json = response.message.content[0].text.strip()
     try:
         preguntas = json.loads(preguntas_json)
         if not isinstance(preguntas, list):
