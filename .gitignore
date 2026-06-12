@@ -1,3 +1,7 @@
+
+
+//.gitignore
+
 # Ignorar dependencias
 node_modules/
 
@@ -40,4 +44,9 @@ Thumbs.db
 .vscode/
 .idea/
 
-
+# Archivos de entorno (claves y secretos)
+.env
+.env.local
+.env.development
+.env.production
+.env.test
