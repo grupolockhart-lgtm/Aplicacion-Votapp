@@ -32,8 +32,12 @@ def resumir_con_cohere(texto: str) -> str:
 
 def generar_preguntas_con_cohere(titulo: str, resumen: str):
     prompt = f"""
-    Genera exactamente 3 preguntas neutrales y claras en formato JSON,
+    Genera exactamente 3 preguntas de encuesta ciudadana en formato JSON,
     basadas únicamente en la siguiente noticia.
+
+    Las preguntas deben ser cortas, neutrales y enfocadas en la opinión del usuario,
+    no en evaluar conocimiento. Cada pregunta debe tener 2 o 3 opciones simples
+    como "Sí / No" o "De acuerdo / En desacuerdo".
 
     Título: {titulo}
     Resumen: {resumen}
@@ -70,7 +74,7 @@ def generar_preguntas_con_cohere(titulo: str, resumen: str):
 
     texts = [c.text for c in response.message.content if c.type == "text"]
     preguntas_json = texts[0].strip() if texts else "[]"
-    
+
     try:
         preguntas = json.loads(preguntas_json)
         if not isinstance(preguntas, list):
