@@ -37,7 +37,7 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
 useEffect(() => {
   const fetchResults = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/surveys/${surveyId}/results`, {
+      const res = await fetch(`http://localhost:8000/api/surveys/web/${surveyId}/results`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,

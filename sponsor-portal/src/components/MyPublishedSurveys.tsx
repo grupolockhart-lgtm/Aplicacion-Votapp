@@ -366,7 +366,7 @@ const handleResumeSurvey = async (surveyId: number) => {
   // -------------------
 
   const handleResults = (surveyId: number) => {
-    navigate(`/surveys/${surveyId}/results`);
+    navigate(`/surveys/web/${surveyId}/results`);
   };
 
 
