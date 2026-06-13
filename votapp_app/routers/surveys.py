@@ -874,16 +874,15 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
             votes_count = db.query(Vote).filter(Vote.option_id == option.id).count()
             options.append({"text": option.text, "votes": votes_count})
 
-    # Timeline agrupado por fecha
-    timeline = []
+    # Timeline agrupado por fecha (usando creado_en)
     rows = (
-        db.query(Vote.date, func.count(Vote.id))
+        db.query(func.date(Vote.creado_en).label("fecha"), func.count(Vote.id).label("votos"))
         .filter(Vote.survey_id == survey_id)
-        .group_by(Vote.date)
+        .group_by(func.date(Vote.creado_en))
+        .order_by(func.date(Vote.creado_en))
         .all()
     )
-    for date, count in rows:
-        timeline.append({"date": str(date), "votes": count})
+    timeline = [{"date": str(r.fecha), "votes": r.votos} for r in rows]
 
     return {
         "title": survey.title,
@@ -895,6 +894,7 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
         "options": options,
         "timeline": timeline,
     }
+
 
 
 
@@ -1783,7 +1783,7 @@ def vote(
 
 
 # -------------------
-# Resultados de encuesta
+# Resultados de encuesta (APP-movil)
 # -------------------
 @router.get("/{survey_id}/results")
 def get_results(

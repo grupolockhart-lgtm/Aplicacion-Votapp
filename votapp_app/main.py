@@ -24,6 +24,8 @@ from services.cloudinary_service import upload_avatar
 from votapp_app.tasks import cerrar_encuestas_por_presupuesto
 
 import cohere
+import traceback
+
 print(">>> Cohere SDK version en Render:", cohere.__version__)
 
 BASE_URL = os.getenv("APP_BASE_URL", "https://aplicacion-votapp-test.onrender.com")
@@ -73,7 +75,8 @@ async def log_exceptions(request: Request, call_next):
     try:
         return await call_next(request)
     except Exception as e:
-        logger.exception(f"❌ Error en {request.url.path}: {e}")
+        print("❌ Error:", e)
+        traceback.print_exc()
         return JSONResponse(status_code=500, content={"detail": "Error interno en el servidor"})
 
 # -----------------------------
