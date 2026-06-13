@@ -844,10 +844,10 @@ def reanudar_encuesta(survey_id: int,
 
 
 # -------------------
-# ENDPOINT: Resultados de encuesta (Sponsor Dashboard)
+# ENDPOINT: Resultados de encuesta (Sponsor Dashboard - WEB)
 # -------------------
 
-@router.get("/{survey_id}/results", response_model=SurveyResultsOut)
+@router.get("/web/{survey_id}/results", response_model=SurveyResultsOut)
 async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey:
@@ -1785,6 +1785,8 @@ def vote(
 # -------------------
 # Resultados de encuesta (APP-movil)
 # -------------------
+
+
 @router.get("/{survey_id}/results")
 def get_results(
     survey_id: int,

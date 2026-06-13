@@ -43,7 +43,7 @@ function App() {
           />
 
           {/* 👉 Nueva ruta para resultados */}
-          <Route path="/surveys/:id/results" element={<ResultsPage />} />
+          <Route path="/surveys/web/:id/results" element={<ResultsPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
