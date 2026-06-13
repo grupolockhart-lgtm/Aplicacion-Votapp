@@ -1,10 +1,9 @@
-// sponsor-portal/src/App.js
-
 import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom"; // 👈 importa Router
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
-import MyPublishedSurveys from "./components/MyPublishedSurveys"; // 👈 ejemplo de ruta extra
+import MyPublishedSurveys from "./components/MyPublishedSurveys";
+import ResultsPage from "./components/ResultsPage";   // 👈 importa ResultsPage
 import { AuthProvider } from "./context/AuthContext";
 
 function App() {
@@ -15,10 +14,7 @@ function App() {
     setIsLoggedIn(!!token);
   }, []);
 
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-  };
-
+  const handleLogin = () => setIsLoggedIn(true);
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
@@ -28,7 +24,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* 👉 Ruta principal */}
+          {/* Ruta principal */}
           <Route
             path="/"
             element={
@@ -40,11 +36,14 @@ function App() {
             }
           />
 
-          {/* 👉 Ejemplo: ruta para encuestas publicadas */}
+          {/* Ruta para encuestas publicadas */}
           <Route
             path="/surveys"
             element={<MyPublishedSurveys user={{ id: 1, nombre: "Sidney", rol: "sponsor", wallet: null }} />}
           />
+
+          {/* 👉 Nueva ruta para resultados */}
+          <Route path="/surveys/:id/results" element={<ResultsPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -388,7 +388,7 @@ class SurveyHistoryOut(BaseModel):
 
 
 # -------------------
-# Votos y resultados
+# Votos y resultados (App móvil)
 # -------------------
 
 class Answer(BaseModel):
@@ -423,6 +423,49 @@ class SurveyResult(BaseModel):
     media_url: Optional[str] = None
     media_urls: Optional[List[str]] = Field(default_factory=list)
     results: List[QuestionResult]
+
+
+# -------------------
+# Resultados agregados (Sponsor Dashboard)
+# -------------------
+class OptionAggregate(BaseModel):
+    text: str
+    votes: int
+
+class TimelinePoint(BaseModel):
+    date: str
+    votes: int
+
+class SurveyResultsOut(BaseModel):
+    title: str
+    active: bool
+    closed_reason: Optional[str]
+    total_participants: int
+    total_votes: int
+    spent_budget: float
+    options: List[OptionAggregate]
+    timeline: List[TimelinePoint]
+
+    class Config:
+        orm_mode = True
+
+
+# -------------------
+# Schemas: Respuesta al votar
+# -------------------
+class VoteResponse(BaseModel):
+    message: str
+    survey_id: int
+    presupuesto_restante: int
+    usuario_puntos: int
+    usuario_balance: Optional[float] = None
+    usuario_nivel: int
+    usuario_racha: int
+
+    class Config:
+        orm_mode = True
+
+
 
 
 
@@ -532,6 +575,8 @@ class WalletOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
 
 
 

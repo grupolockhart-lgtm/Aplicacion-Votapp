@@ -1,9 +1,30 @@
 
 # votapp_app/routers/surveys.py
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
+
+
 from typing import List, Optional
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+import logging
+import os
+import shutil
+import json
+import uuid
+
+import cloudinary
+import cloudinary.uploader
+from dotenv import load_dotenv
+
+
+# Imports internos
+
+
 from .. import models, schemas, database
 from ..auth import (
     get_current_user,
@@ -12,37 +33,21 @@ from ..auth import (
     get_current_user_only   # ✅ ahora sí disponible
 )
 
-
-import json
-from datetime import datetime, timedelta
-
-
-from zoneinfo import ZoneInfo
-from sqlalchemy.exc import IntegrityError
 from ..database import get_db
 from .logros import verificar_logros
-from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyWalletOut
 
+from votapp_app.schemas import WalletOut, MovimientoWalletOut, SurveyWalletOut, SurveyOut, SurveyResultsOut, VoteResponse
 from votapp_app import models_simple   # 👈 importa tus modelos de encuestas simples
-from sqlalchemy import func
-from votapp_app.models_simple import SurveyAssignment
+from votapp_app.models_simple import SurveySimple, SurveyAssignment
 from votapp_app.models import Usuario
-from votapp_app.models_simple import SurveySimple
 from votapp_app.utils.segmentacion import cumple_segmentacion
-from votapp_app.schemas import SurveyOut
+from votapp_app.models import Survey, Vote
 
 
-import logging
-import os
-import shutil
-import json
-import cloudinary
-import cloudinary.uploader
-from dotenv import load_dotenv
-import uuid
 
-from fastapi import Request
-import logging
+
+
+
 
 # Configura el logger de uvicorn
 logger = logging.getLogger("uvicorn.error")
@@ -838,6 +843,58 @@ def reanudar_encuesta(survey_id: int,
 
 
 
+# -------------------
+# ENDPOINT: Resultados de encuesta (Sponsor Dashboard)
+# -------------------
+
+@router.get("/{survey_id}/results", response_model=SurveyResultsOut)
+async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+
+    # Total participantes (usuarios únicos que votaron)
+    total_participants = (
+        db.query(Vote.user_id)
+        .filter(Vote.survey_id == survey_id)
+        .distinct()
+        .count()
+    )
+
+    # Total votos
+    total_votes = db.query(Vote).filter(Vote.survey_id == survey_id).count()
+
+    # Presupuesto gastado (ejemplo: cada voto cuesta 1.5)
+    spent_budget = total_votes * 1.5
+
+    # Opciones con conteo
+    options = []
+    for question in survey.questions:
+        for option in question.options:
+            votes_count = db.query(Vote).filter(Vote.option_id == option.id).count()
+            options.append({"text": option.text, "votes": votes_count})
+
+    # Timeline agrupado por fecha
+    timeline = []
+    rows = (
+        db.query(Vote.date, func.count(Vote.id))
+        .filter(Vote.survey_id == survey_id)
+        .group_by(Vote.date)
+        .all()
+    )
+    for date, count in rows:
+        timeline.append({"date": str(date), "votes": count})
+
+    return {
+        "title": survey.title,
+        "active": survey.active,
+        "closed_reason": survey.closed_reason,
+        "total_participants": total_participants,
+        "total_votes": total_votes,
+        "spent_budget": spent_budget,
+        "options": options,
+        "timeline": timeline,
+    }
 
 
 
@@ -1497,7 +1554,7 @@ def get_all_surveys(db: Session = Depends(database.get_db)):
 # -------------------
 # Votar en encuesta
 # -------------------
-@router.post("/{survey_id}/vote")
+@router.post("/{survey_id}/vote", response_model=VoteResponse)
 def vote(
     survey_id: int,
     vote: schemas.VoteBatchCreate,
