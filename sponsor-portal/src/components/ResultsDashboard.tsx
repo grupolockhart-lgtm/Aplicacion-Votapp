@@ -34,18 +34,30 @@ interface ResultsData {
 export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
   const [results, setResults] = useState<ResultsData | null>(null);
 
-  useEffect(() => {
-    const fetchResults = async () => {
-      try {
-        const res = await fetch(`/api/surveys/${surveyId}/results`);
-        const data = await res.json();
-        setResults(data);
-      } catch (err) {
-        console.error("Error cargando resultados:", err);
+useEffect(() => {
+  const fetchResults = async () => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/surveys/${surveyId}/results`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Error ${res.status}: ${text}`);
       }
-    };
-    fetchResults();
-  }, [surveyId]);
+
+      const data = await res.json();
+      setResults(data);
+    } catch (err) {
+      console.error("❌ Error cargando resultados:", err);
+    }
+  };
+  fetchResults();
+}, [surveyId]);
+
 
   if (!results) {
     return <Typography>Cargando resultados...</Typography>;
