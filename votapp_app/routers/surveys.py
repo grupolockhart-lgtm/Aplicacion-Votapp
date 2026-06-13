@@ -855,7 +855,7 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
 
     # Total participantes (usuarios únicos que votaron)
     total_participants = (
-        db.query(Vote.user_id)
+        db.query(Vote.usuario_id)
         .filter(Vote.survey_id == survey_id)
         .distinct()
         .count()
