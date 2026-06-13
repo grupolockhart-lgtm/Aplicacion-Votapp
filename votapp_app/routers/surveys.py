@@ -885,6 +885,7 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
     timeline = [{"date": str(r.fecha), "votes": r.votos} for r in rows]
 
     return {
+        "id": survey.id,   # 👈 agregar aquí
         "title": survey.title,
         "active": survey.active,
         "closed_reason": survey.closed_reason,

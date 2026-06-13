@@ -254,9 +254,7 @@ return (
           type="datetime-local"
           value={formData.fecha_expiracion}
           onChange={(e) => handleChange("fecha_expiracion", e.target.value)}
-          slotProps={{
-            inputLabel: { shrink: true },
-          }}
+          InputLabelProps={{ shrink: true }}   // 👈 reemplazo de slotProps
           fullWidth
           margin="normal"
         />

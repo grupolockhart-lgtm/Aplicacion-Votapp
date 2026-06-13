@@ -437,6 +437,7 @@ class TimelinePoint(BaseModel):
     votes: int
 
 class SurveyResultsOut(BaseModel):
+    id: int                     # 👈 nuevo campo
     title: str
     active: bool
     closed_reason: Optional[str]

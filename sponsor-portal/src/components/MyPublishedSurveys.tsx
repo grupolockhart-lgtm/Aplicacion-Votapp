@@ -105,7 +105,7 @@ const formatFecha = (fecha?: string) => {
 export default function MyPublishedSurveys({ user }: { user: User }) {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
-  const [movimientos, setMovimientos] = useState<Movimiento[]>(user.wallet?.movimientos ?? []);
+  const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const navigate = useNavigate();
 
 
@@ -181,7 +181,7 @@ const fetchSurveys = async () => {
     fetchSurveys();
   }, []);
 
-  if (!user.wallet || movimientos.length === 0) {
+  if (movimientos.length === 0) {
     return <Typography>No tienes encuestas publicadas aún.</Typography>;
   }
 

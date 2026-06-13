@@ -526,7 +526,7 @@ async function handleSubmit(e: React.FormEvent) {
         margin="normal"
         value={fechaExpiracion}
         onChange={e => setFechaExpiracion(e.target.value)}
-        slotProps={{ inputLabel: { shrink: true } }}
+        InputLabelProps={{ shrink: true }}   // 👈 reemplazo de slotProps
         sx={{ mb: 2 }}
         />
 

@@ -1,0 +1,13 @@
+diff --git a/node_modules/@mui/material/internal/Transition.mjs b/node_modules/@mui/material/internal/Transition.mjs
+index bfcdc3b..5190a75 100644
+--- a/node_modules/@mui/material/internal/Transition.mjs
++++ b/node_modules/@mui/material/internal/Transition.mjs
+@@ -7,7 +7,7 @@ import useEnhancedEffect from '@mui/utils/useEnhancedEffect';
+ import useValueAsRef from '@mui/utils/useValueAsRef';
+ // Material UI transitions must still work inside react-transition-group's TransitionGroup.
+ // Import only its context module; do not import its Transition or TransitionGroup components.
+-import TransitionGroupContext from 'react-transition-group/TransitionGroupContext';
++import TransitionGroupContext from 'react-transition-group/TransitionGroupContext.js';
+ import { reflow } from "../transitions/utils.mjs";
+ import { jsx as _jsx } from "react/jsx-runtime";
+ function resolveTimeouts(timeout) {
