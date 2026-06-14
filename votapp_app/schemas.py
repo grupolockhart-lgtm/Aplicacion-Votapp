@@ -9,6 +9,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime, date
 from sqlalchemy.ext.declarative import declarative_base
 from typing import List, Optional, Literal
+from enum import Enum
 
 import json
 
@@ -444,11 +445,27 @@ class SurveyResultsOut(BaseModel):
     total_participants: int
     total_votes: int
     spent_budget: float
+    balance_restante: float              # 👈 nuevo campo
     options: List[OptionAggregate]
     timeline: List[TimelinePoint]
 
+    # 👇 nuevos campos para metadatos
+    fecha_creacion: Optional[str]
+    fecha_expiracion: Optional[str]
+    patrocinador: Optional[str]
+    visibilidad_resultados: Optional[str]
+
+     # 👇 nuevos campos para KPIs extendidos
+    presupuesto_total: Optional[float]
+    recompensa_dinero: Optional[float]
+    recompensa_puntos: Optional[int]   
+
     class Config:
         orm_mode = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat(),
+            Enum: lambda v: v.value,
+        }
 
 
 # -------------------

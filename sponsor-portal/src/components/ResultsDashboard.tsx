@@ -1,3 +1,8 @@
+
+// -------------------
+// Imports
+// -------------------
+
 import React, { useEffect, useState } from "react";
 import {
   Container,
@@ -9,6 +14,12 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { VictoryPie, VictoryLine, VictoryAxis, VictoryChart } from "victory";
+import { useNavigate } from "react-router-dom";
+
+
+// -------------------
+// Interfaces
+// -------------------
 
 interface Option {
   text: string;
@@ -28,6 +39,7 @@ interface ResultsData {
   total_participants: number;
   total_votes: number;
   spent_budget: number;
+  balance_restante: number;   // 👈 nuevo campo
   options: Option[];
   timeline: TimelinePoint[];
   // 👇 nuevos campos para metadatos
@@ -35,10 +47,47 @@ interface ResultsData {
   fecha_expiracion?: string;
   patrocinador?: string;
   visibilidad_resultados?: string;
+   // 👇 nuevos campos para KPIs extendidos
+  presupuesto_total?: number;
+  recompensa_dinero?: number;
+  recompensa_puntos?: number; 
 }
 
+// -------------------
+// Helper para formatear fecha
+// -------------------
+const formatFecha = (fecha?: string) => {
+  if (!fecha) return "Sin fecha";
+  try {
+    let fechaNormalizada = fecha;
+    if (!fecha.endsWith("Z") && !fecha.includes("+")) {
+      fechaNormalizada = fecha + "Z";
+    }
+    const parsed = new Date(fechaNormalizada);
+    return isNaN(parsed.getTime())
+      ? "Fecha inválida"
+      : parsed.toLocaleString("es-DO", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+  } catch {
+    return "Fecha inválida";
+  }
+};
+
+// -------------------
+// Componente principal
+// -------------------
 export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
   const [results, setResults] = useState<ResultsData | null>(null);
+  const navigate = useNavigate();
+
+  // -------------------
+  // Fetch resultados
+  // ------------------- 
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -71,6 +120,11 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
     return <Typography>Cargando resultados...</Typography>;
   }
 
+
+  // -------------------
+  // Helpers
+  // -------------------
+
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("es-DO", {
       style: "currency",
@@ -102,6 +156,12 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
     }
   };
 
+
+
+  // -------------------
+  // Render
+  // -------------------
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
       {/* Header */}
@@ -117,8 +177,8 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
       {/* -------------------
           Metadatos de la encuesta
       ------------------- */}
-      <Typography>Creada: {results.fecha_creacion || "N/D"}</Typography>
-      <Typography>Expira: {results.fecha_expiracion || "N/D"}</Typography>
+      <Typography>Creada: {formatFecha(results.fecha_creacion)}</Typography>
+      <Typography>Expira: {formatFecha(results.fecha_expiracion)}</Typography>
       <Typography>Patrocinador: {results.patrocinador || "N/D"}</Typography>
       <Typography>
         Visibilidad: {results.visibilidad_resultados || "N/D"}
@@ -129,9 +189,13 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
         </Typography>
       )}
 
-      {/* KPIs */}
+
+      {/* -------------------
+          KPIs extendidos
+      ------------------- */}
       <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={4}>
+        {/* Participantes */}
+        <Grid item xs={3}>
           <Card>
             <CardContent>
               <Typography variant="h6">Participantes</Typography>
@@ -139,7 +203,9 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={4}>
+
+        {/* Votos totales */}
+        <Grid item xs={3}>
           <Card>
             <CardContent>
               <Typography variant="h6">Votos totales</Typography>
@@ -147,7 +213,9 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={4}>
+
+        {/* Presupuesto gastado */}
+        <Grid item xs={3}>
           <Card>
             <CardContent>
               <Typography variant="h6">Presupuesto gastado</Typography>
@@ -157,7 +225,73 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
             </CardContent>
           </Card>
         </Grid>
+
+        {/* Presupuesto total */}
+        <Grid item xs={3}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Presupuesto total</Typography>
+              <Typography variant="h4">
+                {formatCurrency(results.presupuesto_total || 0)}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Balance restante */}
+        <Grid item xs={3}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Balance restante</Typography>
+              <Typography variant="h4">
+                {formatCurrency(results.balance_restante)}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+
+        {/* Recompensa */}
+        <Grid item xs={3}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Recompensa</Typography>
+              <Typography variant="body1">
+                💵 {results.recompensa_dinero || 0} DOP
+              </Typography>
+              <Typography variant="body1">
+                ⭐ {results.recompensa_puntos || 0} pts
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Costo promedio */}
+        <Grid item xs={3}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Costo promedio</Typography>
+              <Typography variant="body2">
+                Por voto:{" "}
+                {results.total_votes > 0
+                  ? formatCurrency(results.spent_budget / results.total_votes)
+                  : "N/D"}
+              </Typography>
+              <Typography variant="body2">
+                Por participante:{" "}
+                {results.total_participants > 0
+                  ? formatCurrency(results.spent_budget / results.total_participants)
+                  : "N/D"}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
+
+
+      {/* -------------------
+          Gráficas
+      ------------------- */}
 
       {/* Gráficas */}
       <Grid container spacing={3} sx={{ mt: 4 }}>
@@ -190,6 +324,11 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
         </Grid>
       </Grid>
 
+
+      {/* -------------------
+          Acciones
+      ------------------- */}
+
       {/* Acciones */}
       <Button variant="contained" sx={{ mt: 3 }} onClick={exportCSV}>
         Exportar CSV
@@ -197,6 +336,20 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
       <Button variant="outlined" sx={{ mt: 3, ml: 2 }} onClick={shareResults}>
         Compartir resultados
       </Button>
+
+      {/* -------------------
+          Botón volver
+      ------------------- */}
+      <Button
+        variant="outlined"
+        color="primary"
+        sx={{ mt: 3 }}
+        onClick={() => navigate("/dashboard", { state: { tab: 1 } })}
+      >
+        ← Volver a mis encuestas publicadas
+      </Button>
+
+
     </Container>
   );
 }

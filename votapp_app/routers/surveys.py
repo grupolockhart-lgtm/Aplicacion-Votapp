@@ -864,8 +864,18 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
     # Total votos
     total_votes = db.query(Vote).filter(Vote.survey_id == survey_id).count()
 
-    # Presupuesto gastado (ejemplo: cada voto cuesta 1.5)
-    spent_budget = total_votes * 1.5
+    # Presupuesto gastado basado en recompensa
+    if survey.recompensa_dinero and survey.recompensa_dinero > 0:
+        spent_budget = total_votes * survey.recompensa_dinero
+    elif survey.recompensa_puntos and survey.recompensa_puntos > 0:
+        # si decides convertir puntos a dinero, define la tasa
+        spent_budget = total_votes * (survey.recompensa_puntos * 0.1)  # ejemplo
+    else:
+        # si no hay recompensa definida, se considera 0
+        spent_budget = 0
+
+    # Balance restante (evita negativos)
+    balance_restante = max((survey.presupuesto_total or 0) - spent_budget, 0)
 
     # Opciones con conteo
     options = []
@@ -892,12 +902,19 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
         "total_participants": total_participants,
         "total_votes": total_votes,
         "spent_budget": spent_budget,
+        "balance_restante": balance_restante,   # 👈 ahora sí lo devuelves
         "options": options,
         "timeline": timeline,
         "fecha_creacion": survey.fecha_creacion.isoformat() if survey.fecha_creacion else None,
         "fecha_expiracion": survey.fecha_expiracion.isoformat() if survey.fecha_expiracion else None,
         "patrocinador": survey.patrocinador,
         "visibilidad_resultados": survey.visibilidad_resultados.value if survey.visibilidad_resultados else None,
+        # 👇 nuevos campos para KPIs extendidos
+        "presupuesto_total": survey.presupuesto_total,
+        "recompensa_dinero": survey.recompensa_dinero,
+        "recompensa_puntos": survey.recompensa_puntos,
+
+
     }
 
 
@@ -1715,17 +1732,23 @@ def vote(
             db.add(movimiento_egreso)
 
     
-        # Validación de presupuesto y cierre automático
-        
+
+        # 👇 Descuento de presupuesto proporcional al número de respuestas
         survey.presupuesto_total = survey.presupuesto_total or 0
         recompensa_dinero = survey.recompensa_dinero or 0
-        survey.presupuesto_total -= recompensa_dinero
-        if survey.presupuesto_total <= 0:
+        survey.presupuesto_total -= recompensa_dinero * len(vote.answers)
+
+        # 👇 Validar gasto acumulado contra presupuesto inicial
+        total_votes = db.query(models.Vote).filter(models.Vote.survey_id == survey.id).count()
+        spent_budget = total_votes * recompensa_dinero
+
+        if spent_budget >= (survey.presupuesto_total or 0):
             survey.presupuesto_total = 0
             survey.active = False
             survey.closed_at = datetime.utcnow()
             survey.closed_reason = "funds"
             logging.warning(f"💰 Encuesta {survey.id} cerrada automáticamente por presupuesto agotado")
+
 
 
     # -------------------

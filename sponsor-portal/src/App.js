@@ -36,6 +36,18 @@ function App() {
             }
           />
 
+          {/* 👉 Nueva ruta explícita para dashboard */}
+          <Route
+            path="/dashboard"
+            element={
+              isLoggedIn ? (
+                <Dashboard onLogout={handleLogout} />
+              ) : (
+                <Login onLogin={handleLogin} />
+              )
+            }
+          />
+
           {/* Ruta para encuestas publicadas */}
           <Route
             path="/surveys"
@@ -46,9 +58,11 @@ function App() {
             }
           />
 
-          {/* 👉 Nueva ruta para resultados */}
-          <Route path="/surveys/web/:survey_id/results" element={<ResultsPage />} />
-          {/* 👆 usa survey_id porque en ResultsPage.tsx lees { survey_id } con useParams */}
+          {/* Ruta para resultados */}
+          <Route
+            path="/surveys/web/:survey_id/results"
+            element={<ResultsPage />}
+          />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
@@ -56,3 +70,4 @@ function App() {
 }
 
 export default App;
+

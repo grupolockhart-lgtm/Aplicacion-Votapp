@@ -30,7 +30,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-
+import { useLocation } from "react-router-dom";
 
 // -------------------
 // Interfaces
@@ -117,6 +117,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   const [tab, setTab] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
 
+  const location = useLocation(); // 👈 para leer el state
 
   // -------------------
   // Refresh user
@@ -138,6 +139,13 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   useEffect(() => {
     refreshUser();
   }, []);
+
+   // 👇 nuevo efecto para abrir la pestaña correcta
+  useEffect(() => {
+    if (location.state?.tab !== undefined) {
+      setTab(location.state.tab);
+    }
+  }, [location.state]); 
 
   if (!user) return <p>Cargando...</p>;
 
