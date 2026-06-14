@@ -894,12 +894,12 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
         "spent_budget": spent_budget,
         "options": options,
         "timeline": timeline,
-        # 👇 nuevos campos
-        "fecha_creacion": str(survey.fecha_creacion) if survey.fecha_creacion else None,
-        "fecha_expiracion": str(survey.fecha_expiracion) if survey.fecha_expiracion else None,
+        "fecha_creacion": survey.fecha_creacion.isoformat() if survey.fecha_creacion else None,
+        "fecha_expiracion": survey.fecha_expiracion.isoformat() if survey.fecha_expiracion else None,
         "patrocinador": survey.patrocinador,
-        "visibilidad_resultados": survey.visibilidad_resultados,
+        "visibilidad_resultados": survey.visibilidad_resultados.value if survey.visibilidad_resultados else None,
     }
+
 
 
 
