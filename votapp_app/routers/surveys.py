@@ -877,12 +877,18 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
     # Balance restante (evita negativos)
     balance_restante = max((survey.presupuesto_total or 0) - spent_budget, 0)
 
-    # Opciones con conteo
-    options = []
+    # Resultados agrupados por pregunta
+    questions_results = []
     for question in survey.questions:
+        options = []
         for option in question.options:
             votes_count = db.query(Vote).filter(Vote.option_id == option.id).count()
             options.append({"text": option.text, "votes": votes_count})
+        questions_results.append({
+            "id": question.id,
+            "text": question.text,
+            "options": options
+        })
 
     # Timeline agrupado por fecha (usando creado_en)
     rows = (
@@ -902,20 +908,18 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
         "total_participants": total_participants,
         "total_votes": total_votes,
         "spent_budget": spent_budget,
-        "balance_restante": balance_restante,   # 👈 ahora sí lo devuelves
-        "options": options,
+        "balance_restante": balance_restante,
+        "questions": questions_results,   # 👈 ahora agrupado por pregunta
         "timeline": timeline,
         "fecha_creacion": survey.fecha_creacion.isoformat() if survey.fecha_creacion else None,
         "fecha_expiracion": survey.fecha_expiracion.isoformat() if survey.fecha_expiracion else None,
         "patrocinador": survey.patrocinador,
         "visibilidad_resultados": survey.visibilidad_resultados.value if survey.visibilidad_resultados else None,
-        # 👇 nuevos campos para KPIs extendidos
         "presupuesto_total": survey.presupuesto_total,
         "recompensa_dinero": survey.recompensa_dinero,
         "recompensa_puntos": survey.recompensa_puntos,
-
-
     }
+
 
 
 

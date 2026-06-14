@@ -26,6 +26,12 @@ interface Option {
   votes: number;
 }
 
+interface Question {
+  id: number;
+  text: string;
+  options: Option[];
+}
+
 interface TimelinePoint {
   date: string;
   votes: number;
@@ -40,7 +46,7 @@ interface ResultsData {
   total_votes: number;
   spent_budget: number;
   balance_restante: number;   // 👈 nuevo campo
-  options: Option[];
+  questions: Question[];   // 👈 ahora agrupado por pregunta
   timeline: TimelinePoint[];
   // 👇 nuevos campos para metadatos
   fecha_creacion?: string;
@@ -120,7 +126,6 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
     return <Typography>Cargando resultados...</Typography>;
   }
 
-
   // -------------------
   // Helpers
   // -------------------
@@ -132,13 +137,22 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
     }).format(value);
 
   const exportCSV = () => {
-    const rows = [
-      ["Opción", "Votos"],
-      ...results.options.map((opt) => [opt.text, opt.votes.toString()]),
-    ];
+    if (!results?.questions) {
+      alert("No hay preguntas para exportar");
+      return;
+    }
+
+    const rows = [["Pregunta", "Opción", "Votos"]];
+    results.questions.forEach((q) => {
+      q.options.forEach((opt) => {
+        rows.push([q.text, opt.text, opt.votes.toString()]);
+      });
+    });
+
     const csvContent =
       "data:text/csv;charset=utf-8," +
       rows.map((r) => r.join(",")).join("\n");
+
     const link = document.createElement("a");
     link.href = encodeURI(csvContent);
     link.download = `resultados_encuesta_${surveyId}.csv`;
@@ -292,35 +306,46 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
       {/* -------------------
           Gráficas
       ------------------- */}
-
-      {/* Gráficas */}
       <Grid container spacing={3} sx={{ mt: 4 }}>
-        <Grid item xs={6}>
-          <Typography variant="h6">Distribución por opciones</Typography>
-          <VictoryPie
-            data={results.options.map((opt) => ({
-              x: opt.text,
-              y: opt.votes,
-            }))}
-            colorScale={["#2196F3", "#4CAF50", "#FF9800", "#F44336"]}
-            style={{ data: { stroke: "#fff", strokeWidth: 2 } }}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <Typography variant="h6">Evolución temporal</Typography>
-          <VictoryChart>
-            <VictoryLine
-              data={results.timeline.map((t) => ({
-                x: new Date(t.date),
-                y: t.votes,
-              }))}
-              style={{ data: { stroke: "#2196F3", strokeWidth: 2 } }}
-            />
-            <VictoryAxis
-              tickFormat={(t) => new Date(t).toLocaleDateString("es-DO")}
-            />
-            <VictoryAxis dependentAxis />
-          </VictoryChart>
+        {results.questions?.map((q) => (
+          <Grid item xs={12} md={6} key={q.id}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6">{q.text}</Typography>
+                <VictoryPie
+                  data={q.options.map((opt) => ({
+                    x: opt.text,
+                    y: opt.votes,
+                  }))}
+                  colorScale={["#2196F3", "#4CAF50", "#FF9800", "#F44336", "#9C27B0", "#00BCD4"]}
+                  style={{ data: { stroke: "#fff", strokeWidth: 2 } }}
+                  labels={({ datum }) => `${datum.x}: ${datum.y}`}
+                />
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+
+        {/* Evolución temporal */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Evolución temporal</Typography>
+              <VictoryChart>
+                <VictoryLine
+                  data={results.timeline.map((t) => ({
+                    x: new Date(t.date),
+                    y: t.votes,
+                  }))}
+                  style={{ data: { stroke: "#2196F3", strokeWidth: 2 } }}
+                />
+                <VictoryAxis
+                  tickFormat={(t) => new Date(t).toLocaleDateString("es-DO")}
+                />
+                <VictoryAxis dependentAxis />
+              </VictoryChart>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
 
