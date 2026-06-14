@@ -1733,21 +1733,25 @@ def vote(
 
     
 
-        # 👇 Descuento de presupuesto proporcional al número de respuestas
-        survey.presupuesto_total = survey.presupuesto_total or 0
+        # Guardar presupuesto inicial antes de descontar
+        presupuesto_inicial = survey.presupuesto_total or 0
         recompensa_dinero = survey.recompensa_dinero or 0
+
+        # Descuento proporcional
         survey.presupuesto_total -= recompensa_dinero * len(vote.answers)
 
-        # 👇 Validar gasto acumulado contra presupuesto inicial
+        # Calcular gasto acumulado
         total_votes = db.query(models.Vote).filter(models.Vote.survey_id == survey.id).count()
         spent_budget = total_votes * recompensa_dinero
 
-        if spent_budget >= (survey.presupuesto_total or 0):
+        # Validar contra presupuesto inicial
+        if spent_budget >= presupuesto_inicial:
             survey.presupuesto_total = 0
             survey.active = False
             survey.closed_at = datetime.utcnow()
             survey.closed_reason = "funds"
             logging.warning(f"💰 Encuesta {survey.id} cerrada automáticamente por presupuesto agotado")
+
 
 
 
