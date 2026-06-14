@@ -895,7 +895,7 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
         "options": options,
         "timeline": timeline,
         # 👇 nuevos campos
-        "fecha_creacion": str(survey.creado_en) if survey.creado_en else None,
+        "fecha_creacion": str(survey.fecha_creacion) if survey.fecha_creacion else None,
         "fecha_expiracion": str(survey.fecha_expiracion) if survey.fecha_expiracion else None,
         "patrocinador": survey.patrocinador,
         "visibilidad_resultados": survey.visibilidad_resultados,
