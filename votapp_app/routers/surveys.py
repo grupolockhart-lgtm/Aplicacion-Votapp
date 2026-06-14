@@ -1752,7 +1752,8 @@ def vote(
             survey.closed_reason = "funds"
             logging.warning(f"💰 Encuesta {survey.id} cerrada automáticamente por presupuesto agotado")
 
-
+        db.commit()
+        db.refresh(survey)
 
 
     # -------------------
