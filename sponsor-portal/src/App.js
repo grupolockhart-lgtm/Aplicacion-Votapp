@@ -39,11 +39,16 @@ function App() {
           {/* Ruta para encuestas publicadas */}
           <Route
             path="/surveys"
-            element={<MyPublishedSurveys user={{ id: 1, nombre: "Sidney", rol: "sponsor", wallet: null }} />}
+            element={
+              <MyPublishedSurveys
+                user={{ id: 1, nombre: "Sidney", rol: "sponsor", wallet: null }}
+              />
+            }
           />
 
           {/* 👉 Nueva ruta para resultados */}
-          <Route path="/surveys/web/:id/results" element={<ResultsPage />} />
+          <Route path="/surveys/web/:survey_id/results" element={<ResultsPage />} />
+          {/* 👆 usa survey_id porque en ResultsPage.tsx lees { survey_id } con useParams */}
         </Routes>
       </BrowserRouter>
     </AuthProvider>

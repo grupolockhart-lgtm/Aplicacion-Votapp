@@ -7,7 +7,7 @@ import {
   Button,
   Chip,
 } from "@mui/material";
-import Grid from "@mui/material/Grid"; // 👈 Grid clásico
+import Grid from "@mui/material/Grid";
 import { VictoryPie, VictoryLine, VictoryAxis, VictoryChart } from "victory";
 
 interface Option {
@@ -21,6 +21,7 @@ interface TimelinePoint {
 }
 
 interface ResultsData {
+  id: number;
   title: string;
   active: boolean;
   closed_reason?: string;
@@ -29,48 +30,53 @@ interface ResultsData {
   spent_budget: number;
   options: Option[];
   timeline: TimelinePoint[];
+  // 👇 nuevos campos para metadatos
+  fecha_creacion?: string;
+  fecha_expiracion?: string;
+  patrocinador?: string;
+  visibilidad_resultados?: string;
 }
 
 export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
   const [results, setResults] = useState<ResultsData | null>(null);
 
-useEffect(() => {
-  const fetchResults = async () => {
-    try {
-      const res = await fetch(`http://localhost:8000/api/surveys/web/${surveyId}/results`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+  useEffect(() => {
+    const fetchResults = async () => {
+      try {
+        const res = await fetch(
+          `http://localhost:8000/api/surveys/web/${surveyId}/results`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Error ${res.status}: ${text}`);
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Error ${res.status}: ${text}`);
+        }
+
+        const data = await res.json();
+        setResults(data);
+      } catch (err) {
+        console.error("❌ Error cargando resultados:", err);
       }
-
-      const data = await res.json();
-      setResults(data);
-    } catch (err) {
-      console.error("❌ Error cargando resultados:", err);
-    }
-  };
-  fetchResults();
-}, [surveyId]);
-
+    };
+    fetchResults();
+  }, [surveyId]);
 
   if (!results) {
     return <Typography>Cargando resultados...</Typography>;
   }
 
-  // 👉 Formateo de moneda
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("es-DO", {
       style: "currency",
       currency: "DOP",
     }).format(value);
 
-  // 👉 Exportar CSV
   const exportCSV = () => {
     const rows = [
       ["Opción", "Votos"],
@@ -85,7 +91,6 @@ useEffect(() => {
     link.click();
   };
 
-  // 👉 Compartir resultados
   const shareResults = async () => {
     try {
       await navigator.clipboard.writeText(
@@ -109,9 +114,24 @@ useEffect(() => {
         sx={{ mb: 2 }}
       />
 
+      {/* -------------------
+          Metadatos de la encuesta
+      ------------------- */}
+      <Typography>Creada: {results.fecha_creacion || "N/D"}</Typography>
+      <Typography>Expira: {results.fecha_expiracion || "N/D"}</Typography>
+      <Typography>Patrocinador: {results.patrocinador || "N/D"}</Typography>
+      <Typography>
+        Visibilidad: {results.visibilidad_resultados || "N/D"}
+      </Typography>
+      {!results.active && results.closed_reason && (
+        <Typography color="error">
+          Motivo de cierre: {results.closed_reason}
+        </Typography>
+      )}
+
       {/* KPIs */}
       <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={4} {...({} as any)}>
+        <Grid item xs={4}>
           <Card>
             <CardContent>
               <Typography variant="h6">Participantes</Typography>
@@ -119,7 +139,7 @@ useEffect(() => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={4} {...({} as any)}>
+        <Grid item xs={4}>
           <Card>
             <CardContent>
               <Typography variant="h6">Votos totales</Typography>
@@ -127,7 +147,7 @@ useEffect(() => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={4} {...({} as any)}>
+        <Grid item xs={4}>
           <Card>
             <CardContent>
               <Typography variant="h6">Presupuesto gastado</Typography>
@@ -141,7 +161,7 @@ useEffect(() => {
 
       {/* Gráficas */}
       <Grid container spacing={3} sx={{ mt: 4 }}>
-        <Grid item xs={6} {...({} as any)}>
+        <Grid item xs={6}>
           <Typography variant="h6">Distribución por opciones</Typography>
           <VictoryPie
             data={results.options.map((opt) => ({
@@ -152,7 +172,7 @@ useEffect(() => {
             style={{ data: { stroke: "#fff", strokeWidth: 2 } }}
           />
         </Grid>
-        <Grid item xs={6} {...({} as any)}>
+        <Grid item xs={6}>
           <Typography variant="h6">Evolución temporal</Typography>
           <VictoryChart>
             <VictoryLine

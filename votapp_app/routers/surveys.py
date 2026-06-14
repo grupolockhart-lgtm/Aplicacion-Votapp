@@ -885,7 +885,7 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
     timeline = [{"date": str(r.fecha), "votes": r.votos} for r in rows]
 
     return {
-        "id": survey.id,   # 👈 agregar aquí
+        "id": survey.id,
         "title": survey.title,
         "active": survey.active,
         "closed_reason": survey.closed_reason,
@@ -894,6 +894,11 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
         "spent_budget": spent_budget,
         "options": options,
         "timeline": timeline,
+        # 👇 nuevos campos
+        "fecha_creacion": str(survey.creado_en) if survey.creado_en else None,
+        "fecha_expiracion": str(survey.fecha_expiracion) if survey.fecha_expiracion else None,
+        "patrocinador": survey.patrocinador,
+        "visibilidad_resultados": survey.visibilidad_resultados,
     }
 
 
