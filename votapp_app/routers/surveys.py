@@ -1,7 +1,7 @@
 
 # votapp_app/routers/surveys.py
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
@@ -842,47 +842,75 @@ def reanudar_encuesta(survey_id: int,
     return to_survey_out(encuesta)   # 👈 aquí también
 
 
-
 # -------------------
 # ENDPOINT: Resultados de encuesta (Sponsor Dashboard - WEB)
 # -------------------
 
 @router.get("/web/{survey_id}/results", response_model=SurveyResultsOut)
-async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
+async def get_survey_results(
+    survey_id: int,
+    sexo: list[str] = Query(None),
+    ciudad: list[str] = Query(None),
+    ocupacion: list[str] = Query(None),
+    profesion: list[str] = Query(None),
+    nivel_educativo: list[str] = Query(None),
+    religion: list[str] = Query(None),
+    nacionalidad: list[str] = Query(None),
+    estado_civil: list[str] = Query(None),
+    db: Session = Depends(get_db),
+):
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey:
         raise HTTPException(status_code=404, detail="Survey not found")
 
-    # Total participantes (usuarios únicos que votaron)
-    total_participants = (
-        db.query(Vote.usuario_id)
+    # Base query con JOIN a Usuario
+    base_query = (
+        db.query(Vote)
+        .join(Usuario, Usuario.id == Vote.usuario_id)
         .filter(Vote.survey_id == survey_id)
-        .distinct()
-        .count()
     )
 
-    # Total votos
-    total_votes = db.query(Vote).filter(Vote.survey_id == survey_id).count()
+    # Aplicar filtros dinámicos
+    if sexo:
+        base_query = base_query.filter(Usuario.sexo.in_(sexo))
+    if ciudad:
+        base_query = base_query.filter(Usuario.ciudad.in_(ciudad))
+    if ocupacion:
+        base_query = base_query.filter(Usuario.ocupacion.in_(ocupacion))
+    if profesion:
+        base_query = base_query.filter(Usuario.profesion.in_(profesion))
+    if nivel_educativo:
+        base_query = base_query.filter(Usuario.nivel_educativo.in_(nivel_educativo))
+    if religion:
+        base_query = base_query.filter(Usuario.religion.in_(religion))
+    if nacionalidad:
+        base_query = base_query.filter(Usuario.nacionalidad.in_(nacionalidad))
+    if estado_civil:
+        base_query = base_query.filter(Usuario.estado_civil.in_(estado_civil))
+
+    # Total participantes (usuarios únicos filtrados)
+    total_participants = base_query.with_entities(Vote.usuario_id).distinct().count()
+
+    # Total votos filtrados
+    total_votes = base_query.count()
 
     # Presupuesto gastado basado en recompensa
     if survey.recompensa_dinero and survey.recompensa_dinero > 0:
         spent_budget = total_votes * survey.recompensa_dinero
     elif survey.recompensa_puntos and survey.recompensa_puntos > 0:
-        # si decides convertir puntos a dinero, define la tasa
         spent_budget = total_votes * (survey.recompensa_puntos * 0.1)  # ejemplo
     else:
-        # si no hay recompensa definida, se considera 0
         spent_budget = 0
 
-    # Balance restante (evita negativos)
+    # Balance restante
     balance_restante = max((survey.presupuesto_total or 0) - spent_budget, 0)
 
-    # Resultados agrupados por pregunta
+    # Resultados agrupados por pregunta (filtrados)
     questions_results = []
     for question in survey.questions:
         options = []
         for option in question.options:
-            votes_count = db.query(Vote).filter(Vote.option_id == option.id).count()
+            votes_count = base_query.filter(Vote.option_id == option.id).count()
             options.append({"text": option.text, "votes": votes_count})
         questions_results.append({
             "id": question.id,
@@ -890,15 +918,91 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
             "options": options
         })
 
-    # Timeline agrupado por fecha (usando creado_en)
+    # Timeline extendido: incluye días sin votos
     rows = (
-        db.query(func.date(Vote.creado_en).label("fecha"), func.count(Vote.id).label("votos"))
-        .filter(Vote.survey_id == survey_id)
+        base_query.with_entities(func.date(Vote.creado_en), func.count(Vote.id))
         .group_by(func.date(Vote.creado_en))
         .order_by(func.date(Vote.creado_en))
         .all()
     )
-    timeline = [{"date": str(r.fecha), "votes": r.votos} for r in rows]
+    votes_by_date = {str(r[0]): r[1] for r in rows}
+
+    start_date = survey.fecha_creacion.date() if survey.fecha_creacion else None
+    end_date = survey.fecha_expiracion.date() if survey.fecha_expiracion else None
+
+    timeline = []
+    if start_date and end_date:
+        current = start_date
+        while current <= end_date:
+            date_str = str(current)
+            timeline.append({
+                "date": date_str,
+                "votes": votes_by_date.get(date_str, 0)  # 0 si no hubo votos
+            })
+            current += timedelta(days=1)
+
+    # Timeline de participantes únicos (respetando filtros)
+    rows_participants = (
+        base_query.with_entities(func.date(Vote.creado_en), func.count(func.distinct(Vote.usuario_id)))
+        .group_by(func.date(Vote.creado_en))
+        .order_by(func.date(Vote.creado_en))
+        .all()
+    )
+    participants_by_date = {r[0].isoformat(): r[1] for r in rows_participants}
+
+    timeline_participants = []
+    if start_date and end_date:
+        current = start_date
+        while current <= end_date:
+            date_str = current.isoformat()  # 👈 mismo formato
+            timeline_participants.append({
+                "date": date_str,
+                "participants": participants_by_date.get(date_str, 0)
+            })
+            current += timedelta(days=1)
+
+
+
+
+
+
+
+
+    # Helper para convertir string JSON → lista
+    import json
+    def parse_list_field(value):
+        if not value:
+            return []
+        if isinstance(value, list):
+            return value
+        try:
+            return json.loads(value)
+        except Exception:
+            return []
+
+    # -------------------
+    # Segmentación real de votos (JOIN con Usuario)
+    # -------------------
+    def build_segment(field):
+        rows = (
+            db.query(getattr(Usuario, field), func.count(Vote.id))
+            .join(Usuario, Usuario.id == Vote.usuario_id)
+            .filter(Vote.survey_id == survey_id)
+            .group_by(getattr(Usuario, field))
+            .all()
+        )
+        return [{"segment": r[0], "votes": r[1]} for r in rows if r[0]]
+
+    segmentacion_votos = {
+        "sexo": build_segment("sexo"),
+        "ciudad": build_segment("ciudad"),
+        "ocupacion": build_segment("ocupacion"),
+        "profesion": build_segment("profesion"),
+        "nivel_educativo": build_segment("nivel_educativo"),
+        "religion": build_segment("religion"),
+        "nacionalidad": build_segment("nacionalidad"),
+        "estado_civil": build_segment("estado_civil"),
+    }
 
     return {
         "id": survey.id,
@@ -909,8 +1013,9 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
         "total_votes": total_votes,
         "spent_budget": spent_budget,
         "balance_restante": balance_restante,
-        "questions": questions_results,   # 👈 ahora agrupado por pregunta
+        "questions": questions_results,
         "timeline": timeline,
+        "timeline_participants": timeline_participants,  # 👈 nuevo
         "fecha_creacion": survey.fecha_creacion.isoformat() if survey.fecha_creacion else None,
         "fecha_expiracion": survey.fecha_expiracion.isoformat() if survey.fecha_expiracion else None,
         "patrocinador": survey.patrocinador,
@@ -918,7 +1023,21 @@ async def get_survey_results(survey_id: int, db: Session = Depends(get_db)):
         "presupuesto_total": survey.presupuesto_total,
         "recompensa_dinero": survey.recompensa_dinero,
         "recompensa_puntos": survey.recompensa_puntos,
+
+        # Segmentación aplicada (informativa)
+        "sexo": parse_list_field(survey.sexo),
+        "ciudad": parse_list_field(survey.ciudad),
+        "ocupacion": parse_list_field(survey.ocupacion),
+        "profesion": parse_list_field(survey.profesion),
+        "nivel_educativo": parse_list_field(survey.nivel_educativo),
+        "religion": parse_list_field(survey.religion),
+        "nacionalidad": parse_list_field(survey.nacionalidad),
+        "estado_civil": parse_list_field(survey.estado_civil),
+
+        # Segmentación real de votos
+        "segmentacion_votos": segmentacion_votos,
     }
+
 
 
 

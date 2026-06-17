@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { getMe } from "../services/api";
 import CreateSurvey from "./CreateSurvey";
 import MyPublishedSurveys from "./MyPublishedSurveys";
-
+import Layout from "./Layout";
 
 // -------------------
 // Material UI
@@ -159,58 +159,14 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     onLogout();
   };
 
-
 // -------------------
 // Render principal
 // -------------------
-
 return (
-  <div>
-
-    {/* -------------------
-        Header
-    ------------------- */}
-
-    {/* Header */}
-    <AppBar position="static" color="default" sx={{ mb: 3 }}>
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <img
-            src="/assets/logo.png"
-            alt="Logo Votapp"
-            style={{ height: 90 }}
-          />
-        </Box>
-
-        {user.rol === "sponsor" && user.wallet && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Typography variant="body1">
-              Bienvenido, {user.nombre} ({user.rol})
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ display: "flex", alignItems: "center", gap: 1 }}
-            >
-              <AccountBalanceWalletIcon fontSize="small" />
-              Balance: {user.wallet.balance}
-            </Typography>
-            <Button
-              color="inherit"
-              startIcon={<LogoutIcon />}
-              onClick={() => setOpenDialog(true)}
-            >
-              Cerrar sesión
-            </Button>
-          </Box>
-        )}
-      </Toolbar>
-    </AppBar>
-
-
+  <Layout user={user} onLogout={() => setOpenDialog(true)}>
     {/* -------------------
         Diálogo de confirmación
     ------------------- */}
-    {/* Diálogo de confirmación */}
     <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
       <DialogTitle>Confirmar cierre de sesión</DialogTitle>
       <DialogContent>
@@ -224,43 +180,34 @@ return (
       </DialogActions>
     </Dialog>
 
-
     {/* -------------------
         Tabs
     ------------------- */}
-    {/* Tabs */}
     {user.rol === "sponsor" && user.wallet ? (
       <>
-      <Tabs
-        value={tab}
-        onChange={(e, newVal) => setTab(newVal)}
-        sx={{ mb: 3 }}
-      >
-        <Tab label="Crear encuesta" />
-        <Tab label="Mis encuestas publicadas" /> {/* 👈 nueva pestaña */}
-      </Tabs>
-
+        <Tabs
+          value={tab}
+          onChange={(e, newVal) => setTab(newVal)}
+          sx={{ mb: 3 }}
+        >
+          <Tab label="Crear encuesta" />
+          <Tab label="Mis encuestas publicadas" />
+        </Tabs>
 
         {/* -------------------
             Contenido de pestañas
         ------------------- */}
 
-        {/* -------------------
-            Tab 0 - Crear Encuestas
-        ------------------- */}
-
+        {/* Tab 0 - Crear Encuestas */}
         {tab === 0 && <CreateSurvey onCreated={refreshUser} />}
 
-
-        {/* -------------------
-            Tab 1 - Mis encuestas publicadas
-        ------------------- */}
+        {/* Tab 1 - Mis encuestas publicadas */}
         {tab === 1 && (
           <>
             <Typography variant="h5" sx={{ mb: 2 }}>
-              Encuestas patrocinadas (versión nueva)
+              Encuestas patrocinadas
             </Typography>
-            <MyPublishedSurveys user={user} /> {/* 👈 nueva implementación */}
+            <MyPublishedSurveys user={user} />
           </>
         )}
       </>
@@ -269,6 +216,6 @@ return (
         Este es tu panel de usuario. No tienes wallet ni encuestas patrocinadas.
       </p>
     )}
-  </div>
+  </Layout>
 );
 }

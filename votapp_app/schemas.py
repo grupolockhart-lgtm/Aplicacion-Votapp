@@ -8,7 +8,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime, date
 from sqlalchemy.ext.declarative import declarative_base
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict
 from enum import Enum
 
 import json
@@ -429,25 +429,43 @@ class SurveyResult(BaseModel):
 # -------------------
 # Resultados agregados (Sponsor Dashboard)
 # -------------------
-class OptionAggregate(BaseModel):
+class OptionOut(BaseModel):
     text: str
     votes: int
+
+class QuestionOut(BaseModel):
+    id: int
+    text: str
+    options: List[OptionOut]
 
 class TimelinePoint(BaseModel):
     date: str
     votes: int
 
+class TimelineParticipantsPoint(BaseModel):
+    date: str
+    participants: int    
+
+class SegmentacionItem(BaseModel):
+    segment: str
+    votes: int
+
 class SurveyResultsOut(BaseModel):
-    id: int                     # 👈 nuevo campo
+    id: int
     title: str
     active: bool
     closed_reason: Optional[str]
     total_participants: int
     total_votes: int
     spent_budget: float
-    balance_restante: float              # 👈 nuevo campo
-    options: List[OptionAggregate]
-    timeline: List[TimelinePoint]
+    balance_restante: float
+
+    # 👇 ahora agrupado por pregunta
+    questions: List[QuestionOut]
+
+    # 👇 timelines
+    timeline: List[TimelinePoint]                # votos
+    timeline_participants: List[TimelineParticipantsPoint]   # participantes únicos
 
     # 👇 nuevos campos para metadatos
     fecha_creacion: Optional[str]
@@ -455,10 +473,23 @@ class SurveyResultsOut(BaseModel):
     patrocinador: Optional[str]
     visibilidad_resultados: Optional[str]
 
-     # 👇 nuevos campos para KPIs extendidos
+    # 👇 nuevos campos para KPIs extendidos
     presupuesto_total: Optional[float]
     recompensa_dinero: Optional[float]
-    recompensa_puntos: Optional[int]   
+    recompensa_puntos: Optional[int]
+
+    # 👇 Segmentación aplicada
+    sexo: Optional[List[str]] = []
+    ciudad: Optional[List[str]] = []
+    ocupacion: Optional[List[str]] = []
+    profesion: Optional[List[str]] = []
+    nivel_educativo: Optional[List[str]] = []
+    religion: Optional[List[str]] = []
+    nacionalidad: Optional[List[str]] = []
+    estado_civil: Optional[List[str]] = []    
+
+    # 👇 Segmentación real de votos
+    segmentacion_votos: Optional[Dict[str, List[SegmentacionItem]]] = {}
 
     class Config:
         orm_mode = True

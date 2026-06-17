@@ -17,6 +17,12 @@ import {
   CardActions
 } from "@mui/material";
 
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+
+
 // -------------------
 // Interfaces
 // -------------------
@@ -373,103 +379,115 @@ const handleResumeSurvey = async (surveyId: number) => {
 
 
 
+// -------------------
+// return JSX
+// -------------------
+return (
+  <>
+    {/* -------------------
+        Grid de encuestas publicadas
+        ------------------- */}
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "1fr",          // 1 columna en móviles
+          sm: "1fr 1fr",      // 2 columnas en pantallas pequeñas/medianas
+          lg: "1fr 1fr 1fr"   // 3 columnas en pantallas grandes
+        },
+        gap: 3
+      }}
+    >
+      {[...movimientos]
+        .sort((a, b) => {
+          const fechaA = new Date(a.survey.fecha_creacion ?? "").getTime();
+          const fechaB = new Date(b.survey.fecha_creacion ?? "").getTime();
+          return fechaB - fechaA;
+        })
+        .filter((m) => !!m.survey)
+        .map((m) => {
+          console.log("Encuesta:", m.survey); // 👈 aquí ves el objeto completo en consola
 
-  // -------------------
-  // return JSX
-  // -------------------
-  return (
-    <>
-      {/* -------------------
-          Grid de encuestas publicadas
-          ------------------- */}
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
-        {[...movimientos]
-          .sort((a, b) => {
-            const fechaA = new Date(a.survey.fecha_creacion ?? "").getTime();
-            const fechaB = new Date(b.survey.fecha_creacion ?? "").getTime();
-            return fechaB - fechaA;
-          })
-          .filter((m) => !!m.survey)
-          .map((m) => {
-            console.log("Encuesta:", m.survey); // 👈 aquí ves el objeto completo en consola
+          return (
+            <Card key={m.id} sx={{ borderRadius: 2, boxShadow: 3 }}>
+              {/* -------------------
+                  Imagen principal resumida
+                  ------------------- */}
+              {m.survey.media_url && (
+                m.survey.media_url.endsWith(".mp4") ? (
+                  <CardMedia
+                    component="video"
+                    src={m.survey.media_url}
+                    controls
+                    height="140"
+                    sx={{ objectFit: "cover" }}
+                  />
+                ) : (
+                  <CardMedia
+                    component="img"
+                    image={m.survey.media_url}
+                    height="140"
+                    sx={{ objectFit: "cover" }}
+                  />
+                )
+              )}
 
-            return (
-              <Card key={m.id} sx={{ borderRadius: 2, boxShadow: 3 }}>
+              <CardContent>
                 {/* -------------------
-                    Imagen principal
+                    Título y estado
                     ------------------- */}
-                {m.survey.media_url && (
-                  m.survey.media_url.endsWith(".mp4") ? (
-                    <CardMedia
-                      component="video"
-                      src={m.survey.media_url}
-                      controls
-                      height="200"
-                      sx={{ objectFit: "cover" }}
-                    />
-                  ) : (
-                    <CardMedia
-                      component="img"
-                      image={m.survey.media_url}
-                      height="200"
-                      sx={{ objectFit: "cover" }}
-                    />
-                  )
-                )}
+                <Typography variant="h6" sx={{ fontWeight: "bold" }} gutterBottom>
+                  {m.survey.title}
+                </Typography>
 
-                <CardContent>
-                  {/* -------------------
-                      Título
-                      ------------------- */}
-                  <Typography variant="h5" sx={{ fontWeight: "bold" }} gutterBottom>
-                    {m.survey.title}
-                  </Typography>
-
-                  {/* -------------------
-                      Estado con Chip
-                      ------------------- */}
-                  <Chip
-                    label={
-                      m.survey.active
-                        ? new Date(m.survey.fecha_expiracion) < new Date()
-                          ? "⏰ Expirada"
-                          : "✅ Activa"
-                        : m.survey.closed_reason === "funds"
+                <Chip
+                  label={
+                    !m.survey.active
+                      ? m.survey.closed_reason === "funds"
                         ? "💸 Fondos agotados"
                         : m.survey.closed_reason === "paused"
                         ? "⏸️ Pausada"
                         : "🔒 Cerrada"
-                    }
-                    color={
-                      m.survey.active
-                        ? new Date(m.survey.fecha_expiracion) < new Date()
-                          ? "warning"
-                          : "success"
-                        : m.survey.closed_reason === "paused"
+                      : new Date(m.survey.fecha_expiracion) < new Date()
+                      ? "⏰ Expirada"
+                      : "✅ Activa"
+                  }
+                  color={
+                    !m.survey.active
+                      ? m.survey.closed_reason === "paused"
                         ? "warning"
                         : "error"
-                    }
-                    size="small"
-                    sx={{ mb: 2 }}
-                  />
+                      : new Date(m.survey.fecha_expiracion) < new Date()
+                      ? "warning"
+                      : "success"
+                  }
+                  size="small"
+                  sx={{ mb: 1 }}
+                />
 
-                  {/* -------------------
-                      Detalles en Grid
-                      ------------------- */}
-                  <Grid container spacing={2} {...({} as any)}>
-                    <Grid item xs={12} md={6} {...({} as any)}>
+                <Typography variant="body2" color="text.secondary">
+                  Creada: {m.survey.fecha_creacion ? formatFecha(m.survey.fecha_creacion) : "No registrada"} | Expira:{" "}
+                  {m.survey.fecha_expiracion ? formatFecha(m.survey.fecha_expiracion) : "No definida"}
+                </Typography>
+              </CardContent>
+
+              {/* -------------------
+                  Accordion para detalles
+                  ------------------- */}
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="body2">Ver más detalles</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  {/* Detalles en Grid */}
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
                       <Typography variant="body2">Descripción: {m.survey.description || "Sin descripción"}</Typography>
                       <Typography variant="body2">Monto invertido: {m.monto} tokens</Typography>
                       <Typography variant="body2">Presupuesto total: {m.survey.presupuesto_total}</Typography>
-                      <Typography variant="body2">
-                        Creada: {m.survey.fecha_creacion ? formatFecha(m.survey.fecha_creacion) : "No registrada"}
-                      </Typography>
-                      <Typography variant="body2">
-                        Expira: {m.survey.fecha_expiracion ? formatFecha(m.survey.fecha_expiracion) : "No definida"}
-                      </Typography>
                     </Grid>
 
-                    <Grid item xs={12} md={6} {...({} as any)}>
+                    <Grid item xs={12} md={6}>
                       <Typography variant="body2">Visibilidad: {m.survey.visibilidad_resultados}</Typography>
                       <Typography variant="body2">
                         Recompensa: {m.survey.recompensa_puntos ?? 0} puntos / {m.survey.recompensa_dinero ?? 0} tokens
@@ -479,19 +497,20 @@ const handleResumeSurvey = async (surveyId: number) => {
                     </Grid>
                   </Grid>
 
-                  {/* -------------------
-                      Fuente externa
-                      ------------------- */}
+                  {/* Fuente externa */}
                   {m.survey.source_url && (
                     <Typography variant="body2" sx={{ mt: 1 }}>
-                      Fuente: <a href={m.survey.source_url} target="_blank" rel="noopener noreferrer">{m.survey.source_url}</a>
+                      Fuente:{" "}
+                      <a href={m.survey.source_url} target="_blank" rel="noopener noreferrer">
+                        {m.survey.source_url}
+                      </a>
                     </Typography>
                   )}
 
-                  {/* -------------------
-                      Segmentación
-                      ------------------- */}
-                  <Typography variant="subtitle1" sx={{ mt: 2, fontWeight: "bold" }}>Segmentación:</Typography>
+                  {/* Segmentación */}
+                  <Typography variant="subtitle1" sx={{ mt: 2, fontWeight: "bold" }}>
+                    Segmentación:
+                  </Typography>
                   <ul style={{ margin: 0, paddingLeft: "1.2rem" }}>
                     <li>Sexo: {Array.isArray(m.survey.sexo) ? m.survey.sexo.join(", ") : m.survey.sexo || "Todos"}</li>
                     <li>Ciudades: {Array.isArray(m.survey.ciudad) ? m.survey.ciudad.join(", ") : m.survey.ciudad || "Todas"}</li>
@@ -503,60 +522,57 @@ const handleResumeSurvey = async (surveyId: number) => {
                     <li>Estado civil: {Array.isArray(m.survey.estado_civil) ? m.survey.estado_civil.join(", ") : m.survey.estado_civil || "Todos"}</li>
                   </ul>
 
-                  {/* -------------------
-                      Galería de media
-                      ------------------- */}
+                  {/* Galería de media */}
                   {m.survey.media_urls && m.survey.media_urls.length > 0 && (
                     <Box sx={{ mt: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>
                       {m.survey.media_urls.map((url, idx) =>
                         url.endsWith(".mp4") ? (
-                          <video
-                            key={idx}
-                            src={url}
-                            controls
-                            style={{ maxWidth: "200px", borderRadius: "4px" }}
-                          />
+                          <video key={idx} src={url} controls style={{ maxWidth: "200px", borderRadius: "4px" }} />
                         ) : (
-                          <img
-                            key={idx}
-                            src={url}
-                            alt={`Media ${idx + 1}`}
-                            style={{ maxWidth: "200px", borderRadius: "4px" }}
-                          />
+                          <img key={idx} src={url} alt={`Media ${idx + 1}`} style={{ maxWidth: "200px", borderRadius: "4px" }} />
                         )
                       )}
                     </Box>
                   )}
-                </CardContent>
+                </AccordionDetails>
+              </Accordion>
 
-                {/* -------------------
-                    Botones en CardActions
-                    ------------------- */}
-                <CardActions sx={{ justifyContent: "flex-end", px: 2, pb: 2 }}>
-                  <Button size="small" variant="outlined" onClick={() => handleEdit(m.survey)}>Editar</Button>
-                  {m.survey.active && new Date(m.survey.fecha_expiracion) >= new Date() && (
-                    <Button size="small" variant="outlined" color="warning" onClick={() => handlePauseSurvey(m.survey.id)}>Pausar</Button>
-                  )}
-                  {!m.survey.active && m.survey.closed_reason === "paused" && (
-                    <Button size="small" variant="outlined" color="success" onClick={() => handleResumeSurvey(m.survey.id)}>Reanudar</Button>
-                  )}
-                  <Button size="small" variant="contained" onClick={() => handleResults(m.survey.id)}>Ver resultados</Button>
-                </CardActions>
-              </Card>
-            );
-          })}
-      </Box>
+              {/* -------------------
+                  Botones en CardActions
+                  ------------------- */}
+              <CardActions sx={{ justifyContent: "flex-end", px: 2, pb: 2 }}>
+                <Button size="small" variant="outlined" onClick={() => handleEdit(m.survey)}>
+                  Editar
+                </Button>
+                {m.survey.active && new Date(m.survey.fecha_expiracion) >= new Date() && (
+                  <Button size="small" variant="outlined" color="warning" onClick={() => handlePauseSurvey(m.survey.id)}>
+                    Pausar
+                  </Button>
+                )}
+                {!m.survey.active && m.survey.closed_reason === "paused" && (
+                  <Button size="small" variant="outlined" color="success" onClick={() => handleResumeSurvey(m.survey.id)}>
+                    Reanudar
+                  </Button>
+                )}
+                <Button size="small" variant="contained" onClick={() => handleResults(m.survey.id)}>
+                  Ver resultados
+                </Button>
+              </CardActions>
+            </Card>
+          );
+        })}
+    </Box>
 
-      {/* -------------------
-          Diálogo de edición
-          ------------------- */}
-      <SurveyEditDialog
-        open={openEditDialog}
-        survey={selectedSurvey}
-        onClose={() => setOpenEditDialog(false)}
-        onSave={handleSaveSurvey}
-        walletBalance={user.wallet?.balance ?? 0}
-      />
-    </>
-  ); // 👈 cierre del return
-}   // 👈 cierre de la función
+    {/* -------------------
+        Diálogo de edición
+        ------------------- */}
+    <SurveyEditDialog
+      open={openEditDialog}
+      survey={selectedSurvey}
+      onClose={() => setOpenEditDialog(false)}
+      onSave={handleSaveSurvey}
+      walletBalance={user.wallet?.balance ?? 0}
+    />
+  </>
+); // 👈 cierre del return
+} // 👈 cierre de la función
