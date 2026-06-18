@@ -8,24 +8,42 @@ import ResultsPage from "./components/ResultsPage";
 import { AuthProvider } from "./context/AuthContext";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import { getMe } from "./services/api";   // 👈 importa tu API
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);   // 👈 estado global de usuario
   const [logoutMessageOpen, setLogoutMessageOpen] = useState(false);
-  const navigate = useNavigate();   // ✅ ahora sí funciona porque App está dentro de BrowserRouter
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
+    if (token) {
+      setIsLoggedIn(true);
+      getMe(token)
+        .then(setUser)
+        .catch(() => {
+          localStorage.removeItem("token");
+          setIsLoggedIn(false);
+          setUser(null);
+        });
+    }
   }, []);
 
-  const handleLogin = () => setIsLoggedIn(true);
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    const token = localStorage.getItem("token");
+    if (token) {
+      getMe(token).then(setUser);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
-    setLogoutMessageOpen(true);   // 👈 abre Snackbar
-    navigate("/");                // 👈 redirige al login
+    setUser(null);   // 👈 limpia usuario
+    setLogoutMessageOpen(true);
+    navigate("/");   // 👈 redirige al login
   };
 
   return (
@@ -55,18 +73,14 @@ function App() {
 
         <Route
           path="/surveys"
-          element={
-            <MyPublishedSurveys
-              user={{ id: 1, nombre: "Sidney", rol: "sponsor", wallet: null }}
-            />
-          }
+          element={<MyPublishedSurveys user={user} />}
         />
 
         <Route
           path="/surveys/web/:survey_id/results"
           element={
             <ResultsPage
-              user={{ id: 1, nombre: "Sidney", rol: "sponsor", wallet: { balance: 9900 } }}
+              user={user}   // 👈 ahora sí existe
               handleLogout={handleLogout}
             />
           }

@@ -113,80 +113,73 @@ export default function MyPublishedSurveys({ user }: { user: User }) {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+  const [loading, setLoading] = useState(true);   // 👈 nuevo estado
   const navigate = useNavigate();
 
+  // -------------------
+  // fetchSurveys (GET encuestas publicadas)
+  // ------------------- 
+  const fetchSurveys = async () => {
+    try {
+      setLoading(true);   // 👈 activa loading
+      const token = localStorage.getItem("token");
 
-// -------------------
-// fetchSurveys (GET encuestas publicadas)
-// ------------------- 
+      if (!token) {
+        navigate("/login");
+        return;
+      }
 
-// 👉 Función para refrescar encuestas desde backend
-const fetchSurveys = async () => {
-  try {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      console.warn("No hay token, redirigiendo al login...");
-      navigate("/login");
-      return;
-    }
-
-    const res = await fetch(ENDPOINTS.surveys.publishedMine, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    // 👇 Manejo específico de token inválido
-    if (res.status === 401) {
-      console.error("Token inválido o expirado, redirigiendo al login...");
-      localStorage.removeItem("token"); // limpia token viejo
-      navigate("/login");
-      return;
-    }
-
-    const contentType = res.headers.get("content-type");
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Error ${res.status}: ${text}`);
-    }
-
-    if (contentType && contentType.includes("application/json")) {
-      const surveys: Survey[] = await res.json();
-      console.log("Encuestas recibidas:", surveys);
-
-      const movimientosActualizados: Movimiento[] = surveys.map((s: Survey) => ({
-        id: s.id,
-        monto: s.presupuesto_total ?? 0,
-        fecha: s.fecha_creacion ?? "",
-        survey: s,
-      }));
-
-      // 🔎 Depuración: imprime cada encuesta para revisar usuario_id y otros campos
-      movimientosActualizados.forEach((m, i) => {
-        console.log(`Movimiento ${i}:`, m.survey);
+      const res = await fetch(ENDPOINTS.surveys.publishedMine, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      // 👉 Mantener estado si la respuesta llega vacía
-      if (movimientosActualizados.length > 0) {
-        console.log("Actualizando movimientos con:", movimientosActualizados);
+      if (res.status === 401) {
+        console.error("Token inválido o expirado, redirigiendo al login...");
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
+      const contentType = res.headers.get("content-type");
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Error ${res.status}: ${text}`);
+      }
+
+      if (contentType && contentType.includes("application/json")) {
+        const surveys: Survey[] = await res.json();
+        console.log("Encuestas recibidas:", surveys);
+
+        const movimientosActualizados: Movimiento[] = surveys.map((s: Survey) => ({
+          id: s.id,
+          monto: s.presupuesto_total ?? 0,
+          fecha: s.fecha_creacion ?? "",
+          survey: s,
+        }));
+
         setMovimientos(movimientosActualizados);
       } else {
-        console.warn("Respuesta vacía, manteniendo estado actual");
+        const text = await res.text();
+        throw new Error(`Respuesta no JSON: ${text}`);
       }
-    } else {
-      const text = await res.text();
-      throw new Error(`Respuesta no JSON: ${text}`);
+    } catch (error) {
+      console.error("Error al cargar encuestas:", error);
+    } finally {
+      setLoading(false);   // 👈 desactiva loading siempre
     }
-  } catch (error) {
-    console.error("Error al cargar encuestas:", error);
-  }
-};
+  };
 
   useEffect(() => {
     fetchSurveys();
   }, []);
+
+  // 👇 render condicional
+  if (loading) {
+    return <Typography>Cargando encuestas...</Typography>;
+  }
 
   if (movimientos.length === 0) {
     return <Typography>No tienes encuestas publicadas aún.</Typography>;
