@@ -154,7 +154,9 @@ scheduler = BackgroundScheduler()
 def job_youtube():
     try:
         url = BASE_URL + "/api/youtube/diariolibre"
-        requests.get(url)
+        print("🚀 job_youtube disparado, URL:", url)
+        r = requests.get(url)
+        print("📡 job_youtube status:", r.status_code)
         print("✅ Encuestas de YouTube actualizadas")
     except Exception as e:
         print("❌ Error en job_youtube:", e)
@@ -162,29 +164,32 @@ def job_youtube():
 def job_rss():
     try:
         url = BASE_URL + "/api/rss/diariolibre"
-        requests.get(url)
+        print("🚀 job_rss disparado, URL:", url)
+        r = requests.get(url)
+        print("📡 job_rss status:", r.status_code)
         print("✅ Encuestas de RSS actualizadas")
     except Exception as e:
         print("❌ Error en job_rss:", e)
 
 def job_presupuesto():
     try:
+        print("🚀 job_presupuesto disparado")
         cerrar_encuestas_por_presupuesto()
         print("✅ Encuestas patrocinadas cerradas por presupuesto agotado")
     except Exception as e:
         print("❌ Error en job_presupuesto:", e)
 
-scheduler.add_job(job_youtube, "interval", hours=6)
-scheduler.add_job(job_rss, "interval", hours=6)
-scheduler.add_job(job_presupuesto, "interval", minutes=30)  # 👈 cada 30 minutos
+# Intervalos reducidos para probar más rápido
+scheduler.add_job(job_youtube, "interval", minutes=1)
+scheduler.add_job(job_rss, "interval", minutes=1)
+scheduler.add_job(job_presupuesto, "interval", minutes=2)
 scheduler.start()
 
 @app.on_event("startup")
 def startup_event():
-    scheduler.add_job(job_youtube, "date", run_date=datetime.utcnow() + timedelta(minutes=1))
-    scheduler.add_job(job_rss, "date", run_date=datetime.utcnow() + timedelta(minutes=1))
-    scheduler.add_job(job_presupuesto, "date", run_date=datetime.utcnow() + timedelta(minutes=2))
-
+    scheduler.add_job(job_youtube, "date", run_date=datetime.utcnow() + timedelta(seconds=10))
+    scheduler.add_job(job_rss, "date", run_date=datetime.utcnow() + timedelta(seconds=15))
+    scheduler.add_job(job_presupuesto, "date", run_date=datetime.utcnow() + timedelta(seconds=20))
 
 # -----------------------------
 # Adaptador para Cloud Functions
