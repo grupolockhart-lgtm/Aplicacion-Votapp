@@ -26,6 +26,9 @@ from votapp_app.tasks import cerrar_encuestas_por_presupuesto
 import cohere
 import traceback
 
+load_dotenv()  # 👈 esto carga las variables desde el archivo .env en la raíz del proyecto
+
+
 print(">>> Cohere SDK version en Render:", cohere.__version__)
 
 BASE_URL = os.getenv("APP_BASE_URL", "https://aplicacion-votapp-test.onrender.com")
