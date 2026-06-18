@@ -1,10 +1,9 @@
-// src/screens/DisponiblesScreen.tsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { FlatList, ViewToken } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import CountdownTimer from "@/components/CountdownTimer";
 import SurveyCard from "@/components/SurveyCard";
-import type { Survey } from "@/screens/SurveysScreen";  // 👈 Importamos el tipo único
+import type { Survey } from "@/screens/SurveysScreen";
 
 interface DisponiblesProps {
   surveys: Survey[];
@@ -32,49 +31,52 @@ export default function DisponiblesScreen({
 
   const viewabilityConfig = { itemVisiblePercentThreshold: 50 };
 
+  // 👇 Refresca automáticamente al volver a la pestaña
+  useFocusEffect(
+    useCallback(() => {
+      refreshSurveys();
+    }, [refreshSurveys])
+  );
+
   return (
     <FlatList
-      // 👇 Ordenamos por fecha_creacion DESC (más recientes primero)
       data={[...surveys].sort(
         (a, b) =>
           new Date(b.fecha_creacion ?? 0).getTime() -
           new Date(a.fecha_creacion ?? 0).getTime()
       )}
       keyExtractor={(item) => item.id.toString()}
-      renderItem={({ item }) => {
-
-        return (
-          <SurveyCard
-            survey={item}
-            globalMuted={globalMuted}
-            toggleMute={toggleMute}
-            badgeText={
-              item.tipo === "simple"
-                ? "📝 Encuesta Simple"
-                : item.patrocinada
-                ? `💰 Patrocinada - ${item.recompensa_puntos ?? 0} pts / $${item.recompensa_dinero ?? 0}`
-                : "⏳ Disponible"
-            }
-            isVisible={visibleIds.includes(item.id)}
-            onPress={() =>
-              (navigation as any).navigate("VoteScreen", {
-                surveyId: item.id,
-                surveyType: item.tipo,   // 👈 faltaba esto
-                title: item.title,
-                description: item.description,
-                questions: item.questions,
-                media_url: item.media_url,
-                media_urls: item.media_urls,
-                media_type: item.media_type,
-              })
-            }
-          >
-            {item.segundos_restantes !== undefined && (
-              <CountdownTimer segundosIniciales={item.segundos_restantes} />
-            )}
-          </SurveyCard>
-        );
-      }}
+      renderItem={({ item }) => (
+        <SurveyCard
+          survey={item}
+          globalMuted={globalMuted}
+          toggleMute={toggleMute}
+          badgeText={
+            item.tipo === "simple"
+              ? "📝 Encuesta Simple"
+              : item.patrocinada
+              ? `💰 Patrocinada - ${item.recompensa_puntos ?? 0} pts / $${item.recompensa_dinero ?? 0}`
+              : "⏳ Disponible"
+          }
+          isVisible={visibleIds.includes(item.id)}
+          onPress={() =>
+            (navigation as any).navigate("VoteScreen", {
+              surveyId: item.id,
+              surveyType: item.tipo,
+              title: item.title,
+              description: item.description,
+              questions: item.questions,
+              media_url: item.media_url,
+              media_urls: item.media_urls,
+              media_type: item.media_type,
+            })
+          }
+        >
+          {item.segundos_restantes !== undefined && (
+            <CountdownTimer segundosIniciales={item.segundos_restantes} />
+          )}
+        </SurveyCard>
+      )}
       onViewableItemsChanged={onViewableItemsChanged.current}
       viewabilityConfig={viewabilityConfig}
     />
