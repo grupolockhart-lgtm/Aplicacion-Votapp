@@ -174,7 +174,7 @@ export default function MyPublishedSurveys({ user }: { user: User }) {
 
   useEffect(() => {
     fetchSurveys();
-  }, [fetchSurveys]);
+  }, []);
 
   // 👇 render condicional
   if (loading) {
