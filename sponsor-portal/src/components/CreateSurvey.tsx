@@ -1,7 +1,7 @@
 // sponsor-portal/src/components/CreateSurvey.tsx
 
 import { useState } from "react";
-import { ENDPOINTS } from "../config/api";
+
 import { useAuth } from "../context/AuthContext";
 import {
   nacionalidades,
@@ -23,7 +23,7 @@ import {
   Checkbox,
   FormGroup,
   FormControlLabel,
-  Grid,
+  
   Select,
   MenuItem,
 } from "@mui/material";
@@ -58,7 +58,7 @@ export default function CreateSurvey({ onCreated }: CreateSurveyProps) {
   const [recompensaPuntos, setRecompensaPuntos] = useState(0);   // 👈 nuevo
   const [visibilidad, setVisibilidad] = useState("publica");
   const [files, setFiles] = useState<File[]>([]);
-  const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+  
   const [previewImages, setPreviewImages] = useState<{url: string, type: string}[]>([]);
 
   // Modo preview
@@ -113,10 +113,7 @@ const removePreview = (index: number) => {
   const [nacionalidadesSeleccionadas, setNacionalidadesSeleccionadas] = useState<string[]>([]);
   const [estadoCivilSeleccionado, setEstadoCivilSeleccionado] = useState<string[]>([]);
 
-  // Función para activar modo preview
-  const handlePreview = () => {
-    setPreviewMode(true);
-  };
+
 
 
 

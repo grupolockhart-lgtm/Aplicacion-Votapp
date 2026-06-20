@@ -15,17 +15,17 @@ import Layout from "./Layout";
 // Material UI
 // -------------------
 
-import AppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
+
+
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import Box from "@mui/material/Box";
-import LogoutIcon from "@mui/icons-material/Logout";
-import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+
+
+
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
+
+
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -93,19 +93,19 @@ interface DashboardProps {
 // Helper para formatear fecha
 // -------------------
 
-const formatFecha = (fecha?: string) => {
-  if (!fecha) return "Sin fecha";
-  try {
-    let fechaNormalizada = fecha;
-    if (!fecha.endsWith("Z") && !fecha.includes("+")) {
-      fechaNormalizada = fecha + "Z";
-    }
-    const parsed = new Date(fechaNormalizada);
-    return isNaN(parsed.getTime()) ? "Fecha inválida" : parsed.toLocaleString();
-  } catch {
-    return "Fecha inválida";
-  }
-};
+//const formatFecha = (fecha?: string) => {
+//  if (!fecha) return "Sin fecha";
+//  try {
+//    let fechaNormalizada = fecha;
+//    if (!fecha.endsWith("Z") && !fecha.includes("+")) {
+//      fechaNormalizada = fecha + "Z";
+//    }
+//    const parsed = new Date(fechaNormalizada);
+//    return isNaN(parsed.getTime()) ? "Fecha inválida" : parsed.toLocaleString();
+//  } catch {
+//    return "Fecha inválida";
+//  }
+//};
 
 
 // -------------------

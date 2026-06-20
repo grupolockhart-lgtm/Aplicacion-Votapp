@@ -135,6 +135,7 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
   // -------------------
   // Fetch resultados
   // -------------------
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const fetchResults = async () => {
       try {
