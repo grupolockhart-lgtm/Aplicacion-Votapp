@@ -3,7 +3,7 @@
 // Imports
 // -------------------
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Container,
   Card,
@@ -124,18 +124,18 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
   const navigate = useNavigate();
 
   // Construir query string desde filtros
-  const buildQueryString = () => {
+  const buildQueryString = useCallback(() => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, values]) => {
       values.forEach((v) => params.append(key, v));
     });
     return params.toString();
-  };
+  }, [filters]);
 
   // -------------------
   // Fetch resultados
   // -------------------
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const fetchResults = async () => {
       try {
@@ -156,16 +156,13 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
         }
 
         const data = await res.json();
-        console.log("Resultados completos:", data);
-        console.log("Segmentación de votos:", data.segmentacion_votos);
-
         setResults(data);
       } catch (err) {
         console.error("❌ Error cargando resultados:", err);
       }
     };
     fetchResults();
-  }, [surveyId, filters]);
+  }, [surveyId, filters, buildQueryString]);
 
   if (!results) {
     return <Typography>Cargando resultados...</Typography>;

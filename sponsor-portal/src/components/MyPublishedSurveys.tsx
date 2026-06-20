@@ -171,10 +171,10 @@ export default function MyPublishedSurveys({ user }: { user: User }) {
       setLoading(false);   // 👈 desactiva loading siempre
     }
   };
-// eslint-disable-next-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     fetchSurveys();
-  }, []);
+  }, [fetchSurveys]);
 
   // 👇 render condicional
   if (loading) {
