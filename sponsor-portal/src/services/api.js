@@ -1,7 +1,6 @@
+// sponsor-portal/src/services/api.js
 
-
-
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = "https://aplicacion-votapp.onrender.com/api"; // 👈 usar Render en producción
 
 export async function login(email, password) {
   const res = await fetch(`${API_URL}/users/login`, {
@@ -14,7 +13,8 @@ export async function login(email, password) {
     throw new Error(`Error en login: ${res.status}`);
   }
 
-  return await res.json(); // aquí recibes { access_token, token_type }
+  const data = await res.json();
+  return data; // { access_token, token_type }
 }
 
 export async function getMe(token) {
@@ -35,3 +35,5 @@ export async function getMe(token) {
     wallet: user.billetera || data.wallet || null
   };
 }
+
+
