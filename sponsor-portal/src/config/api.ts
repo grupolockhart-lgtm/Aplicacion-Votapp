@@ -15,6 +15,7 @@ export const ENDPOINTS = {
     register: `${API_URL}/users/register`,
   },
   surveys: {
+    base: `${API_URL}/surveys`,                 // 👈 nuevo base
     create: `${API_URL}/surveys`,
     upload: `${API_URL}/surveys/upload`,
     list: `${API_URL}/surveys`,

@@ -36,6 +36,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Box from "@mui/material/Box";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import { ENDPOINTS } from "../config/api";
 
 
 interface CreateSurveyProps {
@@ -264,7 +265,7 @@ async function handleSubmit(e: React.FormEvent) {
   }
 
   // Único fetch hacia /api/upload
-  const res = await fetch("http://localhost:8000/api/surveys/upload-survey", {
+  const res = await fetch(`${ENDPOINTS.surveys.upload}`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,

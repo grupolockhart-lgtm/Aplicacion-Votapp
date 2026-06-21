@@ -171,7 +171,7 @@ export default function MyPublishedSurveys({ user }: { user: User }) {
       setLoading(false);   // 👈 desactiva loading siempre
     }
   };
-  
+
 // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchSurveys();
@@ -263,7 +263,7 @@ const handleSaveSurvey = async (updatedSurvey: Survey) => {
       console.log("➡️", key, value);
     }
 
-    const res = await fetch(`http://localhost:8000/api/surveys/${mergedSurvey.id}`, {
+    const res = await fetch(`${ENDPOINTS.surveys.base}/${mergedSurvey.id}`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -302,7 +302,7 @@ const handlePauseSurvey = async (surveyId: number) => {
 
   try {
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:8000/api/surveys/${surveyId}/pause`, {
+    await fetch(`${ENDPOINTS.surveys.base}/${surveyId}/pause`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -335,7 +335,7 @@ const handleResumeSurvey = async (surveyId: number) => {
 
   try {
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:8000/api/surveys/${surveyId}/resume`, {
+    await fetch(`${ENDPOINTS.surveys.base}/${surveyId}/resume`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,

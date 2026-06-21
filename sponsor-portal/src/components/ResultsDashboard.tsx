@@ -16,6 +16,7 @@ import Grid from "@mui/material/Grid";
 import { VictoryPie, VictoryLine, VictoryAxis, VictoryChart, VictoryScatter } from "victory";
 import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
+import { ENDPOINTS } from "../config/api";
 
 // -------------------
 // Interfaces
@@ -141,7 +142,7 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
       try {
         const queryString = buildQueryString();
         const res = await fetch(
-          `http://localhost:8000/api/surveys/web/${surveyId}/results?${queryString}`,
+          `${ENDPOINTS.surveys.base}/web/${surveyId}/results?${queryString}`,
           {
             headers: {
               "Content-Type": "application/json",
