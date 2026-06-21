@@ -64,7 +64,10 @@ seed_logros()
 # -----------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # 👈 abre todo
+    allow_origins=[
+        "http://localhost:3000",                # desarrollo
+        "https://aplicacion-votapp.vercel.app"  # producción
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
