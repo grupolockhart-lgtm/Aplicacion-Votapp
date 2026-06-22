@@ -5,6 +5,9 @@ import { APP_BASE_URL } from "@env";
 // URL base dinámica según .env
 export const API_URL = `${APP_BASE_URL}/api`;
 
+console.log("🔍 API_URL en runtime:", API_URL);
+
+
 // Endpoints centralizados
 export const endpoints = {
   // Usuarios
