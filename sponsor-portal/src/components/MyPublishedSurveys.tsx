@@ -263,13 +263,12 @@ const handleSaveSurvey = async (updatedSurvey: Survey) => {
       console.log("➡️", key, value);
     }
 
-    const res = await fetch(`${ENDPOINTS.surveys.base}/${mergedSurvey.id}`, {
+    const res = await fetch(ENDPOINTS.surveys.update(mergedSurvey.id), {
       method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
+
 
     if (!res.ok) {
     const text = await res.text();
@@ -302,12 +301,11 @@ const handlePauseSurvey = async (surveyId: number) => {
 
   try {
     const token = localStorage.getItem("token");
-    await fetch(`${ENDPOINTS.surveys.base}/${surveyId}/pause`, {
+    await fetch(ENDPOINTS.surveys.pause(surveyId), {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
+
 
     setMovimientos((prev) =>
       prev.map((m) =>
@@ -335,12 +333,11 @@ const handleResumeSurvey = async (surveyId: number) => {
 
   try {
     const token = localStorage.getItem("token");
-    await fetch(`${ENDPOINTS.surveys.base}/${surveyId}/resume`, {
+    await fetch(ENDPOINTS.surveys.resume(surveyId), {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
+
 
     setMovimientos((prev) =>
       prev.map((m) =>

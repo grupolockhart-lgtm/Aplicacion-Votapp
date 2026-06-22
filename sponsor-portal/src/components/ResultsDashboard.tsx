@@ -142,7 +142,7 @@ export default function ResultsDashboard({ surveyId }: { surveyId: number }) {
       try {
         const queryString = buildQueryString();
         const res = await fetch(
-          `${ENDPOINTS.surveys.base}/web/${surveyId}/results?${queryString}`,
+          `${ENDPOINTS.surveys.resultsWeb(surveyId)}?${queryString}`,
           {
             headers: {
               "Content-Type": "application/json",

@@ -23,6 +23,14 @@ export const ENDPOINTS = {
     // ✅ Nuevo endpoint para encuestas publicadas del sponsor autenticado
     publishedMine: `${API_URL}/surveys/me/published`,
 
+    // ✅ Nuevo endpoint para resultados web
+    resultsWeb: (id: number) => `${API_URL}/surveys/web/${id}/results`,  
+    
+    // ✅ Nuevos helpers
+    update: (id: number) => `${API_URL}/surveys/${id}`,
+    pause: (id: number) => `${API_URL}/surveys/${id}/pause`,
+    resume: (id: number) => `${API_URL}/surveys/${id}/resume`,
+
   },
   notifications: {
     unreadCount: `${API_URL}/notifications/unread_count`,
