@@ -7,6 +7,8 @@ const API_BASE_URL =
 
 export const API_URL = `${API_BASE_URL}/api`;
 
+console.log("🔍 API_URL en runtime:", API_URL);
+
 // 👉 Endpoints centralizados
 export const ENDPOINTS = {
   users: {
