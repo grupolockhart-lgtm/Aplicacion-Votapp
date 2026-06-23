@@ -2,8 +2,7 @@
 
 // src/config/api.ts
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"; // fallback local
+const API_BASE_URL = "https://aplicacion-votapp.onrender.com";
 
 export const API_URL = `${API_BASE_URL}/api`;
 
