@@ -1,6 +1,6 @@
 // sponsor-portal/src/services/api.js
 
-const API_URL = "https://aplicacion-votapp.onrender.com/api"; // 👈 usar Render en producción
+import { API_URL } from "../config/api";  // 👈 ahora viene de config/api.ts
 
 export async function login(email, password) {
   const res = await fetch(`${API_URL}/users/login`, {
