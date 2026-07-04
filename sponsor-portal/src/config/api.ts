@@ -18,7 +18,7 @@ export const ENDPOINTS = {
   surveys: {
     base: `${API_URL}/surveys`,                 // 👈 nuevo base
     create: `${API_URL}/surveys`,
-    upload: `${API_URL}/surveys/upload`,
+    upload: `${API_URL}/surveys/upload-survey`,
     list: `${API_URL}/surveys`,
 
     // ✅ Nuevo endpoint para encuestas publicadas del sponsor autenticado
