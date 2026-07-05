@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "sdkVersion": "54.0.0",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "sdkVersion"
     },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
