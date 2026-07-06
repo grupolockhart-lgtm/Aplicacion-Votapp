@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "sdkVersion": "54.0.0",
     "runtimeVersion": {
-      "policy": "sdkVersion"
+      "policy": "appVersion"
     },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -24,7 +24,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.kingkongrd.votappmobile"
     },
     "web": {
       "output": "static",
