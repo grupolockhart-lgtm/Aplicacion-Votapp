@@ -11,7 +11,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "votappmobile",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "jsEngine": "jsc",
     "ios": {
       "supportsTablet": true
