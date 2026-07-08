@@ -133,16 +133,23 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
 # -----------------------------
 # Registro de Sponsor
 # -----------------------------
+from fastapi.responses import JSONResponse
+
 @router.post("/register_sponsor")
 def register_sponsor(data: schemas.SponsorRegisterSchema, db: Session = Depends(database.get_db)):
 
+    # Validación de correo duplicado
     existing_user = db.query(models.Usuario).filter(models.Usuario.correo == data.email).first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="El correo ya está registrado")
+        return JSONResponse(
+            status_code=400,
+            content={"error": "El correo ya está registrado", "field": "email"}
+        )
 
+    # Crear sponsor
     sponsor = models.Usuario(
         nombre=data.companyName,
-        company_name=data.companyName,   # 👈 guarda también en la columna nueva
+        company_name=data.companyName,   # 👈 ahora sí existe en la tabla
         correo=data.email,
         contrasena_hash=hash_password(data.password),
         telefono_movil=data.phone,
@@ -169,6 +176,7 @@ def register_sponsor(data: schemas.SponsorRegisterSchema, db: Session = Depends(
     db.add(perfil)
     db.commit()
 
+    # token de acceso
     token = create_access_token({"sub": str(sponsor.id)})
     return {"access_token": token, "token_type": "bearer"}
 

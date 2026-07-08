@@ -16,18 +16,27 @@ interface RegisterSponsorProps {
   onRegister: () => void;
 }
 
+interface FieldErrors {
+  email?: string;
+  companyName?: string;
+  password?: string;
+  phone?: string;
+  rnc?: string;
+  general?: string;
+}
+
 export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [rnc, setRnc] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setErrors({});
     setLoading(true);
 
     try {
@@ -43,10 +52,21 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
         localStorage.setItem("token", data.access_token);
         onRegister(); // 👈 activa el estado en App.js y redirige al dashboard
       } else {
-        setError("Error en el registro o respuesta inesperada.");
+        setErrors({ general: "Error en el registro o respuesta inesperada." });
       }
-    } catch (err) {
-      setError("Error al registrarse. Intenta de nuevo.");
+    } catch (err: any) {
+      if (err.response && err.response.data) {
+        const backendError = err.response.data.error || err.response.data.detail;
+        const field = err.response.data.field;
+
+        if (field) {
+          setErrors({ [field]: backendError });
+        } else {
+          setErrors({ general: backendError || "Error al registrarse. Intenta de nuevo." });
+        }
+      } else {
+        setErrors({ general: "Error al registrarse. Intenta de nuevo." });
+      }
     } finally {
       setLoading(false);
     }
@@ -85,6 +105,8 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
             onChange={(e) => setCompanyName(e.target.value)}
             InputLabelProps={{ shrink: true }}
             autoComplete="organization"
+            error={Boolean(errors.companyName)}
+            helperText={errors.companyName}
           />
           <TextField
             label="Correo electrónico"
@@ -95,6 +117,8 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
             onChange={(e) => setEmail(e.target.value)}
             InputLabelProps={{ shrink: true }}
             autoComplete="email"
+            error={Boolean(errors.email)}
+            helperText={errors.email}
           />
           <TextField
             label="Contraseña"
@@ -105,6 +129,8 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
             onChange={(e) => setPassword(e.target.value)}
             InputLabelProps={{ shrink: true }}
             autoComplete="new-password"
+            error={Boolean(errors.password)}
+            helperText={errors.password}
           />
           <TextField
             label="Teléfono (opcional)"
@@ -114,6 +140,8 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
             onChange={(e) => setPhone(e.target.value)}
             InputLabelProps={{ shrink: true }}
             autoComplete="tel"
+            error={Boolean(errors.phone)}
+            helperText={errors.phone}
           />
           <TextField
             label="RNC / Identificación fiscal (opcional)"
@@ -123,11 +151,13 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
             onChange={(e) => setRnc(e.target.value)}
             InputLabelProps={{ shrink: true }}
             autoComplete="off"
+            error={Boolean(errors.rnc)}
+            helperText={errors.rnc}
           />
 
-          {error && (
+          {errors.general && (
             <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-              {error}
+              {errors.general}
             </Typography>
           )}
 
