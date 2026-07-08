@@ -134,7 +134,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
 # Registro de Sponsor
 # -----------------------------
 @router.post("/register_sponsor")
-def register_sponsor(data: SponsorRegisterSchema, db: Session = Depends(database.get_db)):
+def register_sponsor(data: schemas.SponsorRegisterSchema, db: Session = Depends(database.get_db)):
+
     existing_user = db.query(models.Usuario).filter(models.Usuario.correo == data.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="El correo ya está registrado")
