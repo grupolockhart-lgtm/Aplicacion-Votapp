@@ -75,6 +75,8 @@ export default function Login({ onLogin }: LoginProps) {
             margin="normal"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            autoComplete="username"
           />
           <TextField
             label="Contraseña"
@@ -83,6 +85,8 @@ export default function Login({ onLogin }: LoginProps) {
             margin="normal"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            autoComplete="current-password"
           />
 
           {error && (

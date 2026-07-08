@@ -5,14 +5,15 @@ import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import MyPublishedSurveys from "./components/MyPublishedSurveys";
 import ResultsPage from "./components/ResultsPage";
+import RegisterSponsor from "./components/RegisterSponsor";   // 👈 nuevo import
 import { AuthProvider } from "./context/AuthContext";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
-import { getMe } from "./services/api";   // 👈 importa tu API
+import { getMe } from "./services/api";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);   // 👈 estado global de usuario
+  const [user, setUser] = useState(null);
   const [logoutMessageOpen, setLogoutMessageOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -41,9 +42,9 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
-    setUser(null);   // 👈 limpia usuario
+    setUser(null);
     setLogoutMessageOpen(true);
-    navigate("/");   // 👈 redirige al login
+    navigate("/");
   };
 
   return (
@@ -80,14 +81,19 @@ function App() {
           path="/surveys/web/:survey_id/results"
           element={
             <ResultsPage
-              user={user}   // 👈 ahora sí existe
+              user={user}
               handleLogout={handleLogout}
             />
           }
         />
+
+        {/* 👇 nueva ruta para sponsor */}
+        <Route
+          path="/sponsor/register"
+          element={<RegisterSponsor />}
+        />
       </Routes>
 
-      {/* Snackbar para mensaje de logout */}
       <Snackbar
         open={logoutMessageOpen}
         autoHideDuration={3000}
@@ -103,4 +109,3 @@ function App() {
 }
 
 export default App;
-

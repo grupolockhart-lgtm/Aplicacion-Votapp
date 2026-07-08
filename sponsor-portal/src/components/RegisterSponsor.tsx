@@ -83,6 +83,8 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
             margin="normal"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            autoComplete="organization"
           />
           <TextField
             label="Correo electrónico"
@@ -91,6 +93,8 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
             margin="normal"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            autoComplete="email"
           />
           <TextField
             label="Contraseña"
@@ -99,6 +103,8 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
             margin="normal"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            autoComplete="new-password"
           />
           <TextField
             label="Teléfono (opcional)"
@@ -106,6 +112,8 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
             margin="normal"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            autoComplete="tel"
           />
           <TextField
             label="RNC / Identificación fiscal (opcional)"
@@ -113,6 +121,8 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
             margin="normal"
             value={rnc}
             onChange={(e) => setRnc(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            autoComplete="off"
           />
 
           {error && (
@@ -138,3 +148,4 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
     </Box>
   );
 }
+
