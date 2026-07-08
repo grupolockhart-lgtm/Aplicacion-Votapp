@@ -61,7 +61,8 @@
       }
     },
     "updates": {
-      "url": "https://u.expo.dev/cf2d55f1-9360-4cfb-b5f6-e23dc913a824"
+      "url": "https://u.expo.dev/cf2d55f1-9360-4cfb-b5f6-e23dc913a824",
+      "useAssetRequestHeaders": false
     }
   }
 }
