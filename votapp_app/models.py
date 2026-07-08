@@ -37,6 +37,10 @@ class Usuario(Base):
     # 👇 cambio importante: sin ñ
     contrasena_hash = Column(String, nullable=False)
 
+     # 👇 nuevas columnas
+    company_name = Column(String, nullable=True)
+    rnc = Column(String, nullable=True)   
+
     # Datos personales
     cedula = Column(String, unique=True, index=True, nullable=True)
     telefono_movil = Column(String, nullable=True)
