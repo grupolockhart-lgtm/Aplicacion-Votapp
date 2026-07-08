@@ -1,7 +1,10 @@
 // sponsor-portal/src/services/api.js
 
-import { API_URL } from "../config/api";  // 👈 ahora viene de config/api.ts
+import { API_URL } from "../config/api";  // 👈 viene de config/api.ts
 
+// -----------------------------
+// Login de Sponsor
+// -----------------------------
 export async function login(email, password) {
   const res = await fetch(`${API_URL}/users/login`, {
     method: "POST",
@@ -17,6 +20,9 @@ export async function login(email, password) {
   return data; // { access_token, token_type }
 }
 
+// -----------------------------
+// Obtener datos del usuario
+// -----------------------------
 export async function getMe(token) {
   const res = await fetch(`${API_URL}/users/me`, {
     headers: { Authorization: `Bearer ${token}` }
@@ -34,6 +40,23 @@ export async function getMe(token) {
     ...user,
     wallet: user.billetera || data.wallet || null
   };
+}
+
+// -----------------------------
+// Registro de Sponsor
+// -----------------------------
+export async function registerSponsor(payload) {
+  const res = await fetch(`${API_URL}/users/register_sponsor`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    throw new Error(`Error en registro de sponsor: ${res.status}`);
+  }
+
+  return await res.json(); // { access_token, token_type }
 }
 
 

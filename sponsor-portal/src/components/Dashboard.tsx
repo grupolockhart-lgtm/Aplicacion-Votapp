@@ -1,6 +1,5 @@
 // sponsor-portal/src/components/Dashboard.tsx
 
-
 // -------------------
 // Imports
 // -------------------
@@ -15,17 +14,10 @@ import Layout from "./Layout";
 // Material UI
 // -------------------
 
-
-
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-
-
-
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-
-
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -38,7 +30,7 @@ import { useLocation } from "react-router-dom";
 
 interface Survey {
   id: number;
-  usuario_id: number;   // 👈 agrega este campo 
+  usuario_id: number;   // 👈 agregado
   title: string;
   description: string;
   fecha_expiracion: string;
@@ -80,6 +72,7 @@ interface Wallet {
 interface User {
   id: number;
   nombre: string;
+  company_name?: string;   // 👈 nuevo campo
   rol: string;
   wallet: Wallet | null;
 }
@@ -87,26 +80,6 @@ interface User {
 interface DashboardProps {
   onLogout: () => void;
 }
-
-
-// -------------------
-// Helper para formatear fecha
-// -------------------
-
-//const formatFecha = (fecha?: string) => {
-//  if (!fecha) return "Sin fecha";
-//  try {
-//    let fechaNormalizada = fecha;
-//    if (!fecha.endsWith("Z") && !fecha.includes("+")) {
-//      fechaNormalizada = fecha + "Z";
-//    }
-//    const parsed = new Date(fechaNormalizada);
-//    return isNaN(parsed.getTime()) ? "Fecha inválida" : parsed.toLocaleString();
-//  } catch {
-//    return "Fecha inválida";
-//  }
-//};
-
 
 // -------------------
 // Componente principal
@@ -140,7 +113,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     refreshUser();
   }, []);
 
-   // 👇 nuevo efecto para abrir la pestaña correcta
+  // 👇 nuevo efecto para abrir la pestaña correcta
   useEffect(() => {
     if (location.state?.tab !== undefined) {
       setTab(location.state.tab);
@@ -148,7 +121,6 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   }, [location.state]); 
 
   if (!user) return <p>Cargando...</p>;
-
 
   // -------------------
   // Confirm logout
@@ -159,63 +131,69 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     onLogout();
   };
 
-// -------------------
-// Render principal
-// -------------------
-return (
-  <Layout user={user} onLogout={() => setOpenDialog(true)}>
-    {/* -------------------
-        Diálogo de confirmación
-    ------------------- */}
-    <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-      <DialogTitle>Confirmar cierre de sesión</DialogTitle>
-      <DialogContent>
-        <Typography>¿Seguro que quieres cerrar sesión?</Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
-        <Button color="error" onClick={confirmLogout}>
-          Cerrar sesión
-        </Button>
-      </DialogActions>
-    </Dialog>
+  // -------------------
+  // Render principal
+  // -------------------
+  return (
+    <Layout user={user} onLogout={() => setOpenDialog(true)}>
+      {/* -------------------
+          Diálogo de confirmación
+      ------------------- */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+        <DialogTitle>Confirmar cierre de sesión</DialogTitle>
+        <DialogContent>
+          <Typography>¿Seguro que quieres cerrar sesión?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
+          <Button color="error" onClick={confirmLogout}>
+            Cerrar sesión
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-    {/* -------------------
-        Tabs
-    ------------------- */}
-    {user.rol === "sponsor" && user.wallet ? (
-      <>
-        <Tabs
-          value={tab}
-          onChange={(e, newVal) => setTab(newVal)}
-          sx={{ mb: 3 }}
-        >
-          <Tab label="Crear encuesta" />
-          <Tab label="Mis encuestas publicadas" />
-        </Tabs>
+      {/* -------------------
+          Tabs
+      ------------------- */}
+      {user.rol === "sponsor" && user.wallet ? (
+        <>
+          {/* 👇 Mostrar nombre de sponsor */}
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Bienvenido {user.company_name ?? user.nombre}
+          </Typography>
 
-        {/* -------------------
-            Contenido de pestañas
-        ------------------- */}
+          <Tabs
+            value={tab}
+            onChange={(e, newVal) => setTab(newVal)}
+            sx={{ mb: 3 }}
+          >
+            <Tab label="Crear encuesta" />
+            <Tab label="Mis encuestas publicadas" />
+          </Tabs>
 
-        {/* Tab 0 - Crear Encuestas */}
-        {tab === 0 && <CreateSurvey onCreated={refreshUser} />}
+          {/* -------------------
+              Contenido de pestañas
+          ------------------- */}
 
-        {/* Tab 1 - Mis encuestas publicadas */}
-        {tab === 1 && (
-          <>
-            <Typography variant="h5" sx={{ mb: 2 }}>
-              Encuestas patrocinadas
-            </Typography>
-            <MyPublishedSurveys user={user} />
-          </>
-        )}
-      </>
-    ) : (
-      <p>
-        Este es tu panel de usuario. No tienes wallet ni encuestas patrocinadas.
-      </p>
-    )}
-  </Layout>
-);
+          {/* Tab 0 - Crear Encuestas */}
+          {tab === 0 && <CreateSurvey onCreated={refreshUser} />}
+
+          {/* Tab 1 - Mis encuestas publicadas */}
+          {tab === 1 && (
+            <>
+              <Typography variant="h5" sx={{ mb: 2 }}>
+                Encuestas patrocinadas
+              </Typography>
+              <MyPublishedSurveys user={user} />
+            </>
+          )}
+        </>
+      ) : (
+        <p>
+          Este es tu panel de usuario. No tienes wallet ni encuestas patrocinadas.
+        </p>
+      )}
+    </Layout>
+  );
 }
+

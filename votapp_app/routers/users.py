@@ -119,6 +119,77 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     return db_user
 
 
+
+
+
+
+
+
+
+
+
+
+# -----------------------------
+# Registro de Sponsor
+# -----------------------------
+@router.post("/register_sponsor", response_model=schemas.UserOut)
+def register_sponsor(data: schemas.SponsorRegisterSchema, db: Session = Depends(database.get_db)):
+    existing_user = db.query(models.Usuario).filter(models.Usuario.correo == data.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="El correo ya está registrado")
+
+    sponsor = models.Usuario(
+        nombre=data.companyName,   # 👈 puedes mapearlo a nombre/razón social
+        correo=data.email,
+        contrasena_hash=hash_password(data.password),
+        telefono_movil=data.phone,
+        rol="sponsor",
+        rnc=data.rnc
+    )
+    db.add(sponsor)
+    db.commit()
+    db.refresh(sponsor)
+
+    # 👇 Crear billetera inicial
+    wallet = models.Wallet(usuario_id=sponsor.id, balance=0)
+    db.add(wallet)
+    db.commit()
+    db.refresh(wallet)
+
+    # 👇 Crear perfil público inicial (opcional, si sponsors también tienen perfil)
+    perfil = models.PerfilPublico(
+        usuario_id=sponsor.id,
+        alias=data.companyName,
+        avatar_url=None,
+        bio=None,
+        puntos=0,
+        nivel=1,
+        racha_dias=0,
+        ultima_participacion=None
+    )
+    db.add(perfil)
+    db.commit()
+    db.refresh(perfil)
+
+    # Generar token
+    token = create_access_token({"sub": str(sponsor.id)})
+    return {"access_token": token, "token_type": "bearer"}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # -----------------------------
 # Login de usuarios
 # -----------------------------

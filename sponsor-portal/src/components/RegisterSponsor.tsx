@@ -1,7 +1,7 @@
-// sponsor-portal/src/components/Login.tsx
+// sponsor-portal/src/components/RegisterSponsor.tsx
 
 import { useState } from "react";
-import { login } from "../services/api";
+import { registerSponsor } from "../services/api"; // 👈 función definida en api.js
 import {
   Box,
   Button,
@@ -10,15 +10,18 @@ import {
   Paper,
   CircularProgress
 } from "@mui/material";
-import LoginIcon from "@mui/icons-material/Login";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 
-interface LoginProps {
-  onLogin: () => void;
+interface RegisterSponsorProps {
+  onRegister: () => void;
 }
 
-export default function Login({ onLogin }: LoginProps) {
+export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
+  const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [rnc, setRnc] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,16 +31,22 @@ export default function Login({ onLogin }: LoginProps) {
     setLoading(true);
 
     try {
-      const data = await login(email, password);
+      const data = await registerSponsor({
+        companyName,
+        email,
+        password,
+        phone,
+        rnc
+      });
 
       if (data.access_token) {
         localStorage.setItem("token", data.access_token);
-        onLogin();   // 👈 activa el estado en App.js
+        onRegister(); // 👈 activa el estado en App.js y redirige al dashboard
       } else {
-        setError("Credenciales inválidas o respuesta inesperada.");
+        setError("Error en el registro o respuesta inesperada.");
       }
     } catch (err) {
-      setError("Error al iniciar sesión. Intenta de nuevo.");
+      setError("Error al registrarse. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -53,7 +62,7 @@ export default function Login({ onLogin }: LoginProps) {
         bgcolor: "#f5f5f5"
       }}
     >
-      <Paper elevation={4} sx={{ p: 4, width: 400, textAlign: "center" }}>
+      <Paper elevation={4} sx={{ p: 4, width: 450, textAlign: "center" }}>
         {/* 👇 Logo desde public/assets */}
         <Box sx={{ mb: 2 }}>
           <img
@@ -64,10 +73,17 @@ export default function Login({ onLogin }: LoginProps) {
         </Box>
 
         <Typography variant="h5" gutterBottom>
-          Portal de Sponsors
+          Registro de Sponsor
         </Typography>
 
         <form onSubmit={handleSubmit}>
+          <TextField
+            label="Nombre / Razón social"
+            fullWidth
+            margin="normal"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+          />
           <TextField
             label="Correo electrónico"
             type="email"
@@ -84,6 +100,20 @@ export default function Login({ onLogin }: LoginProps) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          <TextField
+            label="Teléfono (opcional)"
+            fullWidth
+            margin="normal"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+          <TextField
+            label="RNC / Identificación fiscal (opcional)"
+            fullWidth
+            margin="normal"
+            value={rnc}
+            onChange={(e) => setRnc(e.target.value)}
+          />
 
           {error && (
             <Typography color="error" variant="body2" sx={{ mt: 1 }}>
@@ -98,26 +128,13 @@ export default function Login({ onLogin }: LoginProps) {
               color="primary"
               disabled={loading}
               fullWidth
-              startIcon={loading ? null : <LoginIcon />}
+              startIcon={loading ? null : <PersonAddIcon />}
             >
-              {loading ? <CircularProgress size={24} /> : "Entrar"}
+              {loading ? <CircularProgress size={24} /> : "Registrarse"}
             </Button>
           </Box>
         </form>
-
-        {/* 👇 Botón para registro de sponsors */}
-        <Box sx={{ mt: 2 }}>
-          <Button
-            variant="outlined"
-            color="secondary"
-            fullWidth
-            onClick={() => (window.location.href = "/sponsor/register")}
-          >
-            Registrarse como Sponsor
-          </Button>
-        </Box>
       </Paper>
     </Box>
   );
 }
-

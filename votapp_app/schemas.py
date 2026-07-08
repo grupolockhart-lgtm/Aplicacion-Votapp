@@ -126,6 +126,10 @@ class Usuario(Base):
     ciudad = Column(String, nullable=True)
     estado_civil = Column(String, nullable=True)
 
+     # 👇 Nuevos campos para sponsors
+    company_name = Column(String, nullable=True)
+    rnc = Column(String, nullable=True)   
+
     # Gamificación / rol
     puntos = Column(Integer, default=0)
     rol = Column(String, default="user")
@@ -630,7 +634,17 @@ class WalletOut(BaseModel):
 
 
 
+# -----------------------------
+# Schema: Registro de Sponsor
+# -----------------------------
 
+
+class SponsorRegisterSchema(BaseModel):
+    companyName: str
+    email: EmailStr
+    password: str
+    phone: Optional[str] = None
+    rnc: Optional[str] = None
 
 
 
