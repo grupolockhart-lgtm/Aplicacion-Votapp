@@ -52,11 +52,14 @@ export async function registerSponsor(payload) {
     body: JSON.stringify(payload)
   });
 
+  const data = await res.json();
+
   if (!res.ok) {
-    throw new Error(`Error en registro de sponsor: ${res.status}`);
+    // 👇 devolvemos el JSON de error para que el frontend lo maneje
+    throw { response: { data } };
   }
 
-  return await res.json(); // { access_token, token_type }
+  return data; // { access_token, token_type }
 }
 
 
