@@ -47,6 +47,16 @@ function App() {
     navigate("/");
   };
 
+  // 👇 nueva función para manejar registro exitoso
+  const handleRegister = () => {
+    setIsLoggedIn(true);
+    const token = localStorage.getItem("token");
+    if (token) {
+      getMe(token).then(setUser);
+    }
+    navigate("/dashboard"); // redirige al dashboard
+  };
+
   return (
     <AuthProvider>
       <Routes>
@@ -87,10 +97,10 @@ function App() {
           }
         />
 
-        {/* 👇 nueva ruta para sponsor */}
+        {/* 👇 nueva ruta para sponsor con onRegister */}
         <Route
           path="/sponsor/register"
-          element={<RegisterSponsor />}
+          element={<RegisterSponsor onRegister={handleRegister} />}
         />
       </Routes>
 

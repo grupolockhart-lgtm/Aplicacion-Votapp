@@ -48,13 +48,27 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
         rnc
       });
 
+      console.log("Respuesta backend:", data);
+
       if (data.access_token) {
         localStorage.setItem("token", data.access_token);
-        onRegister(); // 👈 activa el estado en App.js y redirige al dashboard
+        setErrors({}); // limpia cualquier error previo
+        onRegister();   // redirige al dashboard
+        return;         // evita que siga evaluando y setee error
+      }
+
+      if (data.error) {
+        const field = data.field;
+        if (field) {
+          setErrors({ [field]: data.error });
+        } else {
+          setErrors({ general: data.error });
+        }
       } else {
         setErrors({ general: "Error en el registro o respuesta inesperada." });
       }
     } catch (err: any) {
+      console.error("Error en frontend:", err);
       if (err.response && err.response.data) {
         const backendError = err.response.data.error || err.response.data.detail;
         const field = err.response.data.field;
@@ -83,7 +97,6 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
       }}
     >
       <Paper elevation={4} sx={{ p: 4, width: 450, textAlign: "center" }}>
-        {/* 👇 Logo desde public/assets */}
         <Box sx={{ mb: 2 }}>
           <img
             src="/assets/logo.png"
@@ -156,9 +169,12 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
           />
 
           {errors.general && (
-            <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-              {errors.general}
-            </Typography>
+            <>
+              {console.log("Renderizando error general:", errors.general)}
+              <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                {errors.general}
+              </Typography>
+            </>
           )}
 
           <Box sx={{ mt: 2 }}>
@@ -178,4 +194,3 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
     </Box>
   );
 }
-
