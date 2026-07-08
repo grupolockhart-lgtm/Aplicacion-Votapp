@@ -131,14 +131,28 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
 
 
 # -----------------------------
-# Registro de Sponsor
+# Registro de Sponsor con validaciones
 # -----------------------------
 from fastapi.responses import JSONResponse
 
 @router.post("/register_sponsor")
 def register_sponsor(data: schemas.SponsorRegisterSchema, db: Session = Depends(database.get_db)):
 
-    # Validación de correo duplicado
+    # Validación: nombre vacío
+    if not data.companyName.strip():
+        return JSONResponse(
+            status_code=400,
+            content={"error": "La razón social es obligatoria", "field": "companyName"}
+        )
+
+    # Validación: contraseña muy corta
+    if len(data.password) < 6:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "La contraseña debe tener al menos 6 caracteres", "field": "password"}
+        )
+
+    # Validación: correo duplicado
     existing_user = db.query(models.Usuario).filter(models.Usuario.correo == data.email).first()
     if existing_user:
         return JSONResponse(
@@ -149,7 +163,7 @@ def register_sponsor(data: schemas.SponsorRegisterSchema, db: Session = Depends(
     # Crear sponsor
     sponsor = models.Usuario(
         nombre=data.companyName,
-        company_name=data.companyName,   # 👈 ahora sí existe en la tabla
+        company_name=data.companyName,
         correo=data.email,
         contrasena_hash=hash_password(data.password),
         telefono_movil=data.phone,
