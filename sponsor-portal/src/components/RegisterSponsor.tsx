@@ -37,6 +37,21 @@ export default function RegisterSponsor({ onRegister }: RegisterSponsorProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
+
+  // Validación frontend antes de enviar
+  if (!email || !email.includes("@")) {
+    setErrors({ email: "Debes ingresar un correo válido con @" });
+    return;
+  }
+  if (!companyName.trim()) {
+    setErrors({ companyName: "El nombre de la empresa es obligatorio" });
+    return;
+  }
+  if (password.length < 6) {
+    setErrors({ password: "La contraseña debe tener al menos 6 caracteres" });
+    return;
+  }
+
     setLoading(true);
 
     try {

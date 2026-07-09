@@ -305,7 +305,11 @@ async function handleSubmit(e: React.FormEvent) {
     setSnackbarSeverity("success");
     setOpenSnackbar(true);
   } else {
-    setSnackbarMessage("❌ Error al crear encuesta");
+    const errorData = await res.json().catch(() => null);
+    console.error("❌ Error backend:", errorData);
+
+    const backendError = errorData?.error || errorData?.detail || "Error al crear encuesta";
+    setSnackbarMessage(backendError);
     setSnackbarSeverity("error");
     setOpenSnackbar(true);
   }

@@ -160,9 +160,12 @@ def job_youtube():
         print("🚀 job_youtube disparado, URL:", url)
         r = requests.get(url)
         print("📡 job_youtube status:", r.status_code)
-        print("✅ Encuestas de YouTube actualizadas")
+        if r.status_code == 200:
+            print("✅ Encuestas de YouTube actualizadas")
+        else:
+            print("❌ Error en job_youtube:", r.text)
     except Exception as e:
-        print("❌ Error en job_youtube:", e)
+        print("❌ Excepción en job_youtube:", e)
 
 def job_rss():
     try:
@@ -170,9 +173,13 @@ def job_rss():
         print("🚀 job_rss disparado, URL:", url)
         r = requests.get(url)
         print("📡 job_rss status:", r.status_code)
-        print("✅ Encuestas de RSS actualizadas")
+        if r.status_code == 200:
+            print("✅ Encuestas de RSS actualizadas")
+        else:
+            print("❌ Error en job_rss:", r.text)
     except Exception as e:
-        print("❌ Error en job_rss:", e)
+        print("❌ Excepción en job_rss:", e)
+
 
 def job_presupuesto():
     try:
@@ -183,8 +190,8 @@ def job_presupuesto():
         print("❌ Error en job_presupuesto:", e)
 
 # Intervalos reducidos para probar más rápido
-scheduler.add_job(job_youtube, "interval", minutes=1)
-scheduler.add_job(job_rss, "interval", minutes=1)
+scheduler.add_job(job_youtube, "interval", hours=8)
+scheduler.add_job(job_rss, "interval", hours=8)
 scheduler.add_job(job_presupuesto, "interval", minutes=2)
 scheduler.start()
 
