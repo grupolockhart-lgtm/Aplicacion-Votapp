@@ -192,7 +192,7 @@ def job_presupuesto():
 # Intervalos reducidos para probar más rápido
 scheduler.add_job(job_youtube, "interval", hours=8)
 scheduler.add_job(job_rss, "interval", hours=8)
-scheduler.add_job(job_presupuesto, "interval", minutes=2)
+scheduler.add_job(job_presupuesto, "interval", hours=8)
 scheduler.start()
 
 @app.on_event("startup")
